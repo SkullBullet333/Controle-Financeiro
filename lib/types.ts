@@ -1,50 +1,67 @@
 export type Status = 'Pago' | 'Em aberto' | 'Vencida' | 'Hoje';
 
 export interface Titular {
-  linha: number;
+  id: number;
   nome: string;
   foto?: string;
 }
 
 export interface Categoria {
-  linha: number;
+  id: number;
   label: string;
   keywords: string;
 }
 
 export interface CartaoConfig {
-  linha: number;
-  nome: string;
-  titular: string;
-  diaVencimento: number;
-  diaFechamento: number;
+  id: number;
+  nome_cartao: string;
+  titular_id: number;
+  dia_vencimento: number;
+  dia_fechamento: number;
+}
+
+export interface CartaoTransacao {
+  id: number;
+  cartao_id: number;
+  descricao: string;
+  categoria_id?: number;
+  valor: number;
+  parcela_atual: number;
+  parcela_total: number;
+  vencimento_original: string;
+  competencia: string;
+  simulada: boolean;
 }
 
 export interface Despesa {
-  linha: number;
+  id: number;
   descricao: string;
-  categoria: string;
+  categoria_id?: number;
   valor: number;
-  parcela: string;
+  parcela_atual: number;
+  parcela_total: number;
   vencimento: string;
-  vencimentoIso: string;
-  competencia: string;
   status: Status;
-  titular: string;
-  cartao?: string;
+  titular_id: number;
+  cartao_vencimento_id?: number;
+  competencia: string;
   simulada: boolean;
   isSummary?: boolean;
 }
 
 export interface Receita {
-  linha: number;
+  id: number;
   descricao: string;
   valor: number;
-  parcelas: string;
-  recebimento: string;
+  data_recebimento: string;
+  titular_id: number;
   competencia: string;
-  titular: string;
   simulada: boolean;
+}
+
+export interface Nota {
+  user_id: string;
+  conteudo: string;
 }
 
 export interface ConfigApp {

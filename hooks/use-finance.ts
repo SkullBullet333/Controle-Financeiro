@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, Categoria } from '@/lib/types';
-import { MOCK_DESPESAS, MOCK_RECEITAS, MOCK_CONFIG } from '@/lib/mock-data';
+import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, Categoria, CartaoTransacao, Nota } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -8,38 +7,16 @@ export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [cartaoTransacoes, setCartaoTransacoes] = useState<CartaoTransacao[]>([]);
   const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [], categorias: [] });
+  const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
-  const [workspaces, setWorkspaces] = useState<{ owner_id: string, owner_email: string }[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
 
-  const fetchWorkspaces = useCallback(async (userId: string, email: string) => {
-    // Fetch memberships
-    const { data: memberships } = await supabase
-      .from('workspace_members')
-      .select('owner_id')
-      .eq('member_id', userId);
-    
-    // Fetch invites
-    const { data: invites } = await supabase
-      .from('workspace_invites')
-      .select('*')
-      .eq('invitee_email', email)
-      .eq('status', 'pending');
-    
-    if (invites) setPendingInvites(invites);
-
-    if (memberships) {
-      setWorkspaces(memberships.map(m => ({ owner_id: m.owner_id, owner_email: 'Shared Dashboard' })));
-    }
-  }, []);
-
-  const fetchData = useCallback(async (workspaceId?: string) => {
-    const targetId = workspaceId || activeWorkspaceId;
+  const fetchData = useCallback(async (userId?: string) => {
+    const targetId = userId || user?.id;
     if (!targetId) return;
 
     setIsLoading(true);
@@ -47,78 +24,81 @@ export function useFinance(activeView: string) {
       const [
         { data: despesasData },
         { data: receitasData },
+        { data: cartaoTransacoesData },
         { data: titularesData },
-        { data: cartoesData },
-        { data: categoriasData }
+        { data: cartoesConfigData },
+        { data: categoriasData },
+        { data: notaData }
       ] = await Promise.all([
-        supabase.from('despesas').select('*').eq('user_id', targetId).order('linha', { ascending: true }),
-        supabase.from('receitas').select('*').eq('user_id', targetId).order('linha', { ascending: true }),
+        supabase.from('despesas').select('*').eq('user_id', targetId).order('id', { ascending: true }),
+        supabase.from('receitas').select('*').eq('user_id', targetId).order('id', { ascending: true }),
+        supabase.from('cartoes').select('*').eq('user_id', targetId).order('id', { ascending: true }),
         supabase.from('titulares').select('*').eq('user_id', targetId),
-        supabase.from('cartoes').select('*').eq('user_id', targetId).order('linha', { ascending: true }),
-        supabase.from('categorias').select('*').eq('user_id', targetId).order('linha', { ascending: true })
+        supabase.from('cartoes_config').select('*').eq('user_id', targetId).order('id', { ascending: true }),
+        supabase.from('categorias').select('*').eq('user_id', targetId).order('id', { ascending: true }),
+        supabase.from('notas').select('conteudo').eq('user_id', targetId).maybeSingle()
       ]);
 
-      if (despesasData) setDespesas(despesasData.map(d => ({
-        ...d,
-        categoria: d.categoria_label,
-        titular: d.titular_nome,
-        cartao: d.cartao_nome,
-        vencimentoIso: d.vencimento_iso
-      })));
-      
-      if (receitasData) setReceitas(receitasData.map(r => ({
-        ...r,
-        titular: r.titular_nome,
-        parcelas: r.parcelas
-      })));
+      if (despesasData) setDespesas(despesasData);
+      if (receitasData) setReceitas(receitasData);
+      if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
+      if (notaData) setNota(notaData.conteudo || '');
 
       setConfig({
         titulares: titularesData || [],
-        cartoes: (cartoesData || []).map(c => ({ ...c, titular: c.titular_nome })),
+        cartoes: cartoesConfigData || [],
         categorias: categoriasData || []
       });
 
     } catch (error: any) {
       console.error('Error fetching data from Supabase:', error);
-      if (error.message === 'Invalid API key') {
-        console.error('The Supabase API key is invalid. Please check your .env.local file.');
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [activeWorkspaceId]);
+  }, [user?.id]);
 
   // Auth listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setActiveWorkspaceId(session.user.id);
-        fetchData(session.user.id);
-        fetchWorkspaces(session.user.id, session.user.email || '');
-      }
-      else setIsLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchData(session.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      })
+      .catch(async (error) => {
+        console.error('Error getting session:', error);
+        // If there's a refresh token error, sign out to clear local storage
+        if (error.message?.includes('refresh_token_not_found') || error.message?.includes('Refresh Token Not Found')) {
+          await supabase.auth.signOut();
+        }
+        setIsLoading(false);
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
-        setActiveWorkspaceId(session.user.id);
-        fetchData(session.user.id);
-        fetchWorkspaces(session.user.id, session.user.email || '');
-      }
-      else {
+      
+      if (event === 'SIGNED_OUT') {
         setDespesas([]);
         setReceitas([]);
+        setCartaoTransacoes([]);
         setConfig({ titulares: [], cartoes: [], categorias: [] });
-        setWorkspaces([]);
-        setPendingInvites([]);
+        setNota('');
+        setIsLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        fetchData(session.user.id);
+      } else {
         setIsLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchData, fetchWorkspaces]);
+  }, [fetchData]);
 
   // Sync dark mode to localStorage
   useEffect(() => {
@@ -156,20 +136,20 @@ export function useFinance(activeView: string) {
   };
 
   // CRUD Operations with Supabase sync
-  const addDespesa = async (d: Omit<Despesa, 'linha'>) => {
-    if (!activeWorkspaceId) return;
+  const addDespesa = async (d: Omit<Despesa, 'id'>) => {
+    if (!user) return;
     const { data, error } = await supabase.from('despesas').insert([{
-      user_id: activeWorkspaceId,
+      user_id: user.id,
       descricao: d.descricao,
-      categoria_label: d.categoria,
+      categoria_id: d.categoria_id,
       valor: d.valor,
-      parcela: d.parcela,
+      parcela_atual: d.parcela_atual,
+      parcela_total: d.parcela_total,
       vencimento: d.vencimento,
-      vencimento_iso: d.vencimentoIso,
       competencia: d.competencia,
       status: d.status,
-      titular_nome: d.titular,
-      cartao_nome: d.cartao,
+      titular_id: d.titular_id,
+      cartao_vencimento_id: d.cartao_vencimento_id,
       simulada: d.simulada
     }]).select();
 
@@ -179,54 +159,76 @@ export function useFinance(activeView: string) {
     }
 
     if (data) {
-      const newDespesa = {
-        ...data[0],
-        categoria: data[0].categoria_label,
-        titular: data[0].titular_nome,
-        cartao: data[0].cartao_nome,
-        vencimentoIso: data[0].vencimento_iso
-      };
-      setDespesas(prev => [...prev, newDespesa]);
+      setDespesas(prev => [...prev, data[0]]);
     }
   };
 
-  const updateDespesa = async (linha: number, updates: Partial<Despesa>) => {
-    const supabaseUpdates: any = {};
-    if (updates.descricao) supabaseUpdates.descricao = updates.descricao;
-    if (updates.categoria) supabaseUpdates.categoria_label = updates.categoria;
-    if (updates.valor) supabaseUpdates.valor = updates.valor;
-    if (updates.parcela) supabaseUpdates.parcela = updates.parcela;
-    if (updates.vencimento) supabaseUpdates.vencimento = updates.vencimento;
-    if (updates.vencimentoIso) supabaseUpdates.vencimento_iso = updates.vencimentoIso;
-    if (updates.competencia) supabaseUpdates.competencia = updates.competencia;
-    if (updates.status) supabaseUpdates.status = updates.status;
-    if (updates.titular) supabaseUpdates.titular_nome = updates.titular;
-    if (updates.cartao !== undefined) supabaseUpdates.cartao_nome = updates.cartao;
-    if (updates.simulada !== undefined) supabaseUpdates.simulada = updates.simulada;
-
-    const { error } = await supabase.from('despesas').update(supabaseUpdates).eq('linha', linha);
+  const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
+    const { error } = await supabase.from('despesas').update(updates).eq('id', id);
     if (!error) {
-      setDespesas(prev => prev.map(d => d.linha === linha ? { ...d, ...updates } : d));
+      setDespesas(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
     }
   };
 
-  const deleteDespesa = async (linha: number) => {
-    const { error } = await supabase.from('despesas').delete().eq('linha', linha);
+  const deleteDespesa = async (id: number) => {
+    const { error } = await supabase.from('despesas').delete().eq('id', id);
     if (!error) {
-      setDespesas(prev => prev.filter(d => d.linha !== linha));
+      setDespesas(prev => prev.filter(d => d.id !== id));
     }
   };
 
-  const addReceita = async (r: Omit<Receita, 'linha'>) => {
-    if (!activeWorkspaceId) return;
+  const addCartaoTransacao = async (t: Omit<CartaoTransacao, 'id'>) => {
+    if (!user) return;
+    const { data, error } = await supabase.from('cartoes').insert([{
+      user_id: user.id,
+      cartao_id: t.cartao_id,
+      descricao: t.descricao,
+      categoria_id: t.categoria_id,
+      valor: t.valor,
+      parcela_atual: t.parcela_atual,
+      parcela_total: t.parcela_total,
+      vencimento_original: t.vencimento_original,
+      competencia: t.competencia,
+      simulada: t.simulada
+    }]).select();
+
+    if (error) {
+      console.error('Error adding cartao transacao:', error);
+      return;
+    }
+
+    if (data) {
+      setCartaoTransacoes(prev => [...prev, data[0]]);
+    }
+  };
+
+  const updateCartaoTransacao = async (id: number, updates: Partial<CartaoTransacao>) => {
+    const { error } = await supabase.from('cartoes').update(updates).eq('id', id);
+    if (!error) {
+      setCartaoTransacoes(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    } else {
+      console.error('Error updating cartao transacao:', error);
+    }
+  };
+
+  const deleteCartaoTransacao = async (id: number) => {
+    const { error } = await supabase.from('cartoes').delete().eq('id', id);
+    if (!error) {
+      setCartaoTransacoes(prev => prev.filter(t => t.id !== id));
+    } else {
+      console.error('Error deleting cartao transacao:', error);
+    }
+  };
+
+  const addReceita = async (r: Omit<Receita, 'id'>) => {
+    if (!user) return;
     const { data, error } = await supabase.from('receitas').insert([{
-      user_id: activeWorkspaceId,
+      user_id: user.id,
       descricao: r.descricao,
       valor: r.valor,
-      parcelas: r.parcelas,
-      recebimento: r.recebimento,
+      data_recebimento: r.data_recebimento,
       competencia: r.competencia,
-      titular_nome: r.titular,
+      titular_id: r.titular_id,
       simulada: r.simulada
     }]).select();
 
@@ -236,44 +238,30 @@ export function useFinance(activeView: string) {
     }
 
     if (data) {
-      const newReceita = {
-        ...data[0],
-        titular: data[0].titular_nome,
-        parcelas: data[0].parcelas
-      };
-      setReceitas(prev => [...prev, newReceita]);
+      setReceitas(prev => [...prev, data[0]]);
     }
   };
 
-  const updateReceita = async (linha: number, updates: Partial<Receita>) => {
-    const supabaseUpdates: any = {};
-    if (updates.descricao) supabaseUpdates.descricao = updates.descricao;
-    if (updates.valor) supabaseUpdates.valor = updates.valor;
-    if (updates.parcelas) supabaseUpdates.parcelas = updates.parcelas;
-    if (updates.recebimento) supabaseUpdates.recebimento = updates.recebimento;
-    if (updates.competencia) supabaseUpdates.competencia = updates.competencia;
-    if (updates.titular) supabaseUpdates.titular_nome = updates.titular;
-    if (updates.simulada !== undefined) supabaseUpdates.simulada = updates.simulada;
-
-    const { error } = await supabase.from('receitas').update(supabaseUpdates).eq('linha', linha);
+  const updateReceita = async (id: number, updates: Partial<Receita>) => {
+    const { error } = await supabase.from('receitas').update(updates).eq('id', id);
     if (!error) {
-      setReceitas(prev => prev.map(r => r.linha === linha ? { ...r, ...updates } : r));
+      setReceitas(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     }
   };
 
-  const deleteReceita = async (linha: number) => {
-    const { error } = await supabase.from('receitas').delete().eq('linha', linha);
+  const deleteReceita = async (id: number) => {
+    const { error } = await supabase.from('receitas').delete().eq('id', id);
     if (!error) {
-      setReceitas(prev => prev.filter(r => r.linha !== linha));
+      setReceitas(prev => prev.filter(r => r.id !== id));
     }
   };
 
-  const addTitular = async (t: Omit<Titular, 'linha'>) => {
-    if (!activeWorkspaceId) return;
+  const addTitular = async (t: Omit<Titular, 'id'>) => {
+    if (!user) return;
     const { data, error } = await supabase.from('titulares').insert([{
       nome: t.nome,
       foto: t.foto,
-      user_id: activeWorkspaceId
+      user_id: user.id
     }]).select();
     
     if (error) {
@@ -286,41 +274,35 @@ export function useFinance(activeView: string) {
     }
   };
 
-  const deleteTitular = async (linha: number) => {
-    const { error } = await supabase.from('titulares').delete().eq('linha', linha);
+  const deleteTitular = async (id: number) => {
+    const { error } = await supabase.from('titulares').delete().eq('id', id);
     if (!error) {
-      setConfig(prev => ({ ...prev, titulares: prev.titulares.filter(t => t.linha !== linha) }));
+      setConfig(prev => ({ ...prev, titulares: prev.titulares.filter(t => t.id !== id) }));
     } else {
       console.error('Error deleting titular:', error);
     }
   };
 
-  const updateTitular = async (linha: number, updated: Partial<Titular>) => {
-    const { error } = await supabase.from('titulares').update(updated).eq('linha', linha);
+  const updateTitular = async (id: number, updated: Partial<Titular>) => {
+    const { error } = await supabase.from('titulares').update(updated).eq('id', id);
     if (!error) {
-      const oldTitular = config.titulares.find(t => t.linha === linha);
       setConfig(prev => ({
         ...prev,
-        titulares: prev.titulares.map(t => t.linha === linha ? { ...t, ...updated } : t)
+        titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
       }));
-      
-      if (updated.nome && oldTitular && oldTitular.nome !== updated.nome) {
-        setDespesas(prev => prev.map(d => d.titular === oldTitular.nome ? { ...d, titular: updated.nome! } : d));
-        setReceitas(prev => prev.map(r => r.titular === oldTitular.nome ? { ...r, titular: updated.nome! } : r));
-      }
     } else {
       console.error('Error updating titular:', error);
     }
   };
 
-  const addCartao = async (c: Omit<CartaoConfig, 'linha'>) => {
-    if (!activeWorkspaceId) return;
-    const { data, error } = await supabase.from('cartoes').insert([{
-      user_id: activeWorkspaceId,
-      nome: c.nome,
-      titular_nome: c.titular,
-      dia_vencimento: c.diaVencimento,
-      dia_fechamento: c.diaFechamento
+  const addCartao = async (c: Omit<CartaoConfig, 'id'>) => {
+    if (!user) return;
+    const { data, error } = await supabase.from('cartoes_config').insert([{
+      user_id: user.id,
+      nome_cartao: c.nome_cartao,
+      titular_id: c.titular_id,
+      dia_vencimento: c.dia_vencimento,
+      dia_fechamento: c.dia_fechamento
     }]).select();
 
     if (error) {
@@ -329,43 +311,31 @@ export function useFinance(activeView: string) {
     }
 
     if (data) {
-      const newCartao = {
-        ...data[0],
-        titular: data[0].titular_nome,
-        diaVencimento: data[0].dia_vencimento,
-        diaFechamento: data[0].dia_fechamento
-      };
-      setConfig(prev => ({ ...prev, cartoes: [...prev.cartoes, newCartao] }));
+      setConfig(prev => ({ ...prev, cartoes: [...prev.cartoes, data[0]] }));
     }
   };
 
-  const updateCartao = async (linha: number, updated: Partial<CartaoConfig>) => {
-    const supabaseUpdates: any = {};
-    if (updated.nome) supabaseUpdates.nome = updated.nome;
-    if (updated.titular) supabaseUpdates.titular_nome = updated.titular;
-    if (updated.diaVencimento) supabaseUpdates.dia_vencimento = updated.diaVencimento;
-    if (updated.diaFechamento) supabaseUpdates.dia_fechamento = updated.diaFechamento;
-
-    const { error } = await supabase.from('cartoes').update(supabaseUpdates).eq('linha', linha);
+  const updateCartao = async (id: number, updated: Partial<CartaoConfig>) => {
+    const { error } = await supabase.from('cartoes_config').update(updated).eq('id', id);
     if (!error) {
       setConfig(prev => ({
         ...prev,
-        cartoes: prev.cartoes.map(c => c.linha === linha ? { ...c, ...updated } : c)
+        cartoes: prev.cartoes.map(c => c.id === id ? { ...c, ...updated } : c)
       }));
     }
   };
 
-  const deleteCartao = async (linha: number) => {
-    const { error } = await supabase.from('cartoes').delete().eq('linha', linha);
+  const deleteCartao = async (id: number) => {
+    const { error } = await supabase.from('cartoes_config').delete().eq('id', id);
     if (!error) {
-      setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.linha !== linha) }));
+      setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.id !== id) }));
     }
   };
 
-  const addCategoria = async (cat: Omit<Categoria, 'linha'>) => {
-    if (!activeWorkspaceId) return;
+  const addCategoria = async (cat: Omit<Categoria, 'id'>) => {
+    if (!user) return;
     const { data, error } = await supabase.from('categorias').insert([{
-      user_id: activeWorkspaceId,
+      user_id: user.id,
       label: cat.label,
       keywords: cat.keywords
     }]).select();
@@ -378,53 +348,27 @@ export function useFinance(activeView: string) {
     }
   };
 
-  const updateCategoria = async (linha: number, updated: Partial<Categoria>) => {
-    const { error } = await supabase.from('categorias').update(updated).eq('linha', linha);
+  const updateCategoria = async (id: number, updated: Partial<Categoria>) => {
+    const { error } = await supabase.from('categorias').update(updated).eq('id', id);
     if (!error) {
       setConfig(prev => ({
         ...prev,
-        categorias: prev.categorias.map(cat => cat.linha === linha ? { ...cat, ...updated } : cat)
+        categorias: prev.categorias.map(cat => cat.id === id ? { ...cat, ...updated } : cat)
       }));
     }
   };
 
-  const deleteCategoria = async (linha: number) => {
-    const { error } = await supabase.from('categorias').delete().eq('linha', linha);
+  const deleteCategoria = async (id: number) => {
+    const { error } = await supabase.from('categorias').delete().eq('id', id);
     if (!error) {
-      setConfig(prev => ({ ...prev, categorias: prev.categorias.filter(cat => cat.linha !== linha) }));
+      setConfig(prev => ({ ...prev, categorias: prev.categorias.filter(cat => cat.id !== id) }));
     }
   };
 
-  const sendInvite = async (email: string) => {
+  const updateNota = async (conteudo: string) => {
     if (!user) return;
-    const { error } = await supabase.from('workspace_invites').insert([{
-      owner_id: user.id,
-      invitee_email: email
-    }]);
-    if (error) throw error;
-  };
-
-  const acceptInvite = async (inviteId: string, ownerId: string) => {
-    if (!user) return;
-    
-    // 1. Add to members
-    const { error: memberError } = await supabase.from('workspace_members').insert([{
-      owner_id: ownerId,
-      member_id: user.id
-    }]);
-    
-    if (memberError) throw memberError;
-
-    // 2. Update invite status
-    await supabase.from('workspace_invites').update({ status: 'accepted' }).eq('id', inviteId);
-    
-    // 3. Refresh
-    fetchWorkspaces(user.id, user.email || '');
-  };
-
-  const switchWorkspace = (workspaceId: string) => {
-    setActiveWorkspaceId(workspaceId);
-    fetchData(workspaceId);
+    const { error } = await supabase.from('notas').upsert({ user_id: user.id, conteudo });
+    if (!error) setNota(conteudo);
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
@@ -437,65 +381,104 @@ export function useFinance(activeView: string) {
     return receitas.filter(r => r.competencia === competencia);
   }, [receitas, competencia]);
 
+  const filteredCartaoTransacoes = useMemo(() => {
+    return cartaoTransacoes
+      .filter(t => t.competencia === competencia)
+      .map(t => {
+        const cardConfig = config.cartoes.find(c => c.id === t.cartao_id);
+        return {
+          ...t,
+          titular_id: cardConfig?.titular_id || 0,
+          cartao_vencimento_id: t.cartao_id // Alias for FinanceTable compatibility
+        };
+      });
+  }, [cartaoTransacoes, competencia, config.cartoes]);
+
   const despesasGerais = useMemo(() => {
     // 1. Get expenses without card
-    const semCartao = filteredDespesas.filter(d => !d.cartao);
+    const semCartao = filteredDespesas.filter(d => !d.cartao_vencimento_id);
     
-    // 2. Group expenses by card
-    const porCartao: Record<string, { valor: number, status: Status, titular: string }> = {};
-    filteredDespesas.filter(d => d.cartao).forEach(d => {
-      const cartaoNome = d.cartao!;
-      if (!porCartao[cartaoNome]) {
-        porCartao[cartaoNome] = { valor: 0, status: 'Pago', titular: d.titular };
+    // 2. Group expenses by card (from both despesas and cartoes tables)
+    const porCartao: Record<number, { valor: number, status: Status, titular_id: number, nome_cartao: string }> = {};
+    
+    // From despesas (consolidated)
+    filteredDespesas.filter(d => d.cartao_vencimento_id).forEach(d => {
+      const cartaoId = d.cartao_vencimento_id!;
+      const cartaoConfig = config.cartoes.find(c => c.id === cartaoId);
+      if (!porCartao[cartaoId]) {
+        porCartao[cartaoId] = { 
+          valor: 0, 
+          status: 'Pago', 
+          titular_id: cartaoConfig?.titular_id || 0,
+          nome_cartao: cartaoConfig?.nome_cartao || 'Cartão'
+        };
       }
-      porCartao[cartaoNome].valor += d.valor;
-      // If any item is 'Em aberto', the whole bill is 'Em aberto'
-      if (d.status === 'Em aberto') porCartao[cartaoNome].status = 'Em aberto';
+      porCartao[cartaoId].valor += d.valor;
+      if (d.status === 'Em aberto') porCartao[cartaoId].status = 'Em aberto';
+    });
+
+    // From cartoes (individual transactions)
+    filteredCartaoTransacoes.forEach(t => {
+      const cartaoId = t.cartao_id;
+      const cartaoConfig = config.cartoes.find(c => c.id === cartaoId);
+      if (!porCartao[cartaoId]) {
+        porCartao[cartaoId] = { 
+          valor: 0, 
+          status: 'Em aberto', // Individual transactions are usually considered "open" until the invoice is paid
+          titular_id: cartaoConfig?.titular_id || 0,
+          nome_cartao: cartaoConfig?.nome_cartao || 'Cartão'
+        };
+      }
+      porCartao[cartaoId].valor += t.valor;
+      // Individual transactions in 'cartoes' table are always considered 'Em aberto' for the summary
+      porCartao[cartaoId].status = 'Em aberto';
     });
 
     // 3. Create summary items for cards
-    const resumosCartao = Object.entries(porCartao).map(([nome, info], index) => ({
-      linha: -1000 - index,
-      descricao: nome,
-      categoria: 'Cartão de Crédito',
+    const resumosCartao = Object.entries(porCartao).map(([idStr, info], index) => ({
+      id: -1000 - index,
+      descricao: info.nome_cartao,
+      categoria_id: undefined,
       valor: info.valor,
-      parcela: '1/1',
+      parcela_atual: 1,
+      parcela_total: 1,
       vencimento: '-',
-      vencimentoIso: new Date().toISOString(),
       competencia,
       status: info.status as Status,
-      titular: info.titular,
-      cartao: nome,
+      titular_id: info.titular_id,
+      cartao_vencimento_id: parseInt(idStr),
       simulada: false,
       isSummary: true
     }));
 
     return [...semCartao, ...resumosCartao];
-  }, [filteredDespesas, competencia]);
+  }, [filteredDespesas, filteredCartaoTransacoes, competencia, config.cartoes]);
 
   const stats = useMemo(() => {
-    const totalReceitas = filteredReceitas.reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
-    const totalDespesas = filteredDespesas.reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalPago = filteredDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalAberto = filteredDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+    const totalReceitas = filteredReceitas.reduce((acc, r) => acc + (r.simulada ? 0 : (Number(r.valor) || 0)), 0);
+    const totalDespesas = filteredDespesas.reduce((acc, d) => acc + (d.simulada ? 0 : (Number(d.valor) || 0)), 0) + 
+                          filteredCartaoTransacoes.reduce((acc, t) => acc + (t.simulada ? 0 : (Number(t.valor) || 0)), 0);
+    const totalPago = filteredDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + (d.simulada ? 0 : (Number(d.valor) || 0)), 0);
+    const totalAberto = filteredDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : (Number(d.valor) || 0)), 0) +
+                        filteredCartaoTransacoes.reduce((acc, t) => acc + (t.simulada ? 0 : (Number(t.valor) || 0)), 0);
     
     // Check for overdue (Vencido)
     const today = new Date();
     const totalVencido = filteredDespesas
-      .filter(d => d.status === 'Em aberto' && d.vencimentoIso && new Date(d.vencimentoIso) < today)
-      .reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+      .filter(d => d.status === 'Em aberto' && d.vencimento && new Date(d.vencimento) < today)
+      .reduce((acc, d) => acc + (d.simulada ? 0 : (Number(d.valor) || 0)), 0);
 
     const margem = totalReceitas - totalDespesas;
 
     return {
-      totalReceitas,
-      totalDespesas,
-      totalPago,
-      totalAberto,
-      totalVencido,
-      margem
+      totalReceitas: totalReceitas || 0,
+      totalDespesas: totalDespesas || 0,
+      totalPago: totalPago || 0,
+      totalAberto: totalAberto || 0,
+      totalVencido: totalVencido || 0,
+      margem: margem || 0
     };
-  }, [filteredReceitas, filteredDespesas]);
+  }, [filteredReceitas, filteredDespesas, filteredCartaoTransacoes]);
 
   const changeMonth = (delta: number) => {
     let newMonth = currentMonth + delta;
@@ -522,35 +505,49 @@ export function useFinance(activeView: string) {
   };
 
   const totalsByCard = useMemo(() => {
-    const totals: Record<string, number> = {};
-    config.cartoes.forEach(c => totals[c.nome] = 0);
+    const totals: Record<number, number> = {};
+    config.cartoes.forEach(c => totals[c.id] = 0);
     
+    // Include card transactions from 'cartoes' table
+    filteredCartaoTransacoes.forEach(t => {
+      if (!t.simulada) {
+        totals[t.cartao_id] = (totals[t.cartao_id] || 0) + (Number(t.valor) || 0);
+      }
+    });
+
+    // Also include card transactions that might be in 'despesas' table (consolidated invoices)
     filteredDespesas.forEach(d => {
-      if (d.cartao && !d.simulada) {
-        totals[d.cartao] = (totals[d.cartao] || 0) + d.valor;
+      if (d.cartao_vencimento_id && !d.simulada) {
+        totals[d.cartao_vencimento_id] = (totals[d.cartao_vencimento_id] || 0) + (Number(d.valor) || 0);
       }
     });
     return totals;
-  }, [filteredDespesas, config.cartoes]);
+  }, [filteredDespesas, filteredCartaoTransacoes, config.cartoes]);
 
   const totalsByTitular = useMemo(() => {
-    const totals: Record<string, { despesas: number, receitas: number }> = {};
-    config.titulares.forEach(t => totals[t.nome] = { despesas: 0, receitas: 0 });
+    const totals: Record<number, { despesas: number, receitas: number }> = {};
+    config.titulares.forEach(t => totals[t.id] = { despesas: 0, receitas: 0 });
     
     filteredDespesas.forEach(d => {
-      if (!d.simulada && totals[d.titular]) {
-        totals[d.titular].despesas += d.valor;
+      if (!d.simulada && totals[d.titular_id]) {
+        totals[d.titular_id].despesas += (Number(d.valor) || 0);
+      }
+    });
+
+    filteredCartaoTransacoes.forEach(t => {
+      if (!t.simulada && totals[t.titular_id]) {
+        totals[t.titular_id].despesas += (Number(t.valor) || 0);
       }
     });
 
     filteredReceitas.forEach(r => {
-      if (!r.simulada && totals[r.titular]) {
-        totals[r.titular].receitas += r.valor;
+      if (!r.simulada && totals[r.titular_id]) {
+        totals[r.titular_id].receitas += (Number(r.valor) || 0);
       }
     });
 
     return totals;
-  }, [filteredDespesas, filteredReceitas, config.titulares]);
+  }, [filteredDespesas, filteredReceitas, filteredCartaoTransacoes, config.titulares]);
 
   const projecaoSemestral = useMemo(() => {
     const projecao = [];
@@ -559,14 +556,15 @@ export function useFinance(activeView: string) {
 
     for (let i = 0; i < 8; i++) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
-      const rec = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
-      const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+      const rec = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + (r.simulada ? 0 : (Number(r.valor) || 0)), 0);
+      const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + (d.simulada ? 0 : (Number(d.valor) || 0)), 0);
+      const cardTrans = cartaoTransacoes.filter(t => t.competencia === comp).reduce((acc, t) => acc + (t.simulada ? 0 : (Number(t.valor) || 0)), 0);
       
       projecao.push({
         competencia: comp,
-        receitas: rec,
-        despesas: desp,
-        saldo: rec - desp
+        receitas: rec || 0,
+        despesas: (desp + cardTrans) || 0,
+        saldo: (rec - (desp + cardTrans)) || 0
       });
 
       tempMonth++;
@@ -576,18 +574,21 @@ export function useFinance(activeView: string) {
       }
     }
     return projecao;
-  }, [despesas, receitas, currentMonth, currentYear]);
+  }, [despesas, receitas, cartaoTransacoes, currentMonth, currentYear]);
 
   return {
     user,
     despesas,
     receitas,
+    cartaoTransacoes,
     config,
+    nota,
     currentMonth,
     currentYear,
     competencia,
     filteredDespesas,
     filteredReceitas,
+    filteredCartaoTransacoes,
     despesasGerais,
     stats,
     totalsByCard,
@@ -595,16 +596,11 @@ export function useFinance(activeView: string) {
     projecaoSemestral,
     isLoading,
     isDarkMode,
-    activeWorkspaceId,
-    workspaces,
-    pendingInvites,
     changeMonth,
     setMonth,
     setYear,
     toggleDarkMode,
-    switchWorkspace,
-    sendInvite,
-    acceptInvite,
+    updateNota,
     signIn,
     signUp,
     signOut,
@@ -614,6 +610,9 @@ export function useFinance(activeView: string) {
     addReceita,
     updateReceita,
     deleteReceita,
+    addCartaoTransacao,
+    updateCartaoTransacao,
+    deleteCartaoTransacao,
     addTitular,
     updateTitular,
     deleteTitular,

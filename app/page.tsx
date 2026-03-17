@@ -37,14 +37,8 @@ export default function Home() {
     totalsByTitular,
     isLoading,
     isDarkMode,
-    activeWorkspaceId,
-    workspaces,
-    pendingInvites,
     toggleDarkMode,
     changeMonth,
-    switchWorkspace,
-    sendInvite,
-    acceptInvite,
     setMonth,
     setYear,
     signIn,
@@ -56,6 +50,9 @@ export default function Home() {
     addReceita,
     updateReceita,
     deleteReceita,
+    addCartaoTransacao,
+    updateCartaoTransacao,
+    deleteCartaoTransacao,
     addTitular,
     updateTitular,
     deleteTitular,
@@ -64,11 +61,9 @@ export default function Home() {
     deleteCartao,
     addCategoria,
     updateCategoria,
-    deleteCategoria
+    deleteCategoria,
+    filteredCartaoTransacoes
   } = useFinance(activeView);
-
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [isInviting, setIsInviting] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,20 +82,6 @@ export default function Home() {
       setLoginError(error.message || 'Erro na autenticação');
     } finally {
       setIsLoggingIn(false);
-    }
-  };
-
-  const handleSendInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsInviting(true);
-    try {
-      await sendInvite(inviteEmail);
-      alert('Convite enviado com sucesso!');
-      setInviteEmail('');
-    } catch (error: any) {
-      alert('Erro ao enviar convite: ' + error.message);
-    } finally {
-      setIsInviting(false);
     }
   };
 
@@ -140,7 +121,23 @@ export default function Home() {
               />
             </div>
 
-            {loginError && <p className="text-danger text-xs font-bold text-center">{loginError}</p>}
+            {loginError && (
+              <div className="flex flex-col gap-2">
+                <p className="text-danger text-xs font-bold text-center">{loginError}</p>
+                {(loginError.includes('refresh_token') || loginError.includes('Refresh Token')) && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      localStorage.clear();
+                      window.location.reload();
+                    }}
+                    className="text-[10px] text-gray underline hover:text-text text-center"
+                  >
+                    Limpar sessão e tentar novamente
+                  </button>
+                )}
+              </div>
+            )}
 
             <button 
               disabled={isLoggingIn}
@@ -189,10 +186,11 @@ export default function Home() {
                     setEditingItem(item);
                     setIsModalOpen(true);
                   }}
+                  categorias={config.categorias}
                 />
               </div>
               <div className="lg:col-span-7 space-y-8">
-                <DashboardCharts despesas={filteredDespesas} stats={stats} />
+                <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
                 <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                   <h3 className="font-bold text-lg mb-4">📝 Anotações</h3>
                   <textarea 
@@ -211,7 +209,7 @@ export default function Home() {
         const tableData = activeView === 'geral' 
           ? despesasGerais 
           : activeView === 'cartoes' 
-            ? filteredDespesas.filter(d => d.cartao) 
+            ? filteredCartaoTransacoes
             : filteredReceitas;
 
         return (
@@ -232,13 +230,20 @@ export default function Home() {
             <FinanceTable 
               data={tableData} 
               type={activeView === 'geral' ? 'geral' : activeView === 'cartoes' ? 'cartoes' : 'receitas'}
-              onDelete={(id) => activeView === 'receitas' ? deleteReceita(id) : deleteDespesa(id)}
-              onToggleStatus={(id, status) => activeView !== 'receitas' && updateDespesa(id, { status: status === 'Pago' ? 'Em aberto' : 'Pago' })}
+              onDelete={(id) => {
+                if (activeView === 'receitas') deleteReceita(id);
+                else if (activeView === 'cartoes') deleteCartaoTransacao(id);
+                else deleteDespesa(id);
+              }}
+              onToggleStatus={(id, status) => activeView === 'geral' && updateDespesa(id, { status: status === 'Pago' ? 'Em aberto' : 'Pago' })}
               onEdit={(item) => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
                 setEditingItem(item);
                 setIsModalOpen(true);
               }}
+              titulares={config.titulares}
+              categorias={config.categorias}
+              cartoes={config.cartoes}
             />
           </motion.div>
         );
@@ -293,8 +298,8 @@ export default function Home() {
                     <PieChart>
                       <Pie
                         data={[
-                          { name: 'Essencial', value: stats.totalDespesas * 0.6 },
-                          { name: 'Lifestyle', value: stats.totalDespesas * 0.4 }
+                          { name: 'Essencial', value: (stats.totalDespesas || 0) * 0.6 },
+                          { name: 'Lifestyle', value: (stats.totalDespesas || 0) * 0.4 }
                         ]}
                         cx="50%"
                         cy="50%"
@@ -320,76 +325,6 @@ export default function Home() {
         return (
           <motion.div {...commonMotionProps}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Workspace Sharing */}
-              <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-                <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                  <Sparkles className="text-primary" /> Compartilhamento
-                </h3>
-                <div className="space-y-6">
-                  <form onSubmit={handleSendInvite} className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-2">Convidar Usuário (E-mail)</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="email" 
-                          required
-                          className="flex-1 p-3 bg-bg border border-border rounded-xl font-bold focus:border-primary focus:outline-none"
-                          placeholder="email@exemplo.com"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                        />
-                        <button 
-                          disabled={isInviting}
-                          className="bg-primary text-white px-4 rounded-xl font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
-                        >
-                          {isInviting ? <Loader2 className="animate-spin" size={18} /> : 'Convidar'}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-
-                  {pendingInvites.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] font-black text-gray uppercase tracking-widest">Convites Recebidos</h4>
-                      {pendingInvites.map(invite => (
-                        <div key={invite.id} className="flex items-center justify-between p-3 bg-primary/5 border border-primary/10 rounded-xl">
-                          <span className="text-xs font-bold">{invite.owner_id.slice(0, 8)}... convidou você</span>
-                          <button 
-                            onClick={() => acceptInvite(invite.id, invite.owner_id)}
-                            className="text-[10px] font-black bg-primary text-white px-3 py-1 rounded-lg uppercase tracking-widest"
-                          >
-                            Aceitar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {workspaces.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] font-black text-gray uppercase tracking-widest">Dashboards Compartilhados</h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        <button 
-                          onClick={() => switchWorkspace(user.id)}
-                          className={`p-3 rounded-xl text-left font-bold text-sm transition-all border ${activeWorkspaceId === user.id ? 'bg-primary text-white border-primary' : 'bg-bg border-border hover:border-primary'}`}
-                        >
-                          Meu Dashboard (Principal)
-                        </button>
-                        {workspaces.map(ws => (
-                          <button 
-                            key={ws.owner_id}
-                            onClick={() => switchWorkspace(ws.owner_id)}
-                            className={`p-3 rounded-xl text-left font-bold text-sm transition-all border ${activeWorkspaceId === ws.owner_id ? 'bg-primary text-white border-primary' : 'bg-bg border-border hover:border-primary'}`}
-                          >
-                            Dashboard de {ws.owner_id.slice(0, 8)}...
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                 <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                   <SettingsIcon className="text-primary" /> Preferências e Sistema
@@ -429,7 +364,7 @@ export default function Home() {
                 <div className="space-y-2">
                   {config.titulares.map(t => (
                     <div 
-                      key={t.nome} 
+                      key={t.id} 
                       onDoubleClick={() => {
                         setModalType('titular');
                         setEditingItem(t);
@@ -440,8 +375,9 @@ export default function Home() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-8 h-8">
                           <Image 
-                            src={t.foto || `https://i.pravatar.cc/150?u=${t.nome}`} 
+                            src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`} 
                             fill 
+                            unoptimized
                             className="rounded-full object-cover" 
                             alt={t.nome}
                             referrerPolicy="no-referrer"
@@ -450,7 +386,7 @@ export default function Home() {
                         <span className="font-bold text-sm">{t.nome}</span>
                       </div>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); deleteTitular(t.linha); }}
+                        onClick={(e) => { e.stopPropagation(); deleteTitular(t.id); }}
                         className="text-danger p-2 hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={16} />
@@ -477,28 +413,31 @@ export default function Home() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {config.cartoes.map(c => (
-                    <div 
-                      key={c.nome} 
-                      onDoubleClick={() => {
-                        setModalType('cartao');
-                        setEditingItem(c);
-                        setIsModalOpen(true);
-                      }}
-                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-all cursor-pointer group"
-                    >
-                      <div>
-                        <span className="font-bold text-sm block">{c.nome}</span>
-                        <span className="text-[10px] text-gray uppercase">{c.titular} • Venc. {c.diaVencimento}</span>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); deleteCartao(c.linha); }}
-                        className="text-danger p-2 hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                  {config.cartoes.map(c => {
+                    const titular = config.titulares.find(t => t.id === c.titular_id);
+                    return (
+                      <div 
+                        key={c.id} 
+                        onDoubleClick={() => {
+                          setModalType('cartao');
+                          setEditingItem(c);
+                          setIsModalOpen(true);
+                        }}
+                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-all cursor-pointer group"
                       >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
+                        <div>
+                          <span className="font-bold text-sm block">{c.nome_cartao}</span>
+                          <span className="text-[10px] text-gray uppercase">{titular?.nome || 'N/A'} • Venc. {c.dia_vencimento}</span>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); deleteCartao(c.id); }}
+                          className="text-danger p-2 hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -521,7 +460,7 @@ export default function Home() {
                 <div className="space-y-2">
                   {config.categorias.map(cat => (
                     <div 
-                      key={cat.label} 
+                      key={cat.id} 
                       onDoubleClick={() => {
                         setModalType('categoria');
                         setEditingItem(cat);
@@ -534,7 +473,7 @@ export default function Home() {
                         <span className="text-[10px] text-gray truncate block max-w-[200px]">{cat.keywords}</span>
                       </div>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); deleteCategoria(cat.linha); }}
+                        onClick={(e) => { e.stopPropagation(); deleteCategoria(cat.id); }}
                         className="text-danger p-2 hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={16} />
@@ -601,7 +540,7 @@ export default function Home() {
           >
             {modalType === 'despesa' || modalType === 'receita' ? (
               <FinanceForm 
-                key={editingItem ? `edit-${editingItem.linha}` : 'new'}
+                key={editingItem ? `edit-${editingItem.id}` : 'new'}
                 type={modalType}
                 titulares={config.titulares}
                 categorias={config.categorias}
@@ -610,11 +549,49 @@ export default function Home() {
                 initialData={editingItem}
                 onSubmit={(data) => {
                   if (editingItem) {
-                    if (modalType === 'despesa') updateDespesa(editingItem.linha, data);
-                    else updateReceita(editingItem.linha, data);
+                    if (modalType === 'despesa') {
+                      if (data.cartao_vencimento_id) {
+                        // If it has a card, it's a CartaoTransacao
+                        const cartaoData = {
+                          cartao_id: data.cartao_vencimento_id,
+                          descricao: data.descricao,
+                          categoria_id: data.categoria_id,
+                          valor: data.valor,
+                          parcela_atual: data.parcela_atual,
+                          parcela_total: data.parcela_total,
+                          vencimento_original: data.vencimento,
+                          competencia: data.competencia,
+                          simulada: data.simulada
+                        };
+                        updateCartaoTransacao(editingItem.id, cartaoData);
+                      } else {
+                        updateDespesa(editingItem.id, data);
+                      }
+                    } else {
+                      updateReceita(editingItem.id, data);
+                    }
                   } else {
-                    if (modalType === 'despesa') addDespesa(data);
-                    else addReceita(data);
+                    if (modalType === 'despesa') {
+                      if (data.cartao_vencimento_id) {
+                        // If it has a card, it's a CartaoTransacao
+                        const cartaoData = {
+                          cartao_id: data.cartao_vencimento_id,
+                          descricao: data.descricao,
+                          categoria_id: data.categoria_id,
+                          valor: data.valor,
+                          parcela_atual: data.parcela_atual,
+                          parcela_total: data.parcela_total,
+                          vencimento_original: data.vencimento,
+                          competencia: data.competencia,
+                          simulada: data.simulada
+                        };
+                        addCartaoTransacao(cartaoData);
+                      } else {
+                        addDespesa(data);
+                      }
+                    } else {
+                      addReceita(data);
+                    }
                   }
                   setIsModalOpen(false);
                   setEditingItem(null);
@@ -622,10 +599,10 @@ export default function Home() {
               />
             ) : modalType === 'titular' ? (
               <TitularForm 
-                key={editingItem ? `edit-${editingItem.linha}` : 'new'}
+                key={editingItem ? `edit-${editingItem.id}` : 'new'}
                 initialData={editingItem}
                 onSubmit={(data) => {
-                  if (editingItem) updateTitular(editingItem.linha, data);
+                  if (editingItem) updateTitular(editingItem.id, data);
                   else addTitular(data);
                   setIsModalOpen(false);
                   setEditingItem(null);
@@ -633,11 +610,11 @@ export default function Home() {
               />
             ) : modalType === 'cartao' ? (
               <CartaoForm 
-                key={editingItem ? `edit-${editingItem.linha}` : 'new'}
+                key={editingItem ? `edit-${editingItem.id}` : 'new'}
                 initialData={editingItem}
                 titulares={config.titulares}
                 onSubmit={(data) => {
-                  if (editingItem) updateCartao(editingItem.linha, data);
+                  if (editingItem) updateCartao(editingItem.id, data);
                   else addCartao(data);
                   setIsModalOpen(false);
                   setEditingItem(null);
@@ -645,10 +622,10 @@ export default function Home() {
               />
             ) : (
               <CategoriaForm 
-                key={editingItem ? `edit-${editingItem.linha}` : 'new'}
+                key={editingItem ? `edit-${editingItem.id}` : 'new'}
                 initialData={editingItem}
                 onSubmit={(data) => {
-                  if (editingItem) updateCategoria(editingItem.linha, data);
+                  if (editingItem) updateCategoria(editingItem.id, data);
                   else addCategoria(data);
                   setIsModalOpen(false);
                   setEditingItem(null);

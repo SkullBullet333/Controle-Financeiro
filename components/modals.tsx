@@ -53,23 +53,44 @@ export function FinanceForm({
   const [formData, setFormData] = useState({
     descricao: initialData?.descricao || '',
     valor: initialData?.valor?.toString() || '',
-    titular: initialData?.titular || titulares[0]?.nome || '',
-    categoria: initialData?.categoria || categorias[0]?.label || 'Outros',
-    vencimento: initialData?.vencimento || new Date().toLocaleDateString('pt-BR'),
+    titular_id: (initialData?.titular_id !== undefined && !isNaN(initialData.titular_id)) ? initialData.titular_id : (titulares[0]?.id || 0),
+    categoria_id: (initialData?.categoria_id !== undefined && !isNaN(initialData.categoria_id)) ? initialData.categoria_id : (categorias[0]?.id || 0),
+    vencimento: initialData?.vencimento || initialData?.data_recebimento || new Date().toISOString().split('T')[0],
     status: initialData?.status || ('Em aberto' as Status),
-    parcela: initialData?.parcela || '1/1',
-    cartao: initialData?.cartao || ''
+    parcela_atual: (initialData?.parcela_atual !== undefined && !isNaN(initialData.parcela_atual)) ? initialData.parcela_atual : 1,
+    parcela_total: (initialData?.parcela_total !== undefined && !isNaN(initialData.parcela_total)) ? initialData.parcela_total : 1,
+    cartao_vencimento_id: initialData?.cartao_vencimento_id || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      valor: parseFloat(formData.valor),
+    
+    const valor = parseFloat(formData.valor);
+    if (isNaN(valor)) {
+      alert('Por favor, insira um valor válido.');
+      return;
+    }
+
+    const data: any = {
+      descricao: formData.descricao,
+      valor: valor,
+      titular_id: formData.titular_id && formData.titular_id !== 0 ? formData.titular_id : null,
       competencia,
       simulada: false,
-      vencimentoIso: new Date().toISOString().split('T')[0]
-    });
+    };
+
+    if (type === 'despesa') {
+      data.categoria_id = formData.categoria_id && formData.categoria_id !== 0 ? formData.categoria_id : null;
+      data.vencimento = formData.vencimento;
+      data.status = formData.status;
+      data.parcela_atual = parseInt(formData.parcela_atual.toString()) || 1;
+      data.parcela_total = parseInt(formData.parcela_total.toString()) || 1;
+      data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : null;
+    } else {
+      data.data_recebimento = formData.vencimento;
+    }
+
+    onSubmit(data);
   };
 
   return (
@@ -100,35 +121,35 @@ export function FinanceForm({
           <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
           <select 
             className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.titular}
-            onChange={e => setFormData({...formData, titular: e.target.value})}
+            value={formData.titular_id}
+            onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
           >
-            {titulares.map(t => <option key={t.nome} value={t.nome}>{t.nome}</option>)}
+            {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
           </select>
         </div>
       </div>
-      {type === 'despesa' && (
+      {type === 'despesa' ? (
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Categoria</label>
               <select 
                 className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.categoria}
-                onChange={e => setFormData({...formData, categoria: e.target.value})}
+                value={formData.categoria_id}
+                onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
               >
-                {categorias.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
+                {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Cartão (Opcional)</label>
               <select 
                 className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.cartao}
-                onChange={e => setFormData({...formData, cartao: e.target.value})}
+                value={formData.cartao_vencimento_id}
+                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
               >
                 <option value="">Nenhum</option>
-                {cartoes.map(c => <option key={c.nome} value={c.nome}>{c.nome}</option>)}
+                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
               </select>
             </div>
           </div>
@@ -136,7 +157,7 @@ export function FinanceForm({
             <div>
               <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Vencimento</label>
               <input 
-                type="text" 
+                type="date" 
                 className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
                 value={formData.vencimento}
                 onChange={e => setFormData({...formData, vencimento: e.target.value})}
@@ -154,7 +175,37 @@ export function FinanceForm({
               </label>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Parcela Atual</label>
+              <input 
+                type="number" 
+                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                value={formData.parcela_atual}
+                onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Total Parcelas</label>
+              <input 
+                type="number" 
+                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                value={formData.parcela_total}
+                onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+              />
+            </div>
+          </div>
         </>
+      ) : (
+        <div>
+          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Data Recebimento</label>
+          <input 
+            type="date" 
+            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+            value={formData.vencimento}
+            onChange={e => setFormData({...formData, vencimento: e.target.value})}
+          />
+        </div>
       )}
       <button className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4">
         Salvar Lançamento
@@ -283,10 +334,10 @@ export function CartaoForm({
   initialData?: any 
 }) {
   const [formData, setFormData] = useState({
-    nome: initialData?.nome || '',
-    titular: initialData?.titular || titulares[0]?.nome || '',
-    diaVencimento: initialData?.diaVencimento || 10,
-    diaFechamento: initialData?.diaFechamento || 3
+    nome_cartao: initialData?.nome_cartao || '',
+    titular_id: (initialData?.titular_id !== undefined && !isNaN(initialData.titular_id)) ? initialData.titular_id : (titulares[0]?.id || 0),
+    dia_vencimento: (initialData?.dia_vencimento !== undefined && !isNaN(initialData.dia_vencimento)) ? initialData.dia_vencimento : 10,
+    dia_fechamento: (initialData?.dia_fechamento !== undefined && !isNaN(initialData.dia_fechamento)) ? initialData.dia_fechamento : 10
   });
 
   return (
@@ -297,18 +348,18 @@ export function CartaoForm({
           required
           type="text" 
           className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-          value={formData.nome}
-          onChange={e => setFormData({...formData, nome: e.target.value})}
+          value={formData.nome_cartao}
+          onChange={e => setFormData({...formData, nome_cartao: e.target.value})}
         />
       </div>
       <div>
         <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
         <select 
           className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-          value={formData.titular}
-          onChange={e => setFormData({...formData, titular: e.target.value})}
+          value={formData.titular_id}
+          onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
         >
-          {titulares.map(t => <option key={t.nome} value={t.nome}>{t.nome}</option>)}
+          {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -319,19 +370,19 @@ export function CartaoForm({
             type="number" 
             min="1" max="31"
             className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.diaVencimento}
-            onChange={e => setFormData({...formData, diaVencimento: parseInt(e.target.value)})}
+            value={formData.dia_vencimento}
+            onChange={e => setFormData({...formData, dia_vencimento: parseInt(e.target.value)})}
           />
         </div>
         <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia Fechamento</label>
+          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dias p/ Fechamento</label>
           <input 
             required
             type="number" 
             min="1" max="31"
             className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.diaFechamento}
-            onChange={e => setFormData({...formData, diaFechamento: parseInt(e.target.value)})}
+            value={formData.dia_fechamento}
+            onChange={e => setFormData({...formData, dia_fechamento: parseInt(e.target.value)})}
           />
         </div>
       </div>

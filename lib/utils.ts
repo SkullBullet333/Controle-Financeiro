@@ -11,3 +11,14 @@ export function formatCurrency(value: number) {
     currency: 'BRL',
   }).format(value)
 }
+
+export function formatDate(dateString: string) {
+  if (!dateString || dateString === '-') return dateString;
+  try {
+    const [year, month, day] = dateString.split('-');
+    if (!year || !month || !day) return dateString;
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateString;
+  }
+}

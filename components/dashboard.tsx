@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, Scale, CreditCard } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Despesa, Status } from '@/lib/types';
+import { Despesa, Status, Titular, Categoria } from '@/lib/types';
 
 interface KPICardsProps {
   stats: {
@@ -44,9 +44,15 @@ export function KPICards({ stats }: KPICardsProps) {
 interface ExtratoTableProps {
   despesas: Despesa[];
   onEdit?: (item: any) => void;
+  categorias: Categoria[];
 }
 
-export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
+export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps) {
+  const getCategoriaLabel = (id: number | undefined) => {
+    if (!id) return 'Outros';
+    return categorias.find(c => c.id === id)?.label || 'Outros';
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full">
       <div className="p-5 border-b border-border">
@@ -68,14 +74,14 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
             ) : (
               despesas.map((d) => (
                 <tr 
-                  key={d.linha} 
+                  key={d.id} 
                   onDoubleClick={() => !d.isSummary && onEdit?.(d)}
                   className={`border-b border-border hover:bg-gray-50 transition-colors cursor-pointer ${d.isSummary ? 'bg-primary/5' : ''}`}
                 >
                   <td className="p-4">
                     <div className="flex flex-col">
                       <span className={`font-bold text-sm ${d.isSummary ? 'text-primary' : ''}`}>{d.descricao}</span>
-                      <span className="text-[10px] text-gray uppercase">{d.categoria} {d.vencimento !== '-' && `• ${d.vencimento}`}</span>
+                      <span className="text-[10px] text-gray uppercase">{getCategoriaLabel(d.categoria_id)} {d.vencimento !== '-' && `• ${formatDate(d.vencimento)}`}</span>
                     </div>
                   </td>
                   <td className="p-4 text-right">
@@ -98,18 +104,21 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
   );
 }
 
-export function DashboardCharts({ despesas, stats }: { despesas: Despesa[], stats: any }) {
+export function DashboardCharts({ despesas, stats, titulares }: { despesas: Despesa[], stats: any, titulares: Titular[] }) {
   const titularData = React.useMemo(() => {
-    const data: Record<string, number> = {};
+    const data: Record<number, number> = {};
     despesas.forEach(d => {
-      data[d.titular] = (data[d.titular] || 0) + d.valor;
+      data[d.titular_id] = (data[d.titular_id] || 0) + d.valor;
     });
-    return Object.entries(data).map(([name, value]) => ({ name, value }));
-  }, [despesas]);
+    return Object.entries(data).map(([id, value]) => ({ 
+      name: titulares.find(t => t.id === parseInt(id))?.nome || 'N/A', 
+      value: value || 0
+    }));
+  }, [despesas, titulares]);
 
   const statusData = [
-    { name: 'Pago', value: stats.totalPago },
-    { name: 'Em Aberto', value: stats.totalAberto },
+    { name: 'Pago', value: stats.totalPago || 0 },
+    { name: 'Em Aberto', value: stats.totalAberto || 0 },
   ];
 
   const COLORS = ['#4361ee', '#2ec4b6', '#ff9f1c', '#e71d36'];

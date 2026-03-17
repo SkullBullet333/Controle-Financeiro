@@ -1,159 +1,121 @@
--- Initial schema for Radar Financeiro
-
+-- Reset do schema (Cuidado: apaga os dados existentes)
 DROP TABLE IF EXISTS receitas CASCADE;
 DROP TABLE IF EXISTS despesas CASCADE;
 DROP TABLE IF EXISTS cartoes CASCADE;
+DROP TABLE IF EXISTS cartoes_config CASCADE;
 DROP TABLE IF EXISTS titulares CASCADE;
 DROP TABLE IF EXISTS categorias CASCADE;
+DROP TABLE IF EXISTS notas CASCADE;
 
--- 1. Categorias
+-- 1. Categorias (Baseado na aba CATEGORIAS)
 CREATE TABLE categorias (
-    linha SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     label TEXT NOT NULL,
-    keywords TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 2. Titulares
-CREATE TABLE titulares (
-    linha SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    nome TEXT NOT NULL,
-    foto TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(user_id, nome)
-);
-
--- 3. Cartões
-CREATE TABLE cartoes (
-    linha SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    nome TEXT NOT NULL,
-    titular_nome TEXT NOT NULL,
-    dia_vencimento INTEGER NOT NULL CHECK (dia_vencimento >= 1 AND dia_vencimento <= 31),
-    dia_fechamento INTEGER NOT NULL CHECK (dia_fechamento >= 1 AND dia_fechamento <= 31),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 4. Despesas
-CREATE TABLE despesas (
-    linha SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    descricao TEXT NOT NULL,
-    categoria_label TEXT,
-    valor DECIMAL(12,2) NOT NULL,
-    parcela TEXT,
-    vencimento TEXT,
-    vencimento_iso DATE NOT NULL,
-    competencia TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('Pago', 'Em aberto', 'Vencida', 'Hoje')),
-    titular_nome TEXT NOT NULL,
-    cartao_nome TEXT,
-    simulada BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 5. Receitas
-CREATE TABLE receitas (
-    linha SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    descricao TEXT NOT NULL,
-    valor DECIMAL(12,2) NOT NULL,
-    parcelas TEXT,
-    recebimento TEXT,
-    competencia TEXT NOT NULL,
-    titular_nome TEXT NOT NULL,
-    simulada BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Enable RLS
-ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE titulares ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cartoes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE receitas ENABLE ROW LEVEL SECURITY;
-
--- 6. Workspace Members (Shared Access)
-CREATE TABLE workspace_members (
-    id SERIAL PRIMARY KEY,
-    owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    member_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    role TEXT DEFAULT 'editor' CHECK (role IN ('editor', 'viewer')),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(owner_id, member_id)
-);
-
--- 7. Workspace Invites
-CREATE TABLE workspace_invites (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    invitee_email TEXT NOT NULL,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+    keywords TEXT, -- Para busca automática que seu script sugeria
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Enable RLS for new tables
-ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workspace_invites ENABLE ROW LEVEL SECURITY;
+-- 2. Titulares (Baseado na aba LOGIN)
+CREATE TABLE titulares (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome TEXT NOT NULL,
+    foto TEXT, -- URL da imagem
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, nome)
+);
 
--- RLS Policies for new tables
-CREATE POLICY "Users can see their own memberships" ON workspace_members 
-    FOR SELECT USING (auth.uid() = member_id OR auth.uid() = owner_id);
+-- 3. Cadastro/Configuração de Cartões (Baseado na aba CONFIG)
+CREATE TABLE cartoes_config (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome_cartao TEXT NOT NULL,
+    titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
+    dia_vencimento INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 31),
+    dia_fechamento INTEGER NOT NULL DEFAULT 10, -- Dias antes do vencimento
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
-CREATE POLICY "Owners can manage memberships" ON workspace_members 
-    FOR ALL USING (auth.uid() = owner_id);
+-- 4. Lançamentos de Cartão (Baseado na aba CARTOES)
+-- Aqui ficam as compras individuais que depois são consolidadas
+CREATE TABLE cartoes (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    cartao_id INTEGER REFERENCES cartoes_config(id) ON DELETE CASCADE,
+    descricao TEXT NOT NULL,
+    categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
+    valor DECIMAL(12,2) NOT NULL,
+    parcela_atual INTEGER DEFAULT 1,
+    parcela_total INTEGER DEFAULT 1,
+    vencimento_original DATE NOT NULL,
+    competencia TEXT NOT NULL, -- Formato "MM/YYYY"
+    simulada BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
-CREATE POLICY "Users can see invites sent to them or by them" ON workspace_invites 
-    FOR SELECT USING (auth.uid() = owner_id OR invitee_email = (select email from auth.users where id = auth.uid()));
+-- 5. Despesas Fixas e Variáveis (Baseado na aba DESPESAS)
+-- Inclui as faturas consolidadas de cartão
+CREATE TABLE despesas (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    descricao TEXT NOT NULL,
+    categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
+    valor DECIMAL(12,2) NOT NULL,
+    parcela_atual INTEGER DEFAULT 1,
+    parcela_total INTEGER DEFAULT 1,
+    vencimento DATE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Em aberto' CHECK (status IN ('Pago', 'Em aberto', 'Vencida', 'Hoje')),
+    titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
+    cartao_vencimento_id INTEGER REFERENCES cartoes_config(id), -- Se for uma fatura consolidada
+    competencia TEXT NOT NULL,
+    simulada BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-CREATE POLICY "Owners can manage invites" ON workspace_invites 
-    FOR ALL USING (auth.uid() = owner_id);
+-- 6. Receitas (Baseado na aba RECEITAS)
+CREATE TABLE receitas (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    descricao TEXT NOT NULL,
+    valor DECIMAL(12,2) NOT NULL,
+    data_recebimento DATE NOT NULL,
+    titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
+    competencia TEXT NOT NULL,
+    simulada BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Update RLS Policies for existing tables to allow shared access
-DROP POLICY IF EXISTS "Users can manage their own categorias" ON categorias;
-CREATE POLICY "Users can manage categorias in their workspaces" ON categorias 
-    FOR ALL USING (
-        auth.uid() = user_id OR 
-        user_id IN (SELECT owner_id FROM workspace_members WHERE member_id = auth.uid() AND role = 'editor')
-    );
+-- 7. Notas (Baseado na aba NOTAS)
+CREATE TABLE notas (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    conteudo TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-DROP POLICY IF EXISTS "Users can manage their own titulares" ON titulares;
-CREATE POLICY "Users can manage titulares in their workspaces" ON titulares 
-    FOR ALL USING (
-        auth.uid() = user_id OR 
-        user_id IN (SELECT owner_id FROM workspace_members WHERE member_id = auth.uid() AND role = 'editor')
-    );
+---
 
-DROP POLICY IF EXISTS "Users can manage their own cartoes" ON cartoes;
-CREATE POLICY "Users can manage cartoes in their workspaces" ON cartoes 
-    FOR ALL USING (
-        auth.uid() = user_id OR 
-        user_id IN (SELECT owner_id FROM workspace_members WHERE member_id = auth.uid() AND role = 'editor')
-    );
+-- Habilitar RLS (Row Level Security)
+ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE titulares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cartoes_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cartoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receitas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notas ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Users can manage their own despesas" ON despesas;
-CREATE POLICY "Users can manage despesas in their workspaces" ON despesas 
-    FOR ALL USING (
-        auth.uid() = user_id OR 
-        user_id IN (SELECT owner_id FROM workspace_members WHERE member_id = auth.uid() AND role = 'editor')
-    );
+-- Políticas de Segurança (Exemplo para Despesas - Repetir para as outras)
+CREATE POLICY "Individuais" ON despesas FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON receitas FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON cartoes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON cartoes_config FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON titulares FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON categorias FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Individuais" ON notas FOR ALL USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can manage their own receitas" ON receitas;
-CREATE POLICY "Users can manage receitas in their workspaces" ON receitas 
-    FOR ALL USING (
-        auth.uid() = user_id OR 
-        user_id IN (SELECT owner_id FROM workspace_members WHERE member_id = auth.uid() AND role = 'editor')
-    );
-
--- Updated at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Função para atualizar o updated_at automaticamente
+CREATE OR REPLACE FUNCTION handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = now();
@@ -161,18 +123,4 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply triggers
-DROP TRIGGER IF EXISTS update_categorias_updated_at ON categorias;
-CREATE TRIGGER update_categorias_updated_at BEFORE UPDATE ON categorias FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_titulares_updated_at ON titulares;
-CREATE TRIGGER update_titulares_updated_at BEFORE UPDATE ON titulares FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_cartoes_updated_at ON cartoes;
-CREATE TRIGGER update_cartoes_updated_at BEFORE UPDATE ON cartoes FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_despesas_updated_at ON despesas;
-CREATE TRIGGER update_despesas_updated_at BEFORE UPDATE ON despesas FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_receitas_updated_at ON receitas;
-CREATE TRIGGER update_receitas_updated_at BEFORE UPDATE ON receitas FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER tr_despesas_updated_at BEFORE UPDATE ON despesas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();

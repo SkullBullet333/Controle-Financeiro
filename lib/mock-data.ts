@@ -2,21 +2,21 @@ import { Despesa, Receita, ConfigApp } from './types';
 
 export const MOCK_CONFIG: ConfigApp = {
   titulares: [
-    { linha: 1, nome: "Noádia", foto: "https://images.icon-icons.com/2643/PNG/512/female_woman_person_people_avatar_icon_159366.png" },
-    { linha: 2, nome: "Pablo", foto: "https://images.icon-icons.com/2643/PNG/512/male_man_people_person_avatar_white_tone_icon_159363.png" },
-    { linha: 3, nome: "Casa", foto: "https://images.icon-icons.com/1483/PNG/512/wifihome_102155.png" }
+    { id: 1, nome: "Noádia", foto: "https://images.icon-icons.com/2643/PNG/512/female_woman_person_people_avatar_icon_159366.png" },
+    { id: 2, nome: "Pablo", foto: "https://images.icon-icons.com/2643/PNG/512/male_man_people_person_avatar_white_tone_icon_159363.png" },
+    { id: 3, nome: "Casa", foto: "https://images.icon-icons.com/1483/PNG/512/wifihome_102155.png" }
   ],
   cartoes: [
-    { linha: 1, nome: "Nubank", titular: "Pablo", diaVencimento: 10, diaFechamento: 7 },
-    { linha: 2, nome: "Inter", titular: "Noádia", diaVencimento: 15, diaFechamento: 5 },
-    { linha: 3, nome: "Mercado Pago", titular: "Pablo", diaVencimento: 20, diaFechamento: 10 }
+    { id: 1, nome_cartao: "Nubank", titular_id: 2, dia_vencimento: 10, dia_fechamento: 7 },
+    { id: 2, nome_cartao: "Inter", titular_id: 1, dia_vencimento: 15, dia_fechamento: 5 },
+    { id: 3, nome_cartao: "Mercado Pago", titular_id: 2, dia_vencimento: 20, dia_fechamento: 10 }
   ],
   categorias: [
-    { linha: 1, label: "Mercado", keywords: "mercado,supermercado,feira" },
-    { linha: 2, label: "Transporte", keywords: "combustivel,gasolina,posto,carro,uber" },
-    { linha: 3, label: "Moradia", keywords: "aluguel,casa,condominio,luz,agua" },
-    { linha: 4, label: "Saúde", keywords: "farmacia,medico,unimed" },
-    { linha: 5, label: "Lazer", keywords: "ifood,restaurante,netflix,spotify" }
+    { id: 1, label: "Mercado", keywords: "mercado,supermercado,feira" },
+    { id: 2, label: "Transporte", keywords: "combustivel,gasolina,posto,carro,uber" },
+    { id: 3, label: "Moradia", keywords: "aluguel,casa,condominio,luz,agua" },
+    { id: 4, label: "Saúde", keywords: "farmacia,medico,unimed" },
+    { id: 5, label: "Lazer", keywords: "ifood,restaurante,netflix,spotify" }
   ]
 };
 
@@ -26,65 +26,63 @@ const comp = `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
 
 export const MOCK_DESPESAS: Despesa[] = [
   {
-    linha: 1,
+    id: 1,
     descricao: "Aluguel",
-    categoria: "Moradia",
+    categoria_id: 3,
     valor: 1500,
-    parcela: "1/1",
-    vencimento: `10/${comp}`,
-    vencimentoIso: `${currentYear}-${String(currentMonth).padStart(2, '0')}-10`,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-10`,
     competencia: comp,
     status: "Pago",
-    titular: "Casa",
+    titular_id: 3,
     simulada: false
   },
   {
-    linha: 2,
+    id: 2,
     descricao: "Supermercado",
-    categoria: "Mercado",
+    categoria_id: 1,
     valor: 850.50,
-    parcela: "1/1",
-    vencimento: `15/${comp}`,
-    vencimentoIso: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
     competencia: comp,
     status: "Em aberto",
-    titular: "Casa",
+    titular_id: 3,
     simulada: false
   },
   {
-    linha: 3,
+    id: 3,
     descricao: "Internet",
-    categoria: "Moradia",
+    categoria_id: 3,
     valor: 120,
-    parcela: "1/1",
-    vencimento: `05/${comp}`,
-    vencimentoIso: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
     competencia: comp,
     status: "Pago",
-    titular: "Pablo",
+    titular_id: 2,
     simulada: false
   }
 ];
 
 export const MOCK_RECEITAS: Receita[] = [
   {
-    linha: 1,
+    id: 1,
     descricao: "Salário Pablo",
     valor: 5000,
-    parcelas: "1/1",
-    recebimento: `05/${comp}`,
+    data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
     competencia: comp,
-    titular: "Pablo",
+    titular_id: 2,
     simulada: false
   },
   {
-    linha: 2,
+    id: 2,
     descricao: "Freelance",
     valor: 1200,
-    parcelas: "1/1",
-    recebimento: `20/${comp}`,
+    data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-20`,
     competencia: comp,
-    titular: "Noádia",
+    titular_id: 1,
     simulada: false
   }
 ];
