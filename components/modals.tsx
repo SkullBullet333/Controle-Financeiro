@@ -79,10 +79,16 @@ export function FinanceForm({
       finalDate = format(date, 'yyyy-MM-dd');
     }
 
+    let titularId = formData.titular_id;
+    if (type === 'despesa' && subType === 'cartao' && formData.cartao_vencimento_id) {
+      const cartao = cartoes.find(c => c.id === parseInt(formData.cartao_vencimento_id as string));
+      if (cartao) titularId = cartao.titular_id;
+    }
+
     const data: Partial<Despesa> & Partial<Receita> = {
       descricao: formData.descricao,
       valor: parseFloat(formData.valor),
-      titular_id: formData.titular_id,
+      titular_id: titularId,
       competencia,
       simulada: formData.simulada,
     };
@@ -111,6 +117,98 @@ export function FinanceForm({
 
     onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
   };
+
+  if (type === 'despesa' && subType === 'cartao') {
+    return (
+      <form onSubmit={handleSubmit} className="row g-3">
+        <div className="col-12 mb-2 d-flex align-items-center gap-2 text-primary border-bottom pb-2 mb-4">
+          <i className="fa-solid fa-credit-card fs-5"></i>
+          <h5 className="fw-bold m-0">Novo Gasto no Cartão</h5>
+        </div>
+
+        <div className="col-12">
+          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Descrição</label>
+          <input 
+            required
+            type="text" 
+            className="form-control rounded-3" 
+            placeholder="O que você comprou?"
+            value={formData.descricao}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
+          <select 
+            className="form-select rounded-3"
+            value={formData.categoria_id}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
+          >
+            {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome Cartão</label>
+          <select 
+            required
+            className="form-select rounded-3"
+            value={formData.cartao_vencimento_id}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, cartao_vencimento_id: e.target.value})}
+          >
+            <option value="">Selecione um Cartão</option>
+            {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
+          <div className="input-group">
+            <span className="input-group-text bg-light border-end-0">R$</span>
+            <input 
+              required
+              type="number" 
+              step="0.01"
+              className="form-control border-start-0 rounded-end-3" 
+              value={formData.valor}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
+            />
+          </div>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Parcelas</label>
+          <input 
+            type="number" 
+            min="1"
+            className="form-control rounded-3"
+            value={formData.parcela_total}
+            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+          />
+        </div>
+
+        <div className="col-12 mt-3">
+          <div className="form-check">
+            <input 
+              type="checkbox" 
+              className="form-check-input"
+              id="checkSimulacaoCartao"
+              checked={formData.simulada}
+              onChange={e => setFormData({...formData, simulada: e.target.checked})}
+            />
+            <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoCartao">Simulação?</label>
+          </div>
+        </div>
+
+        <div className="col-12 mt-4">
+          <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
+            <i className="fa-solid fa-cloud-arrow-up me-2"></i>Salvar Lançamento
+          </button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="row g-3">
@@ -573,3 +671,52 @@ export function MonthYearModal({
   );
 }
 
+
+export function ConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message,
+  confirmLabel = 'Confirmar',
+  variant = 'danger'
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onConfirm: () => void, 
+  title: string, 
+  message: string,
+  confirmLabel?: string,
+  variant?: 'danger' | 'primary' | 'success'
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100 }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-content rounded-4 border-0 shadow-lg p-2">
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">{title}</h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <div className="modal-body py-4 text-center">
+            <div className={`d-inline-flex p-3 rounded-circle bg-${variant} bg-opacity-10 text-${variant} mb-3`}>
+              <i className={`fa-solid ${variant === 'danger' ? 'fa-trash-can' : 'fa-circle-question'} fa-2xl`}></i>
+            </div>
+            <p className="text-muted mb-0">{message}</p>
+          </div>
+          <div className="modal-footer border-0 pt-0 gap-2">
+            <button type="button" className="btn btn-light rounded-pill px-4 fw-bold flex-grow-1" onClick={onClose}>Cancelar</button>
+            <button 
+              type="button" 
+              className={`btn btn-${variant} rounded-pill px-4 fw-bold flex-grow-1`} 
+              onClick={() => { onConfirm(); onClose(); }}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

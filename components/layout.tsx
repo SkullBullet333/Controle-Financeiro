@@ -126,11 +126,13 @@ export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeri
         <div className="controls">
           <button onClick={() => onChangeMonth(-1)}><i className="fa-solid fa-chevron-left"></i></button>
           <div 
-            className="date-display mx-3" 
+            className="date-display" 
             title="Clique para selecionar o período"
             onClick={onOpenPeriodModal}
           >
-            <span id="lblMes">{months[month - 1]}</span> <span id="lblAno">{year}</span>
+            <i className="fa-regular fa-calendar-check text-primary opacity-75"></i>
+            <span id="lblMes">{months[month - 1]}</span> 
+            <span id="lblAno">{year}</span>
           </div>
           <button onClick={() => onChangeMonth(1)}><i className="fa-solid fa-chevron-right"></i></button>
         </div>

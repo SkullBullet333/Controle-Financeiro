@@ -110,12 +110,30 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 
                   <td className="px-4 py-3">
                     {!(item as any).isSummary && (
-                      <button 
-                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
-                        className="btn btn-sm btn-outline-danger border-0"
-                      >
-                        <i className="fa-solid fa-trash-can"></i>
-                      </button>
+                      <div className="d-flex align-items-center gap-1">
+                        {type === 'geral' && (
+                          <button 
+                            onClick={(e: React.MouseEvent) => { 
+                              e.stopPropagation(); 
+                              onToggleStatus?.((item as any).id, (item as any).status);
+                            }}
+                            className={cn(
+                              "btn btn-sm border-0",
+                              (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                            )}
+                            title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
+                          >
+                            <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
+                          </button>
+                        )}
+                        <button 
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
+                          className="btn btn-sm btn-outline-danger border-0"
+                          title="Excluir"
+                        >
+                          <i className="fa-solid fa-trash-can"></i>
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

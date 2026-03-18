@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
-import { Modal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ export default function Home() {
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria'>('despesa');
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | Categoria | CartaoTransacao | null>(null);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' } | null>(null);
 
   const {
     user,
@@ -238,9 +240,8 @@ export default function Home() {
               data={tableData}
               type={activeView === 'geral' ? 'geral' : activeView === 'cartoes' ? 'cartoes' : 'receitas'}
               onDelete={(id) => {
-                if (activeView === 'receitas') deleteReceita(id);
-                else if (activeView === 'cartoes') deleteCartaoTransacao(id);
-                else deleteDespesa(id);
+                setItemToDelete({ id, type: activeView === 'receitas' ? 'receita' : activeView === 'cartoes' ? 'cartao_transacao' : 'despesa' });
+                setIsConfirmDeleteOpen(true);
               }}
               onToggleStatus={(id, currentVal) => {
                 if (activeView === 'geral') updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
@@ -395,7 +396,7 @@ export default function Home() {
                         </div>
                         <div>
                           <button onClick={() => { setModalType('titular'); setEditingItem(t); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                          <button onClick={() => deleteTitular(t.id)} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                          <button onClick={() => { setItemToDelete({ id: t.id, type: 'titular' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
                         </div>
                       </div>
                     ))}
@@ -429,7 +430,7 @@ export default function Home() {
                           </div>
                           <div>
                             <button onClick={() => { setModalType('cartao'); setEditingItem(c); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                            <button onClick={() => deleteCartao(c.id)} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                            <button onClick={() => { setItemToDelete({ id: c.id, type: 'cartao' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
                           </div>
                         </div>
                       );
@@ -460,7 +461,7 @@ export default function Home() {
                         </div>
                         <div>
                           <button onClick={() => { setModalType('categoria'); setEditingItem(cat); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                          <button onClick={() => deleteCategoria(cat.id)} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                          <button onClick={() => { setItemToDelete({ id: cat.id, type: 'categoria' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
                         </div>
                       </div>
                     ))}
@@ -591,6 +592,27 @@ export default function Home() {
             setMonth(m);
             setYear(y);
           }}
+        />
+
+        <ConfirmModal
+          isOpen={isConfirmDeleteOpen}
+          onClose={() => {
+            setIsConfirmDeleteOpen(false);
+            setItemToDelete(null);
+          }}
+          onConfirm={() => {
+            if (!itemToDelete) return;
+            const { id, type } = itemToDelete;
+            if (type === 'despesa') deleteDespesa(id);
+            else if (type === 'receita') deleteReceita(id);
+            else if (type === 'cartao_transacao') deleteCartaoTransacao(id);
+            else if (type === 'titular') deleteTitular(id);
+            else if (type === 'cartao') deleteCartao(id);
+            else if (type === 'categoria') deleteCategoria(id);
+          }}
+          title="Confirmar Exclusão"
+          message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+          confirmLabel="Excluir"
         />
       </div>
     </div>
