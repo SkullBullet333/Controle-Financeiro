@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { X } from 'lucide-react';
 import { Titular, Categoria, Status } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
+import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
+import { parseISO, format } from 'date-fns';
 
 interface ModalProps {
   isOpen: boolean;
@@ -53,41 +55,47 @@ export function FinanceForm({
   const [formData, setFormData] = useState({
     descricao: initialData?.descricao || '',
     valor: initialData?.valor?.toString() || '',
-    titular_id: (initialData?.titular_id !== undefined && !isNaN(initialData.titular_id)) ? initialData.titular_id : (titulares[0]?.id || 0),
-    categoria_id: (initialData?.categoria_id !== undefined && !isNaN(initialData.categoria_id)) ? initialData.categoria_id : (categorias[0]?.id || 0),
+    titular_id: initialData?.titular_id || titulares[0]?.id || 0,
+    categoria_id: initialData?.categoria_id || categorias[0]?.id || 0,
     vencimento: initialData?.vencimento || initialData?.data_recebimento || new Date().toISOString().split('T')[0],
     status: initialData?.status || ('Em aberto' as Status),
-    parcela_atual: (initialData?.parcela_atual !== undefined && !isNaN(initialData.parcela_atual)) ? initialData.parcela_atual : 1,
-    parcela_total: (initialData?.parcela_total !== undefined && !isNaN(initialData.parcela_total)) ? initialData.parcela_total : 1,
+    parcela_atual: initialData?.parcela_atual || 1,
+    parcela_total: initialData?.parcela_total || 1,
     cartao_vencimento_id: initialData?.cartao_vencimento_id || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const valor = parseFloat(formData.valor);
-    if (isNaN(valor)) {
-      alert('Por favor, insira um valor válido.');
-      return;
-    }
-
     const data: any = {
       descricao: formData.descricao,
-      valor: valor,
-      titular_id: formData.titular_id && formData.titular_id !== 0 ? formData.titular_id : null,
+      valor: parseFloat(formData.valor),
+      titular_id: formData.titular_id,
       competencia,
       simulada: false,
     };
 
     if (type === 'despesa') {
-      data.categoria_id = formData.categoria_id && formData.categoria_id !== 0 ? formData.categoria_id : null;
+      data.categoria_id = formData.categoria_id;
       data.vencimento = formData.vencimento;
       data.status = formData.status;
-      data.parcela_atual = parseInt(formData.parcela_atual.toString()) || 1;
-      data.parcela_total = parseInt(formData.parcela_total.toString()) || 1;
+      data.parcela_atual = formData.parcela_atual;
+      data.parcela_total = formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : null;
+      
+      // Recalcular competência se for despesa normal
+      if (!data.cartao_vencimento_id) {
+        data.competencia = calcularCompetencia(parseISO(formData.vencimento));
+      } else {
+        // Se for cartão, a competência depende da regra de fechamento
+        const cartao = cartoes.find(c => c.id === data.cartao_vencimento_id);
+        if (cartao) {
+          data.competencia = calcularCompetenciaCartao(parseISO(formData.vencimento), cartao.dia_vencimento, cartao.dia_fechamento);
+        }
+      }
     } else {
       data.data_recebimento = formData.vencimento;
+      const dataAjustada = ajustarDataReceita(parseISO(formData.vencimento));
+      data.competencia = calcularCompetenciaReceita(dataAjustada);
     }
 
     onSubmit(data);
@@ -335,9 +343,9 @@ export function CartaoForm({
 }) {
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
-    titular_id: (initialData?.titular_id !== undefined && !isNaN(initialData.titular_id)) ? initialData.titular_id : (titulares[0]?.id || 0),
-    dia_vencimento: (initialData?.dia_vencimento !== undefined && !isNaN(initialData.dia_vencimento)) ? initialData.dia_vencimento : 10,
-    dia_fechamento: (initialData?.dia_fechamento !== undefined && !isNaN(initialData.dia_fechamento)) ? initialData.dia_fechamento : 10
+    titular_id: initialData?.titular_id || titulares[0]?.id || 0,
+    dia_vencimento: initialData?.dia_vencimento || 10,
+    dia_fechamento: initialData?.dia_fechamento || 10
   });
 
   return (

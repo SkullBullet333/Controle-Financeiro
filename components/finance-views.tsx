@@ -82,9 +82,9 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 
                   {type === 'cartoes' && (
                     <>
-                      <td className="p-4 font-bold text-sm text-primary">{getCartaoName(item.cartao_vencimento_id)}</td>
+                      <td className="p-4 font-bold text-sm text-primary">{getCartaoName(item.cartao_id)}</td>
                       <td className="p-4 text-sm">{getTitularName(item.titular_id)}</td>
-                      <td className="p-4 font-bold text-sm">{item.descricao}</td>
+                      <td className="p-4 font-bold text-sm">{item.estabelecimento}</td>
                       <td className="p-4"><span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded uppercase text-gray-600">{getCategoriaLabel(item.categoria_id)}</span></td>
                       <td className="p-4 text-sm">{item.parcela_atual}/{item.parcela_total}</td>
                       <td className="p-4 font-black text-sm">{formatCurrency(item.valor)}</td>

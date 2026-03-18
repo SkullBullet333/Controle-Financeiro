@@ -22,15 +22,19 @@ export interface CartaoConfig {
 
 export interface CartaoTransacao {
   id: number;
+  user_id: string;
   cartao_id: number;
-  descricao: string;
-  categoria_id?: number;
+  data_compra: string;
+  estabelecimento: string;
   valor: number;
   parcela_atual: number;
   parcela_total: number;
-  vencimento_original: string;
   competencia: string;
   simulada: boolean;
+  titular_id: number;
+  categoria_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Despesa {
@@ -43,10 +47,10 @@ export interface Despesa {
   vencimento: string;
   status: Status;
   titular_id: number;
-  cartao_vencimento_id?: number;
   competencia: string;
   simulada: boolean;
   isSummary?: boolean;
+  cartao_vencimento_id?: number;
 }
 
 export interface Receita {

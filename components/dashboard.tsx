@@ -112,13 +112,13 @@ export function DashboardCharts({ despesas, stats, titulares }: { despesas: Desp
     });
     return Object.entries(data).map(([id, value]) => ({ 
       name: titulares.find(t => t.id === parseInt(id))?.nome || 'N/A', 
-      value: value || 0
+      value 
     }));
   }, [despesas, titulares]);
 
   const statusData = [
-    { name: 'Pago', value: stats.totalPago || 0 },
-    { name: 'Em Aberto', value: stats.totalAberto || 0 },
+    { name: 'Pago', value: stats.totalPago },
+    { name: 'Em Aberto', value: stats.totalAberto },
   ];
 
   const COLORS = ['#4361ee', '#2ec4b6', '#ff9f1c', '#e71d36'];

@@ -67,7 +67,6 @@ CREATE TABLE despesas (
     vencimento DATE NOT NULL,
     status TEXT NOT NULL DEFAULT 'Em aberto' CHECK (status IN ('Pago', 'Em aberto', 'Vencida', 'Hoje')),
     titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
-    cartao_vencimento_id INTEGER REFERENCES cartoes_config(id), -- Se for uma fatura consolidada
     competencia TEXT NOT NULL,
     simulada BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now(),

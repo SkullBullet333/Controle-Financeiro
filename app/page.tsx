@@ -30,6 +30,7 @@ export default function Home() {
     competencia,
     filteredDespesas,
     filteredReceitas,
+    filteredCartaoTransacoes,
     despesasGerais,
     config,
     stats,
@@ -47,12 +48,11 @@ export default function Home() {
     addDespesa,
     updateDespesa,
     deleteDespesa,
+    deleteCartaoTransacao,
+    updateCartaoTransacao,
     addReceita,
     updateReceita,
     deleteReceita,
-    addCartaoTransacao,
-    updateCartaoTransacao,
-    deleteCartaoTransacao,
     addTitular,
     updateTitular,
     deleteTitular,
@@ -61,8 +61,7 @@ export default function Home() {
     deleteCartao,
     addCategoria,
     updateCategoria,
-    deleteCategoria,
-    filteredCartaoTransacoes
+    deleteCategoria
   } = useFinance(activeView);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -209,7 +208,7 @@ export default function Home() {
         const tableData = activeView === 'geral' 
           ? despesasGerais 
           : activeView === 'cartoes' 
-            ? filteredCartaoTransacoes
+            ? filteredCartaoTransacoes 
             : filteredReceitas;
 
         return (
@@ -235,7 +234,10 @@ export default function Home() {
                 else if (activeView === 'cartoes') deleteCartaoTransacao(id);
                 else deleteDespesa(id);
               }}
-              onToggleStatus={(id, status) => activeView === 'geral' && updateDespesa(id, { status: status === 'Pago' ? 'Em aberto' : 'Pago' })}
+              onToggleStatus={(id, status) => {
+                if (activeView === 'geral') updateDespesa(id, { status: status === 'Pago' ? 'Em aberto' : 'Pago' });
+                else if (activeView === 'cartoes') updateCartaoTransacao(id, { simulada: !status }); // Just an example of toggle for cards
+              }}
               onEdit={(item) => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
                 setEditingItem(item);
@@ -298,8 +300,8 @@ export default function Home() {
                     <PieChart>
                       <Pie
                         data={[
-                          { name: 'Essencial', value: (stats.totalDespesas || 0) * 0.6 },
-                          { name: 'Lifestyle', value: (stats.totalDespesas || 0) * 0.4 }
+                          { name: 'Essencial', value: stats.totalDespesas * 0.6 },
+                          { name: 'Lifestyle', value: stats.totalDespesas * 0.4 }
                         ]}
                         cx="50%"
                         cy="50%"
@@ -549,49 +551,11 @@ export default function Home() {
                 initialData={editingItem}
                 onSubmit={(data) => {
                   if (editingItem) {
-                    if (modalType === 'despesa') {
-                      if (data.cartao_vencimento_id) {
-                        // If it has a card, it's a CartaoTransacao
-                        const cartaoData = {
-                          cartao_id: data.cartao_vencimento_id,
-                          descricao: data.descricao,
-                          categoria_id: data.categoria_id,
-                          valor: data.valor,
-                          parcela_atual: data.parcela_atual,
-                          parcela_total: data.parcela_total,
-                          vencimento_original: data.vencimento,
-                          competencia: data.competencia,
-                          simulada: data.simulada
-                        };
-                        updateCartaoTransacao(editingItem.id, cartaoData);
-                      } else {
-                        updateDespesa(editingItem.id, data);
-                      }
-                    } else {
-                      updateReceita(editingItem.id, data);
-                    }
+                    if (modalType === 'despesa') updateDespesa(editingItem.id, data);
+                    else updateReceita(editingItem.id, data);
                   } else {
-                    if (modalType === 'despesa') {
-                      if (data.cartao_vencimento_id) {
-                        // If it has a card, it's a CartaoTransacao
-                        const cartaoData = {
-                          cartao_id: data.cartao_vencimento_id,
-                          descricao: data.descricao,
-                          categoria_id: data.categoria_id,
-                          valor: data.valor,
-                          parcela_atual: data.parcela_atual,
-                          parcela_total: data.parcela_total,
-                          vencimento_original: data.vencimento,
-                          competencia: data.competencia,
-                          simulada: data.simulada
-                        };
-                        addCartaoTransacao(cartaoData);
-                      } else {
-                        addDespesa(data);
-                      }
-                    } else {
-                      addReceita(data);
-                    }
+                    if (modalType === 'despesa') addDespesa(data);
+                    else addReceita(data);
                   }
                   setIsModalOpen(false);
                   setEditingItem(null);
