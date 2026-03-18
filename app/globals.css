@@ -17,12 +17,12 @@
 }
 
 body.dark-mode {
-  --bg: #111827;
-  --card: #1F2937;
-  --border: #374151;
-  --text: #F9FAFB;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
   --gray: #9CA3AF;
-  --light: #1F2937;
+  --light: #1e293b;
 }
 
 body.dark-mode .card,

@@ -26,7 +26,13 @@ export default function Home() {
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
-  const [showFullConfig, setShowFullConfig] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => 
+      prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]
+    );
+  };
 
   const {
     user,
@@ -386,7 +392,7 @@ export default function Home() {
       case 'config':
         return (
           <div className="row g-4">
-            <div className="col-md-6">
+            <div className="col-lg-6">
               <div className="card border-0 rounded-4 shadow-sm mb-4">
                 <div className="card-body p-4">
                   <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
@@ -407,29 +413,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {!showFullConfig ? (
-                <div className="card border-0 rounded-4 shadow-sm bg-primary bg-opacity-5 border border-primary border-opacity-10 cursor-pointer" onClick={() => setShowFullConfig(true)}>
-                  <div className="card-body p-4 text-center">
-                    <i className="fa-solid fa-sliders fa-2xl text-primary mb-3"></i>
-                    <h5 className="fw-bold mb-1">Configurações Avançadas</h5>
-                    <p className="text-muted small mb-3">Gerenciamento de titulares, cartões e categorias</p>
-                    <button className="btn btn-primary rounded-pill px-4 fw-bold">
-                      Mostrar Detalhes
-                    </button>
-                  </div>
+              {/* Titulares Accordion */}
+              <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
+                <div 
+                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
+                  onClick={() => toggleSection('titulares')}
+                >
+                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                    <UserCircle className="text-primary" /> Titulares
+                  </h5>
+                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('titulares') ? "fa-chevron-up" : "fa-chevron-down")}></i>
                 </div>
-              ) : (
-                <div className="card border-0 rounded-4 shadow-sm h-fit">
-                  <div className="card-body p-4 text-center border-bottom border-light">
-                    <button className="btn btn-outline-secondary btn-sm rounded-pill px-4 fw-bold" onClick={() => setShowFullConfig(false)}>
-                      <i className="fa-solid fa-eye-slash me-2"></i>Ocultar Detalhes
-                    </button>
-                  </div>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center justify-content-between mb-4">
-                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                        <UserCircle className="text-primary" /> Titulares
-                      </h5>
+                {expandedSections.includes('titulares') && (
+                  <div className="card-body p-4 pt-0 border-top border-light">
+                    <div className="d-flex justify-content-end mb-3">
                       <button
                         onClick={() => { setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
                         className="btn btn-sm btn-primary rounded-pill px-3"
@@ -439,7 +436,7 @@ export default function Home() {
                     </div>
                     <div className="list-group list-group-flush">
                       {config.titulares.map((t: Titular) => (
-                        <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                        <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
                           <div className="d-flex align-items-center gap-3">
                             <div className="position-relative" style={{ width: '32px', height: '32px' }}>
                               <Image
@@ -460,18 +457,25 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {showFullConfig && (
-              <div className="col-md-6">
-                <div className="card border-0 rounded-4 shadow-sm mb-4">
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center justify-content-between mb-4">
-                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                        <CardIcon className="text-primary" /> Cartões
-                      </h5>
+            <div className="col-lg-6">
+              {/* Cartões Accordion */}
+              <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
+                <div 
+                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
+                  onClick={() => toggleSection('cartoes')}
+                >
+                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                    <CardIcon className="text-primary" /> Cartões
+                  </h5>
+                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('cartoes') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                </div>
+                {expandedSections.includes('cartoes') && (
+                  <div className="card-body p-4 pt-0 border-top border-light">
+                    <div className="d-flex justify-content-end mb-3">
                       <button
                         onClick={() => { setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
                         className="btn btn-sm btn-primary rounded-pill px-3"
@@ -483,7 +487,7 @@ export default function Home() {
                       {config.cartoes.map((c: CartaoConfig) => {
                         const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
                         return (
-                          <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                          <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
                             <div>
                               <span className="fw-bold d-block">{c.nome_cartao}</span>
                               <span className="small text-muted text-uppercase">{titular?.nome || 'N/A'} • Venc. {c.dia_vencimento}</span>
@@ -497,14 +501,23 @@ export default function Home() {
                       })}
                     </div>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div className="card border-0 rounded-4 shadow-sm">
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center justify-content-between mb-4">
-                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                        <Tags className="text-primary" /> Categorias
-                      </h5>
+              {/* Categorias Accordion */}
+              <div className="card border-0 rounded-4 shadow-sm overflow-hidden">
+                <div 
+                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
+                  onClick={() => toggleSection('categorias')}
+                >
+                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                    <Tags className="text-primary" /> Categorias
+                  </h5>
+                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('categorias') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                </div>
+                {expandedSections.includes('categorias') && (
+                  <div className="card-body p-4 pt-0 border-top border-light">
+                    <div className="d-flex justify-content-end mb-3">
                       <button
                         onClick={() => { setModalType('categoria'); setEditingItem(null); setIsModalOpen(true); }}
                         className="btn btn-sm btn-primary rounded-pill px-3"
@@ -514,7 +527,7 @@ export default function Home() {
                     </div>
                     <div className="list-group list-group-flush">
                       {config.categorias.map((cat: Categoria) => (
-                        <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                        <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
                           <div className="overflow-hidden">
                             <span className="fw-bold d-block">{cat.label}</span>
                             <span className="small text-muted text-truncate d-block" style={{ maxWidth: '200px' }}>{cat.keywords}</span>
@@ -527,9 +540,9 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         );
 
