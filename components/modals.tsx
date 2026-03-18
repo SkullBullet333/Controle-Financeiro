@@ -385,13 +385,14 @@ export function TitularForm({
     foto: initialData?.foto || ''
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 1024 * 1024) {
-      alert('Arquivo muito grande! O limite para a foto do titular é de 1MB.');
+      setSizeError('Arquivo muito grande! O limite para a foto do titular é de 1MB.');
       return;
     }
 
@@ -485,6 +486,25 @@ export function TitularForm({
             <i className="fa-solid fa-check me-2"></i>Salvar Titular
         </button>
       </div>
+
+      {sizeError && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ zIndex: 2000, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="bg-card p-4 rounded-4 shadow-lg text-center border border-border animate-in zoom-in-95" style={{ maxWidth: '320px' }}>
+            <div className="mb-3 text-danger">
+              <i className="fa-solid fa-circle-exclamation fa-3x"></i>
+            </div>
+            <h6 className="fw-bold mb-2">Ops! Arquivo muito grande</h6>
+            <p className="small text-muted mb-4">{sizeError}</p>
+            <button 
+              type="button"
+              className="btn btn-primary rounded-pill px-4 fw-bold w-100"
+              onClick={() => setSizeError(null)}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

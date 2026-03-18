@@ -56,7 +56,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                   onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
                   className={cn(
                     "cursor-pointer transition-all",
-                    (item as any).isSummary && "table-primary opacity-75",
+                    (item as any).isSummary && "fw-bold",
                     type === 'geral' && (item as any).status !== 'Pago' && (item as any).vencimento && (item as any).vencimento < format(new Date(), 'yyyy-MM-dd') && "row-vencido"
                   )}
                 >
@@ -266,10 +266,10 @@ export function SummaryCards({
           <div key={t.id} className="col-auto" style={{ minWidth: '220px' }}>
             <div 
               onClick={() => onFilterChange(t.id)}
-              className={cn(
-                "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
-                isSelected(t.id) ? "border-primary border-2 shadow-md bg-opacity-10 bg-primary" : "border-border"
-              )}
+                className={cn(
+                  "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
+                  isSelected(t.id) ? "border-primary border-2 shadow-md" : "border-border"
+                )}
             >
               <div className="d-flex align-items-center justify-content-start gap-2">
                 <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '45px', height: '45px' }}>
@@ -298,7 +298,7 @@ export function SummaryCards({
             onClick={() => onFilterChange(c.id)}
             className={cn(
               "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
-              isSelected(c.id) ? "border-primary border-2 shadow-md bg-opacity-10 bg-primary" : "border-border"
+              isSelected(c.id) ? "border-primary border-2 shadow-md" : "border-border"
             )}
           >
             <div className="d-flex align-items-center justify-content-start gap-2">

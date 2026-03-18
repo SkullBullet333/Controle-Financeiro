@@ -74,11 +74,7 @@ export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps
                 <div 
                   key={d.id} 
                   onDoubleClick={() => !d.isSummary && onEdit?.(d)}
-                  className={cn(
-                    "list-group-item list-group-item-action border-0 border-bottom border-border px-4 py-3 cursor-pointer",
-                    d.isSummary && "bg-primary bg-opacity-10",
-                    isVencido && "bg-danger bg-opacity-5"
-                  )}
+                  className="list-group-item list-group-item-action border-0 border-bottom border-border px-4 py-3 cursor-pointer bg-transparent"
                 >
                   <div className="d-flex justify-content-between align-items-start mb-1">
                     <div className="fw-bold text-dark text-truncate pr-2" style={{ maxWidth: '65%' }}>
@@ -91,9 +87,8 @@ export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps
                   
                   <div className="d-flex justify-content-between align-items-end">
                     <div className="small text-muted flex-column d-flex">
-                      <span className="text-uppercase" style={{ fontSize: '0.65rem' }}>{getCategoriaLabel(d.categoria_id)}</span>
                       {d.vencimento !== '-' && (
-                        <span className={cn(isVencido && "text-danger fw-bold")}>
+                        <span className={cn(isVencido ? "text-danger fw-bold" : "text-muted")}>
                           {isVencido ? `Vencido em ${formatDate(d.vencimento)}` : formatDate(d.vencimento)}
                         </span>
                       )}
