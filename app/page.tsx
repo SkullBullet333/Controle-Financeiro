@@ -26,6 +26,7 @@ export default function Home() {
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
+  const [showFullConfig, setShowFullConfig] = useState(false);
 
   const {
     user,
@@ -406,109 +407,129 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="card border-0 rounded-4 shadow-sm">
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                      <UserCircle className="text-primary" /> Titulares
-                    </h5>
-                    <button
-                      onClick={() => { setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
-                      className="btn btn-sm btn-primary rounded-pill px-3"
-                    >
-                      <Plus size={16} className="me-1" /> Novo
+              {!showFullConfig ? (
+                <div className="card border-0 rounded-4 shadow-sm bg-primary bg-opacity-5 border border-primary border-opacity-10 cursor-pointer" onClick={() => setShowFullConfig(true)}>
+                  <div className="card-body p-4 text-center">
+                    <i className="fa-solid fa-sliders fa-2xl text-primary mb-3"></i>
+                    <h5 className="fw-bold mb-1">Configurações Avançadas</h5>
+                    <p className="text-muted small mb-3">Gerenciamento de titulares, cartões e categorias</p>
+                    <button className="btn btn-primary rounded-pill px-4 fw-bold">
+                      Mostrar Detalhes
                     </button>
-                  </div>
-                  <div className="list-group list-group-flush">
-                    {config.titulares.map((t: Titular) => (
-                      <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
-                        <div className="d-flex align-items-center gap-3">
-                          <div className="position-relative" style={{ width: '32px', height: '32px' }}>
-                            <Image
-                              src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
-                              fill
-                              unoptimized
-                              className="rounded-circle object-fit-cover"
-                              alt={t.nome}
-                            />
-                          </div>
-                          <span className="fw-bold">{t.nome}</span>
-                        </div>
-                        <div>
-                          <button onClick={() => { setModalType('titular'); setEditingItem(t); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                          <button onClick={() => { setItemToDelete({ id: t.id, type: 'titular' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className="card border-0 rounded-4 shadow-sm mb-4">
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                      <CardIcon className="text-primary" /> Cartões
-                    </h5>
-                    <button
-                      onClick={() => { setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
-                      className="btn btn-sm btn-primary rounded-pill px-3"
-                    >
-                      <Plus size={16} className="me-1" /> Novo
+              ) : (
+                <div className="card border-0 rounded-4 shadow-sm h-fit">
+                  <div className="card-body p-4 text-center border-bottom border-light">
+                    <button className="btn btn-outline-secondary btn-sm rounded-pill px-4 fw-bold" onClick={() => setShowFullConfig(false)}>
+                      <i className="fa-solid fa-eye-slash me-2"></i>Ocultar Detalhes
                     </button>
                   </div>
-                  <div className="list-group list-group-flush">
-                    {config.cartoes.map((c: CartaoConfig) => {
-                      const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
-                      return (
-                        <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
-                          <div>
-                            <span className="fw-bold d-block">{c.nome_cartao}</span>
-                            <span className="small text-muted text-uppercase">{titular?.nome || 'N/A'} • Venc. {c.dia_vencimento}</span>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center justify-content-between mb-4">
+                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                        <UserCircle className="text-primary" /> Titulares
+                      </h5>
+                      <button
+                        onClick={() => { setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
+                        className="btn btn-sm btn-primary rounded-pill px-3"
+                      >
+                        <Plus size={16} className="me-1" /> Novo
+                      </button>
+                    </div>
+                    <div className="list-group list-group-flush">
+                      {config.titulares.map((t: Titular) => (
+                        <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                          <div className="d-flex align-items-center gap-3">
+                            <div className="position-relative" style={{ width: '32px', height: '32px' }}>
+                              <Image
+                                src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                                fill
+                                unoptimized
+                                className="rounded-circle object-fit-cover"
+                                alt={t.nome}
+                              />
+                            </div>
+                            <span className="fw-bold">{t.nome}</span>
                           </div>
                           <div>
-                            <button onClick={() => { setModalType('cartao'); setEditingItem(c); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                            <button onClick={() => { setItemToDelete({ id: c.id, type: 'cartao' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                            <button onClick={() => { setModalType('titular'); setEditingItem(t); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
+                            <button onClick={() => { setItemToDelete({ id: t.id, type: 'titular' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="card border-0 rounded-4 shadow-sm">
-                <div className="card-body p-4">
-                  <div className="d-flex align-items-center justify-content-between mb-4">
-                    <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                      <Tags className="text-primary" /> Categorias
-                    </h5>
-                    <button
-                      onClick={() => { setModalType('categoria'); setEditingItem(null); setIsModalOpen(true); }}
-                      className="btn btn-sm btn-primary rounded-pill px-3"
-                    >
-                      <Plus size={16} className="me-1" /> Nova
-                    </button>
-                  </div>
-                  <div className="list-group list-group-flush">
-                    {config.categorias.map((cat: Categoria) => (
-                      <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
-                        <div className="overflow-hidden">
-                          <span className="fw-bold d-block">{cat.label}</span>
-                          <span className="small text-muted text-truncate d-block" style={{ maxWidth: '200px' }}>{cat.keywords}</span>
-                        </div>
-                        <div>
-                          <button onClick={() => { setModalType('categoria'); setEditingItem(cat); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                          <button onClick={() => { setItemToDelete({ id: cat.id, type: 'categoria' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
+
+            {showFullConfig && (
+              <div className="col-md-6">
+                <div className="card border-0 rounded-4 shadow-sm mb-4">
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center justify-content-between mb-4">
+                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                        <CardIcon className="text-primary" /> Cartões
+                      </h5>
+                      <button
+                        onClick={() => { setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
+                        className="btn btn-sm btn-primary rounded-pill px-3"
+                      >
+                        <Plus size={16} className="me-1" /> Novo
+                      </button>
+                    </div>
+                    <div className="list-group list-group-flush">
+                      {config.cartoes.map((c: CartaoConfig) => {
+                        const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
+                        return (
+                          <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                            <div>
+                              <span className="fw-bold d-block">{c.nome_cartao}</span>
+                              <span className="small text-muted text-uppercase">{titular?.nome || 'N/A'} • Venc. {c.dia_vencimento}</span>
+                            </div>
+                            <div>
+                              <button onClick={() => { setModalType('cartao'); setEditingItem(c); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
+                              <button onClick={() => { setItemToDelete({ id: c.id, type: 'cartao' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card border-0 rounded-4 shadow-sm">
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center justify-content-between mb-4">
+                      <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                        <Tags className="text-primary" /> Categorias
+                      </h5>
+                      <button
+                        onClick={() => { setModalType('categoria'); setEditingItem(null); setIsModalOpen(true); }}
+                        className="btn btn-sm btn-primary rounded-pill px-3"
+                      >
+                        <Plus size={16} className="me-1" /> Nova
+                      </button>
+                    </div>
+                    <div className="list-group list-group-flush">
+                      {config.categorias.map((cat: Categoria) => (
+                        <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
+                          <div className="overflow-hidden">
+                            <span className="fw-bold d-block">{cat.label}</span>
+                            <span className="small text-muted text-truncate d-block" style={{ maxWidth: '200px' }}>{cat.keywords}</span>
+                          </div>
+                          <div>
+                            <button onClick={() => { setModalType('categoria'); setEditingItem(cat); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
+                            <button onClick={() => { setItemToDelete({ id: cat.id, type: 'categoria' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
