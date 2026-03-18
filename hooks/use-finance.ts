@@ -373,7 +373,14 @@ export function useFinance(activeView: string) {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const filteredDespesas = useMemo(() => {
-    return despesas.filter(d => d.competencia === competencia);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return despesas.filter(d => {
+      if (d.competencia === competencia) return true;
+      if (d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr) {
+        return true;
+      }
+      return false;
+    });
   }, [despesas, competencia]);
 
   const filteredReceitas = useMemo(() => {
@@ -398,9 +405,9 @@ export function useFinance(activeView: string) {
     const totalAberto = filteredDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
     
     // Check for overdue (Vencido)
-    const today = new Date();
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const totalVencido = filteredDespesas
-      .filter(d => d.status === 'Em aberto' && d.vencimento && new Date(d.vencimento) < today)
+      .filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
       .reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
 
     const margem = totalReceitas - totalDespesas;

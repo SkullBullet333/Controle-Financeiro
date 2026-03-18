@@ -235,7 +235,7 @@ export default function Home() {
 
         if (activeFilterId) {
           tableData = tableData.filter((item: any) => {
-            if (activeView === 'cartoes') return item.cartao_vencimento_id === activeFilterId;
+            if (activeView === 'cartoes') return item.cartao_id === activeFilterId;
             return item.titular_id === activeFilterId;
           });
         }
@@ -268,6 +268,8 @@ export default function Home() {
             <FilterBar 
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              activeFilterId={activeFilterId}
+              onClearFilter={() => setActiveFilterId(null)}
               onAdd={() => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
                 setEditingItem(null);

@@ -334,30 +334,54 @@ body {
 .entry-accent-purple { border-top: 5px solid var(--faturas); }
 
 .status-pago {
-  background: rgba(46, 196, 182, 0.2) !important;
-  color: #2ec4b6 !important;
-  padding: 4px 12px;
-  border-radius: 20px;
+  background-color: var(--success);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .status-aberto {
-  background: rgba(255, 159, 28, 0.2) !important;
-  color: #ff9f1c !important;
-  padding: 4px 12px;
-  border-radius: 20px;
+  background-color: var(--warning);
+  color: #1e293b;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.status-vencida {
-  background: rgba(231, 29, 54, 0.2) !important;
-  color: #e71d36 !important;
-  padding: 4px 12px;
-  border-radius: 20px;
+.status-vencido {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  animation: pulse-red 2s infinite;
+}
+
+.status-vence-hoje {
+  background-color: #f97316;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.row-vencido {
+  background-color: rgba(239, 68, 68, 0.05) !important;
 }
 
 .status-hoje {

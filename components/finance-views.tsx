@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -53,26 +54,26 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                 <tr 
                   key={(item as any).id} 
                   onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
-                  className={cn("cursor-pointer", (item as any).isSummary && "table-primary opacity-75")}
+                  className={cn(
+                    "cursor-pointer transition-all",
+                    (item as any).isSummary && "table-primary opacity-75",
+                    type === 'geral' && (item as any).status !== 'Pago' && (item as any).vencimento && (item as any).vencimento < format(new Date(), 'yyyy-MM-dd') && "row-vencido"
+                  )}
                 >
                   {type === 'geral' && (
                     <>
                       <td className="px-4 py-3">
-                        <span 
-                          onClick={(e: React.MouseEvent) => { 
-                            e.stopPropagation(); 
-                            if (!(item as any).isSummary) {
-                              onToggleStatus?.((item as any).id, (item as any).status);
-                            }
-                          }}
-                          className={cn(
-                            "status-badge",
-                            (item as any).status === 'Pago' ? "status-pago" : "status-aberto",
-                            !(item as any).isSummary && "cursor-pointer"
-                          )}
-                        >
-                          {(item as any).status}
-                        </span>
+                        {(() => {
+                          if (item.status === 'Pago') return <span className="status-badge status-pago">Pago</span>;
+                          
+                          const todayStr = format(new Date(), 'yyyy-MM-dd');
+                          if (item.vencimento && item.vencimento !== '-') {
+                            if (item.vencimento < todayStr) return <span className="status-badge status-vencido">Vencido</span>;
+                            if (item.vencimento === todayStr) return <span className="status-badge status-vence-hoje">Vence Hoje</span>;
+                          }
+                          
+                          return <span className="status-badge status-aberto">Em aberto</span>;
+                        })()}
                       </td>
                       <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
                       <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
@@ -149,34 +150,51 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 export function FilterBar({ 
   onAdd, 
   searchTerm, 
-  onSearchChange 
+  onSearchChange,
+  activeFilterId,
+  onClearFilter
 }: { 
   onAdd: () => void, 
   searchTerm: string, 
-  onSearchChange: (value: string) => void 
+  onSearchChange: (value: string) => void,
+  activeFilterId?: number | null,
+  onClearFilter?: () => void
 }) {
   return (
     <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
-      <div className="input-group" style={{ maxWidth: '400px' }}>
-        <span className="input-group-text bg-white border-end-0 text-muted">
-          <i className="fa-solid fa-magnifying-glass"></i>
-        </span>
-        <input 
-          type="text" 
-          className="form-control border-start-0 ps-0 shadow-none" 
-          placeholder="O que você procura?" 
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-        {searchTerm && (
+      <div className="d-flex align-items-center gap-3 flex-1">
+        <div className="input-group" style={{ maxWidth: '400px' }}>
+          <span className="input-group-text bg-white border-end-0 text-muted">
+            <i className="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input 
+            type="text" 
+            className="form-control border-start-0 ps-0 shadow-none border-end-0" 
+            placeholder="O que você procura?" 
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+          {searchTerm && (
+            <button 
+              className="btn bg-white border-start-0 text-muted border-end-0" 
+              onClick={() => onSearchChange('')}
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
+          )}
+          <span className="input-group-text bg-white border-start-0"></span>
+        </div>
+
+        {activeFilterId !== null && onClearFilter && (
           <button 
-            className="btn bg-white border-start-0 text-muted" 
-            onClick={() => onSearchChange('')}
+            onClick={onClearFilter}
+            className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2 border-2"
           >
-            <i className="fa-solid fa-xmark"></i>
+            <i className="fa-solid fa-filter-circle-xmark"></i> Limpar Filtro
           </button>
         )}
       </div>
+
       <button 
         onClick={onAdd}
         className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
@@ -224,30 +242,6 @@ export function SummaryCards({
 
   return (
     <div className="d-flex gap-3 mb-4 overflow-x-auto flex-nowrap pb-2 scrollbar-hide">
-      {/* Ver Todos Card */}
-      <div className="col-auto" style={{ minWidth: '220px' }}>
-        <div 
-          onClick={() => onFilterChange(null)}
-          className={cn(
-            "p-3 rounded-4 border transition-all cursor-pointer d-flex align-items-center gap-3",
-            isSelected(null) 
-              ? "bg-primary bg-opacity-10 border-primary shadow-sm" 
-              : "bg-card border-border hover-border-primary"
-          )}
-          style={{ minHeight: '90px' }}
-        >
-          <div className={cn(
-            "rounded-3 p-2 d-flex align-items-center justify-center",
-            isSelected(null) ? "bg-primary text-white" : "bg-light text-muted"
-          )} style={{ width: '45px', height: '45px' }}>
-             <i className="fa-solid fa-list-check fs-5"></i>
-          </div>
-          <div>
-            <span className="d-block small text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Filtro</span>
-            <span className="h5 fw-bold m-0">Ver Todos</span>
-          </div>
-        </div>
-      </div>
 
       {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
          <div className="col-auto" style={{ minWidth: '220px' }}>
