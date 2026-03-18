@@ -488,7 +488,7 @@ export default function Home() {
         onLogout={signOut}
       />
 
-      <div className="main-content">
+      <div className="content">
         <Topbar
           title={activeView}
           month={currentMonth}
