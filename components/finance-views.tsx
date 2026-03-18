@@ -59,7 +59,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                     <>
                       <td className="px-4 py-3">
                         <span 
-                          onClick={(e) => { e.stopPropagation(); !item.isSummary && onToggleStatus?.(item.id, item.status); }}
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); !item.isSummary && onToggleStatus?.(item.id, item.status); }}
                           className={cn(
                             "status-badge",
                             item.status === 'Pago' ? "status-pago" : "status-aberto",
@@ -100,7 +100,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                   <td className="px-4 py-3">
                     {!item.isSummary && (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(item.id); }}
                         className="btn btn-sm btn-outline-danger border-0"
                       >
                         <i className="fa-solid fa-trash-can"></i>

@@ -20,7 +20,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
-      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+      <div className="modal-dialog modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
@@ -123,7 +123,7 @@ export function FinanceForm({
           type="text" 
           className="form-control rounded-3" 
           value={formData.descricao}
-          onChange={e => setFormData({...formData, descricao: e.target.value})}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
         />
       </div>
       
@@ -137,7 +137,7 @@ export function FinanceForm({
             step="0.01"
             className="form-control border-start-0 rounded-end-3" 
             value={formData.valor}
-            onChange={e => setFormData({...formData, valor: e.target.value})}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
           />
         </div>
       </div>
@@ -147,7 +147,7 @@ export function FinanceForm({
         <select 
           className="form-select rounded-3"
           value={formData.titular_id}
-          onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, titular_id: parseInt(e.target.value)})}
         >
           {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
@@ -160,7 +160,7 @@ export function FinanceForm({
             <select 
               className="form-select rounded-3"
               value={formData.categoria_id}
-              onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
             >
               {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
@@ -172,7 +172,7 @@ export function FinanceForm({
               <select 
                 className="form-select rounded-3"
                 value={formData.cartao_vencimento_id}
-                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, cartao_vencimento_id: e.target.value})}
               >
                 <option value="">Selecione um Cartão</option>
                 {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
@@ -186,7 +186,7 @@ export function FinanceForm({
                 min="1" max="31"
                 className="form-control rounded-3"
                 value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
-                onChange={e => setFormData({...formData, vencimento: e.target.value})}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, vencimento: e.target.value})}
               />
             </div>
           )}
@@ -258,7 +258,7 @@ export function FinanceForm({
                 className="form-check-input"
                 id="checkSimulacaoReceita"
                 checked={formData.simulada}
-                onChange={e => setFormData({...formData, simulada: e.target.checked})}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, simulada: e.target.checked})}
               />
               <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoReceita">Simulação?</label>
             </div>
@@ -315,7 +315,7 @@ export function TitularForm({
       await new Promise<void>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setFormData(prev => ({ ...prev, foto: reader.result as string }));
+          setFormData((prev: any) => ({ ...prev, foto: reader.result as string }));
           resolve();
         };
         reader.readAsDataURL(file);
@@ -326,7 +326,7 @@ export function TitularForm({
   };
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` }); }} className="row g-3">
+    <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` }); }} className="row g-3">
       <div className="col-12">
         <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome do Titular</label>
         <input 
@@ -334,7 +334,7 @@ export function TitularForm({
           type="text" 
           className="form-control rounded-3"
           value={formData.nome}
-          onChange={e => setFormData({ ...formData, nome: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, nome: e.target.value })}
         />
       </div>
       <div className="col-12">
@@ -476,7 +476,7 @@ export function CategoriaForm({
           type="text" 
           className="form-control rounded-3"
           value={formData.label}
-          onChange={e => setFormData({...formData, label: e.target.value})}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, label: e.target.value})}
         />
       </div>
       <div className="col-12">
@@ -486,7 +486,7 @@ export function CategoriaForm({
           className="form-control rounded-3"
           rows={3}
           value={formData.keywords}
-          onChange={e => setFormData({...formData, keywords: e.target.value})}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, keywords: e.target.value})}
         />
       </div>
       <div className="col-12 mt-4">

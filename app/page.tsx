@@ -9,6 +9,7 @@ import { Modal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearMo
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
+import { Titular, CartaoConfig, Categoria } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export default function Home() {
@@ -378,7 +379,7 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="list-group list-group-flush">
-                    {config.titulares.map(t => (
+                    {config.titulares.map((t: Titular) => (
                       <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
                         <div className="d-flex align-items-center gap-3">
                           <div className="position-relative" style={{ width: '32px', height: '32px' }}>
@@ -418,8 +419,8 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="list-group list-group-flush">
-                    {config.cartoes.map(c => {
-                      const titular = config.titulares.find(t => t.id === c.titular_id);
+                    {config.cartoes.map((c: CartaoConfig) => {
+                      const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
                       return (
                         <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
                           <div>
@@ -451,7 +452,7 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="list-group list-group-flush">
-                    {config.categorias.map(cat => (
+                    {config.categorias.map((cat: Categoria) => (
                       <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light">
                         <div className="overflow-hidden">
                           <span className="fw-bold d-block">{cat.label}</span>
@@ -525,7 +526,6 @@ export default function Home() {
         >
           {modalType === 'despesa' || modalType === 'receita' ? (
             <FinanceForm
-              key={editingItem ? `edit-${editingItem.id}` : 'new'}
               type={modalType}
               subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
               titulares={config.titulares}
@@ -533,7 +533,7 @@ export default function Home() {
               cartoes={config.cartoes}
               competencia={competencia}
               initialData={editingItem}
-              onSubmit={(data) => {
+              onSubmit={(data: any) => {
                 if (editingItem) {
                   if (modalType === 'despesa') updateDespesa(editingItem.id, data);
                   else updateReceita(editingItem.id, data);
