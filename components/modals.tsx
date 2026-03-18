@@ -19,16 +19,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-lg rounded-3xl shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-border flex items-center justify-between">
-          <h3 className="text-xl font-bold">{title}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-6">
-          {children}
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">{title}</h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <div className="modal-body p-4">
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -70,13 +70,9 @@ export function FinanceForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert current year/month from competencia to a full date if it's a "dia" input
-    // The competencia is in format 'MM/yyyy'
     const [mes, ano] = competencia.split('/').map(Number);
     let finalDate = formData.vencimento;
 
-    // Se no formulário estivermos lidando com apenas o DIA (como para despesas fixas ou receitas)
-    // Precisamos reconstruir a data completa
     if (formData.vencimento.length <= 2) {
       const dia = parseInt(formData.vencimento);
       const date = new Date(ano, mes - 1, dia);
@@ -99,11 +95,9 @@ export function FinanceForm({
       data.parcela_total = formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : null;
       
-      // Recalcular competência se for despesa normal
       if (!data.cartao_vencimento_id) {
         data.competencia = calcularCompetencia(parseISO(finalDate));
       } else {
-        // Se for cartão, a competência depende da regra de fechamento
         const cartao = cartoes.find(c => c.id === data.cartao_vencimento_id);
         if (cartao) {
           data.competencia = calcularCompetenciaCartao(parseISO(finalDate), cartao.dia_vencimento, cartao.dia_fechamento);
@@ -119,163 +113,164 @@ export function FinanceForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">
+    <form onSubmit={handleSubmit} className="row g-3">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">
           {type === 'receita' ? 'Descrição da Receita' : 'Descrição'}
         </label>
         <input 
           required
           type="text" 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-control rounded-3" 
           value={formData.descricao}
           onChange={e => setFormData({...formData, descricao: e.target.value})}
         />
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Valor</label>
+      <div className="col-md-6">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
+        <div className="input-group">
+          <span className="input-group-text bg-light border-end-0">R$</span>
           <input 
             required
             type="number" 
             step="0.01"
-            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+            className="form-control border-start-0 rounded-end-3" 
             value={formData.valor}
             onChange={e => setFormData({...formData, valor: e.target.value})}
           />
         </div>
-        {(!subType || subType === 'fixa' || type === 'receita') && (
-          <div>
-            <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
-            <select 
-              className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-              value={formData.titular_id}
-              onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-            >
-              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </select>
-          </div>
-        )}
+      </div>
+
+      <div className="col-md-6">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular</label>
+        <select 
+          className="form-select rounded-3"
+          value={formData.titular_id}
+          onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+        >
+          {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+        </select>
       </div>
 
       {type === 'despesa' ? (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Categoria</label>
+          <div className="col-md-6">
+            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
+            <select 
+              className="form-select rounded-3"
+              value={formData.categoria_id}
+              onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
+            >
+              {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+
+          {subType === 'cartao' ? (
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome Cartão</label>
               <select 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.categoria_id}
-                onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
+                className="form-select rounded-3"
+                value={formData.cartao_vencimento_id}
+                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
               >
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                <option value="">Selecione um Cartão</option>
+                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
               </select>
             </div>
-            {subType === 'cartao' && (
-              <div>
-                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Nome Cartão</label>
-                <select 
-                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                  value={formData.cartao_vencimento_id}
-                  onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-                >
-                  <option value="">Selecione um Cartão</option>
-                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Vencimento</label>
+              <input 
+                type="number" 
+                min="1" max="31"
+                className="form-control rounded-3"
+                value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+                onChange={e => setFormData({...formData, vencimento: e.target.value})}
+              />
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            {subType !== 'cartao' && (
-              <div>
-                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia Vencimento</label>
+          <div className="col-md-6">
+            <label className="form-label small fw-bold text-muted text-uppercase mb-1">
+              {subType === 'cartao' ? 'Número de Parcelas' : 'Parcela'}
+            </label>
+            <div className="input-group">
+                {subType !== 'cartao' && (
+                    <input 
+                        type="number" 
+                        className="form-control"
+                        value={formData.parcela_atual}
+                        onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
+                    />
+                )}
+                {subType !== 'cartao' && <span className="input-group-text">de</span>}
                 <input 
-                  type="number" 
-                  min="1" max="31"
-                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                  value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
-                  onChange={e => setFormData({...formData, vencimento: e.target.value})}
+                    type="number" 
+                    className="form-control"
+                    value={formData.parcela_total}
+                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
                 />
-              </div>
-            )}
-            <div className={`flex items-end pb-2 ${subType === 'cartao' ? 'col-span-2' : ''}`}>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-                  checked={formData.simulada}
-                  onChange={e => setFormData({...formData, simulada: e.target.checked})}
-                />
-                <span className="text-xs font-bold text-gray uppercase tracking-widest">Simulação?</span>
-              </label>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {subType !== 'cartao' && (
-              <div>
-                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Parcela Atual</label>
-                <input 
-                  type="number" 
-                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                  value={formData.parcela_atual}
-                  onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
-                />
-              </div>
-            )}
-            <div className={subType === 'cartao' ? 'col-span-2' : ''}>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">
-                {subType === 'cartao' ? 'Número de Parcelas' : 'Total Parcelas'}
-              </label>
+          <div className="col-md-6 d-flex align-items-end">
+            <div className="form-check mb-2">
               <input 
-                type="number" 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.parcela_total}
-                onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+                type="checkbox" 
+                className="form-check-input"
+                id="checkSimulacao"
+                checked={formData.simulada}
+                onChange={e => setFormData({...formData, simulada: e.target.checked})}
               />
+              <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacao">Simulação?</label>
             </div>
           </div>
         </>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia de Receber</label>
-              <input 
-                type="number" 
-                min="1" max="31"
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
-                onChange={e => setFormData({...formData, vencimento: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Recorrência (Meses)</label>
-              <input 
-                type="number" 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.parcela_total}
-                onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
-              />
+          <div className="col-md-6">
+            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia de Receber</label>
+            <input 
+              type="number" 
+              min="1" max="31"
+              className="form-control rounded-3"
+              value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+              onChange={e => setFormData({...formData, vencimento: e.target.value})}
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Recorrência</label>
+            <div className="input-group">
+                <input 
+                    type="number" 
+                    className="form-control"
+                    value={formData.parcela_total}
+                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+                />
+                <span className="input-group-text">Meses</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-4 cursor-pointer">
-            <input 
-              type="checkbox" 
-              id="simulada-receita"
-              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-              checked={formData.simulada}
-              onChange={e => setFormData({...formData, simulada: e.target.checked})}
-            />
-            <label htmlFor="simulada-receita" className="text-xs font-bold text-gray uppercase tracking-widest cursor-pointer">Simulação?</label>
+          <div className="col-12 mt-3">
+             <div className="form-check">
+              <input 
+                type="checkbox" 
+                className="form-check-input"
+                id="checkSimulacaoReceita"
+                checked={formData.simulada}
+                onChange={e => setFormData({...formData, simulada: e.target.checked})}
+              />
+              <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoReceita">Simulação?</label>
+            </div>
           </div>
         </>
       )}
-      <button className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4">
-        Salvar Lançamento
-      </button>
+
+      <div className="col-12 mt-4">
+        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
+          <i className="fa-solid fa-cloud-arrow-up me-2"></i>Salvar Lançamento
+        </button>
+      </div>
     </form>
   );
 }
@@ -317,7 +312,6 @@ export function TitularForm({
     } catch (error: any) {
       console.warn('Supabase Storage error (falling back to local):', error.message || error);
       
-      // Fallback to base64 with Promise to ensure loading state is handled correctly
       await new Promise<void>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -332,60 +326,62 @@ export function TitularForm({
   };
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://i.pravatar.cc/150?u=${formData.nome}` }); }} className="space-y-4">
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Nome do Titular</label>
+    <form onSubmit={e => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` }); }} className="row g-3">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome do Titular</label>
         <input 
           required
           type="text" 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-control rounded-3"
           value={formData.nome}
           onChange={e => setFormData({ ...formData, nome: e.target.value })}
         />
       </div>
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Foto do Titular</label>
-        <div className="flex items-center gap-4 p-3 bg-bg border border-border rounded-xl">
-          <div className="relative w-12 h-12 bg-gray-100 rounded-full overflow-hidden border border-border flex-shrink-0">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Foto do Titular</label>
+        <div className="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
+          <div className="position-relative" style={{ width: '60px', height: '60px' }}>
             {formData.foto ? (
               <Image 
                 src={formData.foto} 
                 alt="Preview" 
                 fill 
-                className="object-cover" 
+                className="rounded-circle object-cover border" 
                 unoptimized
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <X size={20} />
+              <div className="w-100 h-100 rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center text-secondary">
+                <i className="fa-solid fa-user fa-xl"></i>
               </div>
             )}
           </div>
-          <div className="flex-1">
+          <div className="flex-grow-1">
             <input 
               type="file" 
               accept="image/*"
-              className="hidden" 
+              className="d-none" 
               id="foto-upload"
               onChange={handleFileChange}
             />
             <label 
               htmlFor="foto-upload"
-              className="inline-block px-4 py-2 bg-primary/10 text-primary text-xs font-bold rounded-lg cursor-pointer hover:bg-primary/20 transition-all"
+              className="btn btn-sm btn-outline-primary fw-bold text-uppercase"
             >
               {isUploading ? 'Processando...' : 'Escolher Foto'}
             </label>
-            <p className="text-[10px] text-gray mt-1">PNG, JPG ou GIF (Máx. 1MB)</p>
+            <p className="small text-muted mb-0 mt-1" style={{ fontSize: '10px' }}>PNG, JPG ou GIF (Máx. 1MB)</p>
           </div>
         </div>
       </div>
-      <button 
-        disabled={isUploading}
-        className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4 disabled:opacity-50"
-      >
-        Salvar Titular
-      </button>
+      <div className="col-12 mt-4">
+        <button 
+            disabled={isUploading}
+            className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase"
+        >
+            <i className="fa-solid fa-check me-2"></i>Salvar Titular
+        </button>
+      </div>
     </form>
   );
 }
@@ -407,54 +403,54 @@ export function CartaoForm({
   });
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Nome do Cartão</label>
+    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome do Cartão</label>
         <input 
           required
           type="text" 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-control rounded-3"
           value={formData.nome_cartao}
           onChange={e => setFormData({...formData, nome_cartao: e.target.value})}
         />
       </div>
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular</label>
         <select 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-select rounded-3"
           value={formData.titular_id}
           onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
         >
           {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia Vencimento</label>
-          <input 
-            required
-            type="number" 
-            min="1" max="31"
-            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.dia_vencimento}
-            onChange={e => setFormData({...formData, dia_vencimento: parseInt(e.target.value)})}
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dias p/ Fechamento</label>
-          <input 
-            required
-            type="number" 
-            min="1" max="31"
-            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.dia_fechamento}
-            onChange={e => setFormData({...formData, dia_fechamento: parseInt(e.target.value)})}
-          />
-        </div>
+      <div className="col-md-6">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Vencimento</label>
+        <input 
+          required
+          type="number" 
+          min="1" max="31"
+          className="form-control rounded-3"
+          value={formData.dia_vencimento}
+          onChange={e => setFormData({...formData, dia_vencimento: parseInt(e.target.value)})}
+        />
       </div>
-      <button className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4">
-        Salvar Cartão
-      </button>
+      <div className="col-md-6">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Fechamento</label>
+        <input 
+          required
+          type="number" 
+          min="1" max="31"
+          className="form-control rounded-3"
+          value={formData.dia_fechamento}
+          onChange={e => setFormData({...formData, dia_fechamento: parseInt(e.target.value)})}
+        />
+      </div>
+      <div className="col-12 mt-4">
+        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
+          <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
+        </button>
+      </div>
     </form>
   );
 }
@@ -472,30 +468,108 @@ export function CategoriaForm({
   });
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Nome da Categoria</label>
+    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome da Categoria</label>
         <input 
           required
           type="text" 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-control rounded-3"
           value={formData.label}
           onChange={e => setFormData({...formData, label: e.target.value})}
         />
       </div>
-      <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Palavras-chave (separadas por vírgula)</label>
-        <input 
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Palavras-chave (separadas por vírgula)</label>
+        <textarea 
           required
-          type="text" 
-          className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+          className="form-control rounded-3"
+          rows={3}
           value={formData.keywords}
           onChange={e => setFormData({...formData, keywords: e.target.value})}
         />
       </div>
-      <button className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4">
-        Salvar Categoria
-      </button>
+      <div className="col-12 mt-4">
+        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
+          <i className="fa-solid fa-tags me-2"></i>Salvar Categoria
+        </button>
+      </div>
     </form>
   );
 }
+
+export function MonthYearModal({ 
+  isOpen, 
+  onClose, 
+  currentMonth, 
+  currentYear, 
+  onSelect 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  currentMonth: number, 
+  currentYear: number, 
+  onSelect: (month: number, year: number) => void 
+}) {
+  const [viewYear, setViewYear] = useState(currentYear);
+  const meses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="modal-content rounded-4 border-0 shadow-lg">
+          <div className="modal-header border-0 pb-0">
+            <h5 className="modal-title fw-bold">Selecionar Período</h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <div className="modal-body p-4 text-center">
+            <div className="d-flex justify-content-between align-items-center mb-4 bg-light p-2 rounded-3">
+              <button 
+                type="button"
+                className="btn btn-sm btn-white shadow-sm rounded-3 border-0 bg-white" 
+                onClick={() => setViewYear((prev: number) => prev - 1)}
+              >
+                <i className="fa-solid fa-chevron-left"></i>
+              </button>
+              <h4 className="fw-bold m-0">{viewYear}</h4>
+              <button 
+                type="button"
+                className="btn btn-sm btn-white shadow-sm rounded-3 border-0 bg-white" 
+                onClick={() => setViewYear((prev: number) => prev + 1)}
+              >
+                <i className="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+            <div className="row g-2">
+              {meses.map((mes, index) => {
+                const monthNum = index + 1;
+                const isSelected = monthNum === currentMonth && viewYear === currentYear;
+                return (
+                  <div key={mes} className="col-4">
+                    <button 
+                      type="button"
+                      className={`btn w-100 py-3 rounded-3 fw-bold transition-all ${isSelected ? 'btn-primary' : 'btn-light'}`}
+                      style={{ border: isSelected ? 'none' : '1px solid #eee' }}
+                      onClick={() => {
+                        onSelect(monthNum, viewYear);
+                        onClose();
+                      }}
+                    >
+                      {mes.substring(0, 3)}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

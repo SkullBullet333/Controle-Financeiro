@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Despesa, Receita, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
-import { Trash2, CheckCircle2, Circle, Plus, Search, AlertCircle, User, CreditCard as CardIcon } from 'lucide-react';
+import { Despesa, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface TableViewProps {
   data: any[];
@@ -19,9 +19,9 @@ interface TableViewProps {
 
 export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, categorias, cartoes }: TableViewProps) {
   const headers = {
-    geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Venc.', 'Valor', 'Ações'],
-    cartoes: ['Cartão', 'Titular', 'Item', 'Categoria', 'Parc.', 'Valor', 'Ações'],
-    receitas: ['Recebimento', 'Titular', 'Descrição', 'Valor', 'Ações']
+    geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Valor', 'Ações'],
+    cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
+    receitas: ['Data', 'Titular', 'Descrição', 'Valor', 'Ações']
   };
 
   const currentHeaders = headers[type];
@@ -31,21 +31,21 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
   const getCartaoName = (id: number) => cartoes.find(c => c.id === id)?.nome_cartao || 'N/A';
 
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-border bg-gray-50/50">
+    <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden">
+      <div className="table-responsive">
+        <table className="table table-hover align-middle mb-0">
+          <thead className="table-light">
+            <tr>
               {currentHeaders.map(h => (
-                <th key={h} className="p-4 text-[10px] font-black text-gray uppercase tracking-widest">{h}</th>
+                <th key={h} className="px-4 py-3 text-uppercase small fw-bold text-muted border-0">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={currentHeaders.length} className="p-12 text-center text-gray italic">
-                  Nenhum registro encontrado.
+                <td colSpan={currentHeaders.length} className="p-5 text-center text-muted italic">
+                  Nenhum registro encontrado para este período.
                 </td>
               </tr>
             ) : (
@@ -53,60 +53,57 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                 <tr 
                   key={item.id} 
                   onDoubleClick={() => !item.isSummary && onEdit?.(item)}
-                  className={`border-b border-border hover:bg-gray-50/50 transition-colors group cursor-pointer ${item.isSummary ? 'bg-primary/5' : ''}`}
+                  className={cn("cursor-pointer", item.isSummary && "table-primary opacity-75")}
                 >
                   {type === 'geral' && (
                     <>
-                      <td className="p-4">
-                        <button 
-                          onClick={() => !item.isSummary && onToggleStatus?.(item.id, item.status)}
-                          className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
-                            item.status === 'Pago' 
-                              ? 'bg-success/10 text-success' 
-                              : (item.vencimento && new Date(item.vencimento) < new Date() && item.status === 'Em aberto')
-                                ? 'bg-danger/10 text-danger'
-                                : 'bg-warning/10 text-warning'
-                          } ${item.isSummary ? 'cursor-default' : ''}`}
+                      <td className="px-4 py-3">
+                        <span 
+                          onClick={(e) => { e.stopPropagation(); !item.isSummary && onToggleStatus?.(item.id, item.status); }}
+                          className={cn(
+                            "status-badge",
+                            item.status === 'Pago' ? "status-pago" : "status-aberto",
+                            !item.isSummary && "cursor-pointer"
+                          )}
                         >
-                          {item.status === 'Pago' ? <CheckCircle2 size={12} /> : (item.vencimento && new Date(item.vencimento) < new Date() && item.status === 'Em aberto') ? <AlertCircle size={12} /> : <Circle size={12} />}
-                          {item.status === 'Pago' ? 'Pago' : (item.vencimento && new Date(item.vencimento) < new Date() && item.status === 'Em aberto') ? 'Vencido' : 'Em aberto'}
-                        </button>
+                          {item.status}
+                        </span>
                       </td>
-                      <td className="p-4 font-medium text-sm">{getTitularName(item.titular_id)}</td>
-                      <td className={`p-4 font-bold text-sm ${item.isSummary ? 'text-primary' : ''}`}>{item.descricao}</td>
-                      <td className="p-4"><span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded uppercase text-gray-600">{getCategoriaLabel(item.categoria_id)}</span></td>
-                      <td className="p-4 text-sm text-gray">{formatDate(item.vencimento)}</td>
-                      <td className="p-4 font-black text-sm">{formatCurrency(item.valor)}</td>
+                      <td className="px-4 py-3 fw-bold">{getTitularName(item.titular_id)}</td>
+                      <td className={cn("px-4 py-3", item.isSummary && "fw-bold")}>{item.descricao}</td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel(item.categoria_id)}</span></td>
+                      <td className="px-4 py-3 text-muted">{formatDate(item.vencimento)}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
                     </>
                   )}
 
                   {type === 'cartoes' && (
                     <>
-                      <td className="p-4 font-bold text-sm text-primary">{getCartaoName(item.cartao_id)}</td>
-                      <td className="p-4 text-sm">{getTitularName(item.titular_id)}</td>
-                      <td className="p-4 font-bold text-sm">{item.estabelecimento}</td>
-                      <td className="p-4"><span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded uppercase text-gray-600">{getCategoriaLabel(item.categoria_id)}</span></td>
-                      <td className="p-4 text-sm">{item.parcela_atual}/{item.parcela_total}</td>
-                      <td className="p-4 font-black text-sm">{formatCurrency(item.valor)}</td>
+                      <td className="px-4 py-3 fw-bold text-primary">{getCartaoName(item.cartao_id)}</td>
+                      <td className="px-4 py-3">{getTitularName(item.titular_id)}</td>
+                      <td className="px-4 py-3">{item.estabelecimento}</td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel(item.categoria_id)}</span></td>
+                      <td className="px-4 py-3 small text-muted">{item.parcela_atual}/{item.parcela_total}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
                     </>
                   )}
 
                   {type === 'receitas' && (
                     <>
-                      <td className="p-4 text-sm text-gray">{formatDate(item.data_recebimento)}</td>
-                      <td className="p-4 font-medium text-sm">{getTitularName(item.titular_id)}</td>
-                      <td className="p-4 font-bold text-sm text-success">{item.descricao}</td>
-                      <td className="p-4 font-black text-sm">{formatCurrency(item.valor)}</td>
+                      <td className="px-4 py-3 text-muted">{formatDate(item.data_recebimento)}</td>
+                      <td className="px-4 py-3 fw-bold">{getTitularName(item.titular_id)}</td>
+                      <td className="px-4 py-3 text-success fw-bold">{item.descricao}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
                     </>
                   )}
 
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     {!item.isSummary && (
                       <button 
-                        onClick={() => onDelete(item.id)}
-                        className="p-2 text-gray hover:text-danger hover:bg-danger/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                        className="btn btn-sm btn-outline-danger border-0"
                       >
-                        <Trash2 size={16} />
+                        <i className="fa-solid fa-trash-can"></i>
                       </button>
                     )}
                   </td>
@@ -122,20 +119,22 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 
 export function FilterBar({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex items-center gap-4 mb-6">
-      <div className="flex-1 relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray w-4 h-4" />
+    <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
+      <div className="input-group" style={{ maxWidth: '400px' }}>
+        <span className="input-group-text bg-white border-end-0 text-muted">
+          <i className="fa-solid fa-magnifying-glass"></i>
+        </span>
         <input 
           type="text" 
+          className="form-control border-start-0 ps-0" 
           placeholder="O que você procura?" 
-          className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:border-primary focus:outline-none transition-all text-sm font-medium"
         />
       </div>
       <button 
         onClick={onAdd}
-        className="bg-primary text-white p-3 rounded-xl shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95"
+        className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
       >
-        <Plus size={24} />
+        <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
       </button>
     </div>
   );
@@ -171,61 +170,64 @@ export function SummaryCards({
   };
 
   return (
-    <div className="flex flex-wrap gap-4 mb-6 w-full">
-      {/* Overdue Card for Geral */}
+    <div className="row g-3 mb-4 overflow-x-auto flex-nowrap pb-2">
       {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
-        <div className="flex-1 min-w-[200px] bg-danger/5 p-4 rounded-2xl border border-danger/20 shadow-sm flex items-center gap-4 hover:bg-danger/10 transition-all cursor-pointer group">
-          <div className="w-12 h-12 rounded-xl bg-danger text-white flex items-center justify-center shrink-0 shadow-lg shadow-danger/20">
-            <AlertCircle size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="block text-[10px] font-black text-danger uppercase tracking-widest truncate">Contas Vencidas</span>
-            <span className="block font-black text-lg text-danger truncate">{formatCurrency(totalVencido)}</span>
+        <div className="col-auto" style={{ minWidth: '220px' }}>
+          <div className="bg-danger bg-opacity-10 p-3 rounded-4 border border-danger border-opacity-20 d-flex align-items-center gap-3">
+            <div className="bg-danger text-white rounded-3 p-2 d-flex align-items-center justify-center" style={{ width: '45px', height: '45px' }}>
+              <i className="fa-solid fa-triangle-exclamation fs-5"></i>
+            </div>
+            <div>
+              <span className="d-block small text-danger fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Vencido</span>
+              <span className="h5 fw-bold text-danger m-0">{formatCurrency(totalVencido)}</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Titular Cards for Geral and Receitas */}
       {(type === 'geral' || type === 'receitas') && titulares.map((t) => {
         const value = type === 'geral' ? totalsByTitular[t.id]?.despesas : totalsByTitular[t.id]?.receitas;
         if (!value || value === 0) return null;
 
         return (
-          <div key={t.id} className="flex-1 min-w-[200px] bg-card p-4 rounded-2xl border border-border shadow-sm flex items-center gap-4 hover:border-primary transition-all cursor-pointer group">
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-border group-hover:border-primary transition-all bg-white flex-shrink-0">
-              <Image 
-                src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`} 
-                alt={t.nome} 
-                fill 
-                unoptimized
-                className="object-cover" 
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="block text-[10px] font-bold text-gray uppercase tracking-widest truncate">{t.nome}</span>
-              <span className={`block font-black text-lg truncate ${type === 'receitas' ? 'text-success' : ''}`}>{formatCurrency(value)}</span>
+          <div key={t.id} className="col-auto" style={{ minWidth: '220px' }}>
+            <div className="bg-card p-3 rounded-4 border border-border d-flex align-items-center gap-3 hover-border-primary transition-all cursor-pointer">
+              <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '45px', height: '45px' }}>
+                <Image 
+                  src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`} 
+                  alt={t.nome} 
+                  fill 
+                  unoptimized
+                  className="object-cover" 
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div>
+                <span className="d-block small text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>{t.nome}</span>
+                <span className={cn("h5 fw-bold m-0", type === 'receitas' && "text-success")}>{formatCurrency(value)}</span>
+              </div>
             </div>
           </div>
         );
       })}
 
-      {/* Card Invoices for Cartoes */}
       {type === 'cartoes' && cartoes.map((c) => (
-        <div key={c.id} className="flex-1 min-w-[200px] bg-card p-4 rounded-2xl border border-border shadow-sm flex items-center gap-4 hover:border-primary transition-all cursor-pointer group">
-          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-border group-hover:border-primary transition-all bg-white p-1 flex-shrink-0">
-            <Image 
-              src={getCardLogo(c.nome_cartao)} 
-              alt={c.nome_cartao} 
-              fill 
-              unoptimized
-              className="object-contain" 
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="block text-[10px] font-bold text-gray uppercase tracking-widest truncate">{c.nome_cartao}</span>
-            <span className="block font-black text-lg truncate">{formatCurrency(totalsByCard[c.id] || 0)}</span>
+        <div key={c.id} className="col-auto" style={{ minWidth: '220px' }}>
+          <div className="bg-card p-3 rounded-4 border border-border d-flex align-items-center gap-3 hover-border-primary transition-all cursor-pointer">
+            <div className="position-relative rounded-3 overflow-hidden border border-border bg-white p-1" style={{ width: '45px', height: '45px' }}>
+              <Image 
+                src={getCardLogo(c.nome_cartao)} 
+                alt={c.nome_cartao} 
+                fill 
+                unoptimized
+                className="object-contain" 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div>
+              <span className="d-block small text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>{c.nome_cartao}</span>
+              <span className="h5 fw-bold m-0">{formatCurrency(totalsByCard[c.id] || 0)}</span>
+            </div>
           </div>
         </div>
       ))}
