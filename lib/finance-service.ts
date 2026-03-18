@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Despesa, Receita, CartaoTransacao, CartaoConfig } from './types';
+import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular } from './types';
 import { 
   addMonths, 
   endOfMonth, 
@@ -200,7 +200,7 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
 
 export async function lancarParcelas(
   tipo: 'despesa' | 'receita' | 'cartao', 
-  dados: any, 
+  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number }), 
   userId: string
 ) {
   const totalParcelas = Number(dados.parcela_total || 1);
@@ -334,7 +334,7 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   const totais: Record<string, { valor: number, cartao_id: number, titular_id: number, nome_cartao: string, nome_titular: string }> = {};
 
   lancamentos?.forEach(l => {
-    const config = l.cartoes_config as any;
+    const config = l.cartoes_config as unknown as (CartaoConfig & { titulares: Titular });
     const key = `${l.cartao_id}-${config.titular_id}`;
     if (!totais[key]) {
       totais[key] = { 

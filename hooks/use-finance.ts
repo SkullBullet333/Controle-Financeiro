@@ -60,7 +60,7 @@ export function useFinance(activeView: string) {
         categorias: categoriasData || []
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching data from Supabase:', error);
     } finally {
       setIsLoading(false);

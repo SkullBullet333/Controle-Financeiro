@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
-import { Titular, Categoria, Status } from '@/lib/types';
+import { Titular, Categoria, Status, Despesa, Receita, CartaoConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
 import { parseISO, format, getDate } from 'date-fns';
@@ -47,24 +47,24 @@ export function FinanceForm({
 }: { 
   type: 'despesa' | 'receita', 
   subType?: 'fixa' | 'cartao',
-  onSubmit: (data: any) => void,
+  onSubmit: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => void,
   titulares: Titular[],
   categorias: Categoria[],
-  cartoes: any[],
+  cartoes: CartaoConfig[],
   competencia: string,
-  initialData?: any
+  initialData?: Despesa | Receita
 }) {
   const [formData, setFormData] = useState({
-    descricao: initialData?.descricao || '',
-    valor: initialData?.valor?.toString() || '',
-    titular_id: initialData?.titular_id || titulares[0]?.id || 0,
-    categoria_id: initialData?.categoria_id || categorias[0]?.id || 0,
-    vencimento: initialData?.vencimento || initialData?.data_recebimento || new Date().toISOString().split('T')[0],
-    status: initialData?.status || ('Em aberto' as Status),
-    parcela_atual: initialData?.parcela_atual || 1,
-    parcela_total: initialData?.parcela_total || 1,
-    cartao_vencimento_id: initialData?.cartao_vencimento_id || '',
-    simulada: initialData?.simulada || false
+    descricao: (initialData as any)?.descricao || '',
+    valor: (initialData as any)?.valor?.toString() || '',
+    titular_id: (initialData as any)?.titular_id || titulares[0]?.id || 0,
+    categoria_id: (initialData as any)?.categoria_id || categorias[0]?.id || 0,
+    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().toISOString().split('T')[0],
+    status: (initialData as any)?.status || ('Em aberto' as Status),
+    parcela_atual: (initialData as any)?.parcela_atual || 1,
+    parcela_total: (initialData as any)?.parcela_total || 1,
+    cartao_vencimento_id: (initialData as any)?.cartao_vencimento_id || '',
+    simulada: (initialData as any)?.simulada || false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,7 +79,7 @@ export function FinanceForm({
       finalDate = format(date, 'yyyy-MM-dd');
     }
 
-    const data: any = {
+    const data: Partial<Despesa> & Partial<Receita> = {
       descricao: formData.descricao,
       valor: parseFloat(formData.valor),
       titular_id: formData.titular_id,
@@ -93,7 +93,7 @@ export function FinanceForm({
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
       data.parcela_total = formData.parcela_total;
-      data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : null;
+      data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
       
       if (!data.cartao_vencimento_id) {
         data.competencia = calcularCompetencia(parseISO(finalDate));
@@ -109,7 +109,7 @@ export function FinanceForm({
       data.competencia = calcularCompetenciaReceita(dataAjustada);
     }
 
-    onSubmit(data);
+    onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
   };
 
   return (
@@ -279,8 +279,8 @@ export function TitularForm({
   onSubmit, 
   initialData 
 }: { 
-  onSubmit: (data: any) => void, 
-  initialData?: any 
+  onSubmit: (data: Omit<Titular, 'id'>) => void, 
+  initialData?: Titular 
 }) {
   const [formData, setFormData] = useState({
     nome: initialData?.nome || '',
@@ -315,7 +315,7 @@ export function TitularForm({
       await new Promise<void>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setFormData((prev: any) => ({ ...prev, foto: reader.result as string }));
+          setFormData((prev: { nome: string; foto: string }) => ({ ...prev, foto: reader.result as string }));
           resolve();
         };
         reader.readAsDataURL(file);
@@ -391,9 +391,9 @@ export function CartaoForm({
   titulares,
   initialData 
 }: { 
-  onSubmit: (data: any) => void, 
+  onSubmit: (data: Omit<CartaoConfig, 'id'>) => void, 
   titulares: Titular[],
-  initialData?: any 
+  initialData?: CartaoConfig 
 }) {
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
@@ -459,8 +459,8 @@ export function CategoriaForm({
   onSubmit, 
   initialData 
 }: { 
-  onSubmit: (data: any) => void, 
-  initialData?: any 
+  onSubmit: (data: Omit<Categoria, 'id'>) => void, 
+  initialData?: Categoria 
 }) {
   const [formData, setFormData] = useState({
     label: initialData?.label || '',

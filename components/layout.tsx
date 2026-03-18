@@ -86,8 +86,6 @@ interface TopbarProps {
   month: number;
   year: number;
   onChangeMonth: (delta: number) => void;
-  onSetMonth: (m: number) => void;
-  onSetYear: (y: number) => void;
   onLogout?: () => void;
   onOpenPeriodModal: () => void;
 }

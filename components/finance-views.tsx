@@ -3,14 +3,14 @@
 import Image from 'next/image';
 import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Despesa, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
+import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface TableViewProps {
-  data: any[];
+  data: any[]; // Voltar para any temporariamente ou usar union restrito
   type: 'geral' | 'cartoes' | 'receitas';
   onDelete: (id: number) => void;
-  onToggleStatus?: (id: number, currentStatus: Status) => void;
+  onToggleStatus?: (id: number, currentVal: any) => void;
   onEdit?: (item: any) => void;
   titulares: Titular[];
   categorias: Categoria[];
@@ -51,56 +51,67 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
             ) : (
               data.map((item) => (
                 <tr 
-                  key={item.id} 
-                  onDoubleClick={() => !item.isSummary && onEdit?.(item)}
-                  className={cn("cursor-pointer", item.isSummary && "table-primary opacity-75")}
+                  key={(item as any).id} 
+                  onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
+                  className={cn("cursor-pointer", (item as any).isSummary && "table-primary opacity-75")}
                 >
                   {type === 'geral' && (
                     <>
                       <td className="px-4 py-3">
                         <span 
-                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); !item.isSummary && onToggleStatus?.(item.id, item.status); }}
+                          onClick={(e: React.MouseEvent) => { 
+                            e.stopPropagation(); 
+                            if (!(item as any).isSummary) {
+                              onToggleStatus?.((item as any).id, (item as any).status);
+                            }
+                          }}
                           className={cn(
                             "status-badge",
-                            item.status === 'Pago' ? "status-pago" : "status-aberto",
-                            !item.isSummary && "cursor-pointer"
+                            (item as any).status === 'Pago' ? "status-pago" : "status-aberto",
+                            !(item as any).isSummary && "cursor-pointer"
                           )}
                         >
-                          {item.status}
+                          {(item as any).status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 fw-bold">{getTitularName(item.titular_id)}</td>
-                      <td className={cn("px-4 py-3", item.isSummary && "fw-bold")}>{item.descricao}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel(item.categoria_id)}</span></td>
-                      <td className="px-4 py-3 text-muted">{formatDate(item.vencimento)}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
+                      <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
+                      <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel((item as any).categoria_id)}</span></td>
+                      <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>
                   )}
 
                   {type === 'cartoes' && (
                     <>
-                      <td className="px-4 py-3 fw-bold text-primary">{getCartaoName(item.cartao_id)}</td>
-                      <td className="px-4 py-3">{getTitularName(item.titular_id)}</td>
-                      <td className="px-4 py-3">{item.estabelecimento}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel(item.categoria_id)}</span></td>
-                      <td className="px-4 py-3 small text-muted">{item.parcela_atual}/{item.parcela_total}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
+                      <td 
+                        className="px-4 py-3 fw-bold text-primary cursor-pointer hover:underline"
+                        onClick={(e) => { e.stopPropagation(); onToggleStatus?.((item as any).id, (item as any).simulada); }}
+                      >
+                        {getCartaoName((item as any).cartao_id)}
+                        {(item as any).simulada && <span className="ms-2 badge bg-warning text-dark small">Simulada</span>}
+                      </td>
+                      <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
+                      <td className="px-4 py-3">{(item as any).estabelecimento}</td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel((item as any).categoria_id)}</span></td>
+                      <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>
                   )}
 
                   {type === 'receitas' && (
                     <>
-                      <td className="px-4 py-3 text-muted">{formatDate(item.data_recebimento)}</td>
-                      <td className="px-4 py-3 fw-bold">{getTitularName(item.titular_id)}</td>
-                      <td className="px-4 py-3 text-success fw-bold">{item.descricao}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency(item.valor)}</td>
+                      <td className="px-4 py-3 text-muted">{formatDate((item as any).data_recebimento)}</td>
+                      <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
+                      <td className="px-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
+                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>
                   )}
 
                   <td className="px-4 py-3">
-                    {!item.isSummary && (
+                    {!(item as any).isSummary && (
                       <button 
-                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(item.id); }}
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
                         className="btn btn-sm btn-outline-danger border-0"
                       >
                         <i className="fa-solid fa-trash-can"></i>

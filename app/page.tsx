@@ -9,7 +9,7 @@ import { Modal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearMo
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Titular, CartaoConfig, Categoria } from '@/lib/types';
+import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Categoria, Status } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export default function Home() {
@@ -21,7 +21,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria'>('despesa');
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | Categoria | CartaoTransacao | null>(null);
 
   const {
     user,
@@ -242,9 +242,9 @@ export default function Home() {
                 else if (activeView === 'cartoes') deleteCartaoTransacao(id);
                 else deleteDespesa(id);
               }}
-              onToggleStatus={(id, status) => {
-                if (activeView === 'geral') updateDespesa(id, { status: status === 'Pago' ? 'Em aberto' : 'Pago' });
-                else if (activeView === 'cartoes') updateCartaoTransacao(id, { simulada: !status });
+              onToggleStatus={(id, currentVal) => {
+                if (activeView === 'geral') updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
+                else if (activeView === 'cartoes') updateCartaoTransacao(id, { simulada: !currentVal });
               }}
               onEdit={(item) => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
@@ -330,7 +330,7 @@ export default function Home() {
                           <Cell fill="#4361ee" />
                           <Cell fill="#ff9f1c" />
                         </Pie>
-                        <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -494,7 +494,7 @@ export default function Home() {
           month={currentMonth}
           year={currentYear}
           onChangeMonth={changeMonth}
-          onOpenPeriodo={() => setIsMonthYearModalOpen(true)}
+          onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
           onLogout={signOut}
         />
 
@@ -532,14 +532,14 @@ export default function Home() {
               categorias={config.categorias}
               cartoes={config.cartoes}
               competencia={competencia}
-              initialData={editingItem}
-              onSubmit={(data: any) => {
+              initialData={editingItem as Despesa | Receita}
+              onSubmit={(data) => {
                 if (editingItem) {
-                  if (modalType === 'despesa') updateDespesa(editingItem.id, data);
-                  else updateReceita(editingItem.id, data);
+                  if (modalType === 'despesa') updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
+                  else updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
                 } else {
-                  if (modalType === 'despesa') addDespesa(data);
-                  else addReceita(data);
+                  if (modalType === 'despesa') addDespesa(data as Omit<Despesa, 'id'>);
+                  else addReceita(data as Omit<Receita, 'id'>);
                 }
                 setIsModalOpen(false);
                 setEditingItem(null);
@@ -547,8 +547,8 @@ export default function Home() {
             />
           ) : modalType === 'titular' ? (
             <TitularForm
-              key={editingItem ? `edit-${editingItem.id}` : 'new'}
-              initialData={editingItem}
+              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+              initialData={editingItem as Titular}
               onSubmit={(data) => {
                 if (editingItem) updateTitular(editingItem.id, data);
                 else addTitular(data);
@@ -558,8 +558,8 @@ export default function Home() {
             />
           ) : modalType === 'cartao' ? (
             <CartaoForm
-              key={editingItem ? `edit-${editingItem.id}` : 'new'}
-              initialData={editingItem}
+              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+              initialData={editingItem as CartaoConfig}
               titulares={config.titulares}
               onSubmit={(data) => {
                 if (editingItem) updateCartao(editingItem.id, data);
@@ -570,8 +570,8 @@ export default function Home() {
             />
           ) : (
             <CategoriaForm
-              key={editingItem ? `edit-${editingItem.id}` : 'new'}
-              initialData={editingItem}
+              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+              initialData={editingItem as Categoria}
               onSubmit={(data) => {
                 if (editingItem) updateCategoria(editingItem.id, data);
                 else addCategoria(data);

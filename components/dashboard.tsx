@@ -48,7 +48,7 @@ export function KPICards({ stats }: KPICardsProps) {
 
 interface ExtratoTableProps {
   despesas: Despesa[];
-  onEdit?: (item: any) => void;
+  onEdit?: (item: Despesa) => void;
   categorias: Categoria[];
 }
 
@@ -108,7 +108,7 @@ export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps
   );
 }
 
-export function DashboardCharts({ despesas, stats, titulares }: { despesas: Despesa[], stats: any, titulares: Titular[] }) {
+export function DashboardCharts({ despesas, stats, titulares }: { despesas: Despesa[], stats: { totalReceitas: number; totalDespesas: number; totalPago: number; totalAberto: number; margem: number; totalVencido?: number }, titulares: Titular[] }) {
   const titularData = React.useMemo(() => {
     const data: Record<number, number> = {};
     despesas.forEach(d => {
@@ -145,7 +145,7 @@ export function DashboardCharts({ despesas, stats, titulares }: { despesas: Desp
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
             </ResponsiveContainer>
@@ -176,7 +176,7 @@ export function DashboardCharts({ despesas, stats, titulares }: { despesas: Desp
                     <Cell fill="var(--success)" />
                     <Cell fill="var(--warning)" />
                   </Pie>
-                  <Tooltip formatter={(value: any) => formatCurrency(Number(value))} />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   <Legend verticalAlign="bottom" height={36}/>
                 </PieChart>
               </ResponsiveContainer>
