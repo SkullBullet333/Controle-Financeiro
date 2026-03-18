@@ -356,7 +356,8 @@ export async function consolidarFaturas(competencia: string, userId: string) {
     .eq('competencia', competencia)
     .like('descricao', 'Fatura %');
 
-  // 5. Para cada total, atualizar ou inserir na tabela despesas
+  // 5. Preparar payloads para upsert (batch)
+  const upserts = [];
   const chavesProcessadas = new Set<string>();
 
   for (const key in totais) {
@@ -371,45 +372,39 @@ export async function consolidarFaturas(competencia: string, userId: string) {
     
     const dataVenc = projetarProximoVencimento(dataBase, 0, isUltimoDia, diaVenc);
     
-    // Descrição padrão: "Fatura [Nome Cartão] - [Titular]"
     const desc = `Fatura ${item.nome_cartao} - ${item.nome_titular}`;
     chavesProcessadas.add(`${desc}-${item.titular_id}`);
 
     const existente = faturasExistentes?.find(f => f.descricao === desc && f.titular_id === item.titular_id);
 
-    if (existente) {
-      await supabase
-        .from('despesas')
-        .update({
-          valor: item.valor,
-          vencimento: format(dataVenc, 'yyyy-MM-dd'),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existente.id);
-    } else {
-      await supabase
-        .from('despesas')
-        .insert({
-          user_id: userId,
-          descricao: desc,
-          valor: item.valor,
-          parcela_atual: 1,
-          parcela_total: 1,
-          vencimento: format(dataVenc, 'yyyy-MM-dd'),
-          status: 'Em aberto',
-          titular_id: item.titular_id,
-          competencia: competencia,
-          simulada: false
-        });
-    }
+    upserts.push({
+      ...(existente ? { id: existente.id } : {}),
+      user_id: userId,
+      descricao: desc,
+      valor: item.valor,
+      parcela_atual: 1,
+      parcela_total: 1,
+      vencimento: format(dataVenc, 'yyyy-MM-dd'),
+      status: 'Em aberto',
+      titular_id: item.titular_id,
+      competencia: competencia,
+      simulada: false,
+      updated_at: new Date().toISOString()
+    });
   }
 
-  // 6. Remover faturas que não existem mais (todos os itens foram excluídos)
-  if (faturasExistentes) {
-    for (const fatura of faturasExistentes) {
-      if (!chavesProcessadas.has(`${fatura.descricao}-${fatura.titular_id}`)) {
-        await supabase.from('despesas').delete().eq('id', fatura.id);
-      }
-    }
+  if (upserts.length > 0) {
+    const { error: upsertError } = await supabase.from('despesas').upsert(upserts);
+    if (upsertError) throw upsertError;
+  }
+
+  // 6. Remover faturas que não existem mais (batch)
+  const idsParaRemover = faturasExistentes
+    ?.filter(f => !chavesProcessadas.has(`${f.descricao}-${f.titular_id}`))
+    .map(f => f.id);
+
+  if (idsParaRemover && idsParaRemover.length > 0) {
+    const { error: deleteError } = await supabase.from('despesas').delete().in('id', idsParaRemover);
+    if (deleteError) throw deleteError;
   }
 }

@@ -3,6 +3,7 @@ import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, Categoria, 
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas } from '@/lib/finance-service';
+import { format, addMonths } from 'date-fns';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -21,6 +22,9 @@ export function useFinance(activeView: string) {
     if (!targetId) return;
 
     setIsLoading(true);
+    const now = new Date();
+    const sixMonthsAgo = format(addMonths(now, -6), 'yyyy-MM-01');
+
     try {
       const [
         { data: despesasData },
@@ -31,9 +35,9 @@ export function useFinance(activeView: string) {
         { data: categoriasData },
         { data: notaData }
       ] = await Promise.all([
-        supabase.from('despesas').select('*').eq('user_id', targetId).order('id', { ascending: true }),
-        supabase.from('receitas').select('*').eq('user_id', targetId).order('id', { ascending: true }),
-        supabase.from('cartoes').select('*').eq('user_id', targetId).order('id', { ascending: true }),
+        supabase.from('despesas').select('*').eq('user_id', targetId).gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('receitas').select('*').eq('user_id', targetId).gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('cartoes').select('*').eq('user_id', targetId).gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('titulares').select('*').eq('user_id', targetId),
         supabase.from('cartoes_config').select('*').eq('user_id', targetId).order('id', { ascending: true }),
         supabase.from('categorias').select('*').eq('user_id', targetId).order('id', { ascending: true }),
