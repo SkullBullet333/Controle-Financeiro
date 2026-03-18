@@ -544,6 +544,7 @@ export default function Home() {
               <FinanceForm 
                 key={editingItem ? `edit-${editingItem.id}` : 'new'}
                 type={modalType}
+                subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
                 titulares={config.titulares}
                 categorias={config.categorias}
                 cartoes={config.cartoes}

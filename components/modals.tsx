@@ -6,7 +6,7 @@ import { X } from 'lucide-react';
 import { Titular, Categoria, Status } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, getDate } from 'date-fns';
 
 interface ModalProps {
   isOpen: boolean;
@@ -37,6 +37,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
 export function FinanceForm({ 
   type, 
+  subType,
   onSubmit, 
   titulares, 
   categorias,
@@ -45,6 +46,7 @@ export function FinanceForm({
   initialData
 }: { 
   type: 'despesa' | 'receita', 
+  subType?: 'fixa' | 'cartao',
   onSubmit: (data: any) => void,
   titulares: Titular[],
   categorias: Categoria[],
@@ -61,22 +63,37 @@ export function FinanceForm({
     status: initialData?.status || ('Em aberto' as Status),
     parcela_atual: initialData?.parcela_atual || 1,
     parcela_total: initialData?.parcela_total || 1,
-    cartao_vencimento_id: initialData?.cartao_vencimento_id || ''
+    cartao_vencimento_id: initialData?.cartao_vencimento_id || '',
+    simulada: initialData?.simulada || false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Convert current year/month from competencia to a full date if it's a "dia" input
+    // The competencia is in format 'MM/yyyy'
+    const [mes, ano] = competencia.split('/').map(Number);
+    let finalDate = formData.vencimento;
+
+    // Se no formulário estivermos lidando com apenas o DIA (como para despesas fixas ou receitas)
+    // Precisamos reconstruir a data completa
+    if (formData.vencimento.length <= 2) {
+      const dia = parseInt(formData.vencimento);
+      const date = new Date(ano, mes - 1, dia);
+      finalDate = format(date, 'yyyy-MM-dd');
+    }
+
     const data: any = {
       descricao: formData.descricao,
       valor: parseFloat(formData.valor),
       titular_id: formData.titular_id,
       competencia,
-      simulada: false,
+      simulada: formData.simulada,
     };
 
     if (type === 'despesa') {
       data.categoria_id = formData.categoria_id;
-      data.vencimento = formData.vencimento;
+      data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
       data.parcela_total = formData.parcela_total;
@@ -84,17 +101,17 @@ export function FinanceForm({
       
       // Recalcular competência se for despesa normal
       if (!data.cartao_vencimento_id) {
-        data.competencia = calcularCompetencia(parseISO(formData.vencimento));
+        data.competencia = calcularCompetencia(parseISO(finalDate));
       } else {
         // Se for cartão, a competência depende da regra de fechamento
         const cartao = cartoes.find(c => c.id === data.cartao_vencimento_id);
         if (cartao) {
-          data.competencia = calcularCompetenciaCartao(parseISO(formData.vencimento), cartao.dia_vencimento, cartao.dia_fechamento);
+          data.competencia = calcularCompetenciaCartao(parseISO(finalDate), cartao.dia_vencimento, cartao.dia_fechamento);
         }
       }
     } else {
-      data.data_recebimento = formData.vencimento;
-      const dataAjustada = ajustarDataReceita(parseISO(formData.vencimento));
+      data.data_recebimento = finalDate;
+      const dataAjustada = ajustarDataReceita(parseISO(finalDate));
       data.competencia = calcularCompetenciaReceita(dataAjustada);
     }
 
@@ -104,7 +121,9 @@ export function FinanceForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Descrição</label>
+        <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">
+          {type === 'receita' ? 'Descrição da Receita' : 'Descrição'}
+        </label>
         <input 
           required
           type="text" 
@@ -113,6 +132,7 @@ export function FinanceForm({
           onChange={e => setFormData({...formData, descricao: e.target.value})}
         />
       </div>
+      
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Valor</label>
@@ -125,17 +145,20 @@ export function FinanceForm({
             onChange={e => setFormData({...formData, valor: e.target.value})}
           />
         </div>
-        <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
-          <select 
-            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.titular_id}
-            onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-          >
-            {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-          </select>
-        </div>
+        {(!subType || subType === 'fixa' || type === 'receita') && (
+          <div>
+            <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Titular</label>
+            <select 
+              className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+              value={formData.titular_id}
+              onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+            >
+              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+          </div>
+        )}
       </div>
+
       {type === 'despesa' ? (
         <>
           <div className="grid grid-cols-2 gap-4">
@@ -149,52 +172,63 @@ export function FinanceForm({
                 {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Cartão (Opcional)</label>
-              <select 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.cartao_vencimento_id}
-                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-              >
-                <option value="">Nenhum</option>
-                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-              </select>
-            </div>
+            {subType === 'cartao' && (
+              <div>
+                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Nome Cartão</label>
+                <select 
+                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                  value={formData.cartao_vencimento_id}
+                  onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
+                >
+                  <option value="">Selecione um Cartão</option>
+                  {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
+                </select>
+              </div>
+            )}
           </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Vencimento</label>
-              <input 
-                type="date" 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.vencimento}
-                onChange={e => setFormData({...formData, vencimento: e.target.value})}
-              />
-            </div>
-            <div className="flex items-end pb-2">
+            {subType !== 'cartao' && (
+              <div>
+                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia Vencimento</label>
+                <input 
+                  type="number" 
+                  min="1" max="31"
+                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                  value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+                  onChange={e => setFormData({...formData, vencimento: e.target.value})}
+                />
+              </div>
+            )}
+            <div className={`flex items-end pb-2 ${subType === 'cartao' ? 'col-span-2' : ''}`}>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
                   type="checkbox" 
                   className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-                  checked={formData.status === 'Pago'}
-                  onChange={e => setFormData({...formData, status: e.target.checked ? 'Pago' : 'Em aberto'})}
+                  checked={formData.simulada}
+                  onChange={e => setFormData({...formData, simulada: e.target.checked})}
                 />
-                <span className="text-xs font-bold text-gray uppercase tracking-widest">Já está pago?</span>
+                <span className="text-xs font-bold text-gray uppercase tracking-widest">Simulação?</span>
               </label>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Parcela Atual</label>
-              <input 
-                type="number" 
-                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-                value={formData.parcela_atual}
-                onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Total Parcelas</label>
+            {subType !== 'cartao' && (
+              <div>
+                <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Parcela Atual</label>
+                <input 
+                  type="number" 
+                  className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                  value={formData.parcela_atual}
+                  onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
+                />
+              </div>
+            )}
+            <div className={subType === 'cartao' ? 'col-span-2' : ''}>
+              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">
+                {subType === 'cartao' ? 'Número de Parcelas' : 'Total Parcelas'}
+              </label>
               <input 
                 type="number" 
                 className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
@@ -205,15 +239,39 @@ export function FinanceForm({
           </div>
         </>
       ) : (
-        <div>
-          <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Data Recebimento</label>
-          <input 
-            type="date" 
-            className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
-            value={formData.vencimento}
-            onChange={e => setFormData({...formData, vencimento: e.target.value})}
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Dia de Receber</label>
+              <input 
+                type="number" 
+                min="1" max="31"
+                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+                onChange={e => setFormData({...formData, vencimento: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-gray uppercase tracking-widest mb-1">Recorrência (Meses)</label>
+              <input 
+                type="number" 
+                className="w-full p-3 bg-bg border border-border rounded-xl focus:border-primary focus:outline-none font-bold"
+                value={formData.parcela_total}
+                onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4 cursor-pointer">
+            <input 
+              type="checkbox" 
+              id="simulada-receita"
+              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+              checked={formData.simulada}
+              onChange={e => setFormData({...formData, simulada: e.target.checked})}
+            />
+            <label htmlFor="simulada-receita" className="text-xs font-bold text-gray uppercase tracking-widest cursor-pointer">Simulação?</label>
+          </div>
+        </>
       )}
       <button className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 mt-4">
         Salvar Lançamento
