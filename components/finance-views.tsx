@@ -146,7 +146,15 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
   );
 }
 
-export function FilterBar({ onAdd }: { onAdd: () => void }) {
+export function FilterBar({ 
+  onAdd, 
+  searchTerm, 
+  onSearchChange 
+}: { 
+  onAdd: () => void, 
+  searchTerm: string, 
+  onSearchChange: (value: string) => void 
+}) {
   return (
     <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
       <div className="input-group" style={{ maxWidth: '400px' }}>
@@ -155,9 +163,19 @@ export function FilterBar({ onAdd }: { onAdd: () => void }) {
         </span>
         <input 
           type="text" 
-          className="form-control border-start-0 ps-0" 
+          className="form-control border-start-0 ps-0 shadow-none" 
           placeholder="O que você procura?" 
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
+        {searchTerm && (
+          <button 
+            className="btn bg-white border-start-0 text-muted" 
+            onClick={() => onSearchChange('')}
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
+        )}
       </div>
       <button 
         onClick={onAdd}
@@ -175,14 +193,18 @@ export function SummaryCards({
   titulares, 
   totalsByCard, 
   totalsByTitular, 
-  totalVencido 
+  totalVencido,
+  activeFilterId,
+  onFilterChange
 }: { 
   type: 'geral' | 'cartoes' | 'receitas', 
-  cartoes: CartaoConfig[], 
-  titulares: Titular[],
-  totalsByCard: Record<number, number>,
-  totalsByTitular: Record<number, { despesas: number, receitas: number }>,
-  totalVencido?: number
+  cartoes: any[], 
+  titulares: any[], 
+  totalsByCard: Record<number, number>, 
+  totalsByTitular: Record<number, { despesas: number, receitas: number }>, 
+  totalVencido?: number,
+  activeFilterId: number | null,
+  onFilterChange: (id: number | null) => void
 }) {
   const getCardLogo = (name: string) => {
     const lowerName = name.toLowerCase();
@@ -198,20 +220,47 @@ export function SummaryCards({
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&bold=true`;
   };
 
+  const isSelected = (id: number | null) => activeFilterId === id;
+
   return (
-    <div className="row g-3 mb-4 overflow-x-auto flex-nowrap pb-2">
-      {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
-        <div className="col-auto" style={{ minWidth: '220px' }}>
-          <div className="bg-danger bg-opacity-10 p-3 rounded-4 border border-danger border-opacity-20 d-flex align-items-center gap-3">
-            <div className="bg-danger text-white rounded-3 p-2 d-flex align-items-center justify-center" style={{ width: '45px', height: '45px' }}>
-              <i className="fa-solid fa-triangle-exclamation fs-5"></i>
-            </div>
-            <div>
-              <span className="d-block small text-danger fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Vencido</span>
-              <span className="h5 fw-bold text-danger m-0">{formatCurrency(totalVencido)}</span>
-            </div>
+    <div className="d-flex gap-3 mb-4 overflow-x-auto flex-nowrap pb-2 scrollbar-hide">
+      {/* Ver Todos Card */}
+      <div className="col-auto" style={{ minWidth: '220px' }}>
+        <div 
+          onClick={() => onFilterChange(null)}
+          className={cn(
+            "p-3 rounded-4 border transition-all cursor-pointer d-flex align-items-center gap-3",
+            isSelected(null) 
+              ? "bg-primary bg-opacity-10 border-primary shadow-sm" 
+              : "bg-card border-border hover-border-primary"
+          )}
+          style={{ minHeight: '90px' }}
+        >
+          <div className={cn(
+            "rounded-3 p-2 d-flex align-items-center justify-center",
+            isSelected(null) ? "bg-primary text-white" : "bg-light text-muted"
+          )} style={{ width: '45px', height: '45px' }}>
+             <i className="fa-solid fa-list-check fs-5"></i>
+          </div>
+          <div>
+            <span className="d-block small text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Filtro</span>
+            <span className="h5 fw-bold m-0">Ver Todos</span>
           </div>
         </div>
+      </div>
+
+      {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
+         <div className="col-auto" style={{ minWidth: '220px' }}>
+            <div className="bg-danger bg-opacity-10 p-3 rounded-4 border border-danger border-opacity-20 d-flex align-items-center gap-3 h-100" style={{ minHeight: '90px' }}>
+                <div className="bg-danger text-white rounded-3 p-2 d-flex align-items-center justify-center" style={{ width: '45px', height: '45px' }}>
+                  <i className="fa-solid fa-triangle-exclamation fs-5"></i>
+                </div>
+                <div>
+                  <span className="d-block small text-danger fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Vencido</span>
+                  <span className="h5 fw-bold text-danger m-0">{formatCurrency(totalVencido)}</span>
+                </div>
+            </div>
+         </div>
       )}
 
       {(type === 'geral' || type === 'receitas') && titulares.map((t) => {
@@ -220,7 +269,16 @@ export function SummaryCards({
 
         return (
           <div key={t.id} className="col-auto" style={{ minWidth: '220px' }}>
-            <div className="bg-card p-3 rounded-4 border border-border d-flex align-items-center gap-3 hover-border-primary transition-all cursor-pointer">
+            <div 
+              onClick={() => onFilterChange(t.id)}
+              className={cn(
+                "p-3 rounded-4 border d-flex align-items-center gap-3 transition-all cursor-pointer h-100",
+                isSelected(t.id)
+                  ? "bg-primary bg-opacity-10 border-primary shadow-sm"
+                  : "bg-card border-border hover-border-primary"
+              )}
+              style={{ minHeight: '90px' }}
+            >
               <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '45px', height: '45px' }}>
                 <Image 
                   src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`} 
@@ -241,8 +299,17 @@ export function SummaryCards({
       })}
 
       {type === 'cartoes' && cartoes.map((c) => (
-        <div key={c.id} className="col-auto" style={{ minWidth: '220px' }}>
-          <div className="bg-card p-3 rounded-4 border border-border d-flex align-items-center gap-3 hover-border-primary transition-all cursor-pointer">
+        <div key={c.id} className="col-auto" style={{ minWidth: '240px' }}>
+          <div 
+            onClick={() => onFilterChange(c.id)}
+            className={cn(
+              "p-3 rounded-4 border d-flex align-items-center gap-3 transition-all cursor-pointer h-100",
+              isSelected(c.id)
+                ? "bg-primary bg-opacity-10 border-primary shadow-sm"
+                : "bg-card border-border hover-border-primary"
+            )}
+            style={{ minHeight: '90px' }}
+          >
             <div className="position-relative rounded-3 overflow-hidden border border-border bg-white p-1" style={{ width: '45px', height: '45px' }}>
               <Image 
                 src={getCardLogo(c.nome_cartao)} 
@@ -255,6 +322,9 @@ export function SummaryCards({
             </div>
             <div>
               <span className="d-block small text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>{c.nome_cartao}</span>
+              <div className="text-muted small opacity-75" style={{ fontSize: '0.6rem', marginTop: '-2px' }}>
+                {titulares.find(t => t.id === c.titular_id)?.nome || 'Sem Titular'}
+              </div>
               <span className="h5 fw-bold m-0">{formatCurrency(totalsByCard[c.id] || 0)}</span>
             </div>
           </div>

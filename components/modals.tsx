@@ -390,6 +390,11 @@ export function TitularForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 1024 * 1024) {
+      alert('Arquivo muito grande! O limite para a foto do titular é de 1MB.');
+      return;
+    }
+
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();

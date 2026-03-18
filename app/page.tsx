@@ -24,6 +24,8 @@ export default function Home() {
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | Categoria | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
 
   const {
     user,
@@ -65,6 +67,11 @@ export default function Home() {
     updateCategoria,
     deleteCategoria
   } = useFinance(activeView);
+
+  React.useEffect(() => {
+    setActiveFilterId(null);
+    setSearchTerm('');
+  }, [activeView]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,46 +170,51 @@ export default function Home() {
       </div>
     );
   }
+  const sortExpenses = (data: any[]) => {
+    return [...data].sort((a, b) => {
+      if (a.status === 'Pago' && b.status !== 'Pago') return 1;
+      if (a.status !== 'Pago' && b.status === 'Pago') return -1;
+      if (a.vencimento && b.vencimento && a.vencimento !== '-' && b.vencimento !== '-') {
+        return a.vencimento.localeCompare(b.vencimento);
+      }
+      return 0;
+    });
+  };
 
-  const renderView = () => {
+  const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
         return (
-          <div className="row g-4">
-            <div className="col-12">
-              <KPICards stats={stats} />
-            </div>
-            <div className="col-lg-6">
-              <ExtratoTable
-                despesas={despesasGerais}
-                onEdit={(item) => {
-                  if (item.isSummary) return;
-                  setModalType('despesa');
-                  setEditingItem(item);
-                  setIsModalOpen(true);
-                }}
-                categorias={config.categorias}
-              />
-            </div>
-            <div className="col-lg-6">
-              <div className="row g-4">
-                <div className="col-12">
-                  <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
-                </div>
-                <div className="col-12">
-                  <div className="card border-0 rounded-4 shadow-sm h-100">
-                    <div className="card-body p-4">
-                      <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
-                        <i className="fa-solid fa-note-sticky text-primary"></i> Anotações
-                      </h5>
-                      <textarea
-                        className="form-control border-0 bg-light rounded-4 p-3"
-                        rows={8}
-                        placeholder="💡 Toque aqui para escrever seus lembretes, metas financeiras ou observações do mês..."
-                        style={{ resize: 'none' }}
-                      ></textarea>
-                      <div className="mt-3 text-end">
-                        <span className="small text-muted italic">Salvo automaticamente</span>
+          <div className="space-y-4">
+            <KPICards stats={stats} />
+            <div className="row g-4 mt-4">
+              <div className="col-lg-7">
+                <ExtratoTable 
+                  despesas={sortExpenses(filteredDespesas).slice(0, 10)} 
+                  onEdit={(item: Despesa) => { setModalType('despesa'); setEditingItem(item); setIsModalOpen(true); }}
+                  categorias={config.categorias}
+                />
+              </div>
+              <div className="col-lg-5">
+                <div className="row g-4 h-100">
+                  <div className="col-12">
+                    <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
+                  </div>
+                  <div className="col-12 mt-4">
+                    <div className="bg-card border-0 rounded-4 shadow-sm h-100">
+                      <div className="card-body p-4">
+                        <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+                          <i className="fa-solid fa-note-sticky text-primary"></i> Anotações
+                        </h5>
+                        <textarea
+                          className="form-control border-0 bg-light rounded-4 p-3"
+                          rows={8}
+                          placeholder="💡 Toque aqui para escrever seus lembretes, metas financeiras ou observações do mês..."
+                          style={{ resize: 'none' }}
+                        ></textarea>
+                        <div className="mt-3 text-end">
+                          <span className="small text-muted italic">Salvo automaticamente</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -215,11 +227,31 @@ export default function Home() {
       case 'geral':
       case 'cartoes':
       case 'receitas':
-        const tableData = activeView === 'geral'
-          ? despesasGerais
+        let tableData: any = activeView === 'geral'
+          ? sortExpenses(despesasGerais)
           : activeView === 'cartoes'
             ? filteredCartaoTransacoes
             : filteredReceitas;
+
+        if (activeFilterId) {
+          tableData = tableData.filter((item: any) => {
+            if (activeView === 'cartoes') return item.cartao_vencimento_id === activeFilterId;
+            return item.titular_id === activeFilterId;
+          });
+        }
+
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          tableData = tableData.filter((item: any) => {
+            if (activeView === 'geral' || activeView === 'receitas') {
+              return item.descricao?.toLowerCase().includes(term);
+            }
+            if (activeView === 'cartoes') {
+              return item.estabelecimento?.toLowerCase().includes(term);
+            }
+            return false;
+          });
+        }
 
         return (
           <div className="space-y-4">
@@ -230,12 +262,18 @@ export default function Home() {
               totalsByCard={totalsByCard}
               totalsByTitular={totalsByTitular}
               totalVencido={stats.totalVencido}
+              activeFilterId={activeFilterId}
+              onFilterChange={setActiveFilterId}
             />
-            <FilterBar onAdd={() => {
-              setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
-              setEditingItem(null);
-              setIsModalOpen(true);
-            }} />
+            <FilterBar 
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onAdd={() => {
+                setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
+                setEditingItem(null);
+                setIsModalOpen(true);
+              }} 
+            />
             <FinanceTable
               data={tableData}
               type={activeView === 'geral' ? 'geral' : activeView === 'cartoes' ? 'cartoes' : 'receitas'}
@@ -504,7 +542,7 @@ export default function Home() {
             <div className="d-flex align-items-center justify-content-center h-50 pt-5">
               <div className="spinner-border text-primary" role="status"></div>
             </div>
-          ) : renderView()}
+          ) : renderContent()}
         </div>
 
         <MobileNav

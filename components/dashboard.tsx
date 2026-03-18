@@ -30,12 +30,12 @@ export function KPICards({ stats }: KPICardsProps) {
       {cards.map((card) => (
         <div key={card.label} className="col-md-3">
           <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100")}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
+            <div className="d-flex align-items-center gap-3 mb-3">
               <div className={cn("icon-circle", `bg-${card.color}`, "bg-opacity-10", `text-${card.color}`)}>
                 <i className={cn("fa-solid", card.icon)}></i>
               </div>
+              <div className="text-muted small fw-bold text-uppercase tracking-wider">{card.label}</div>
             </div>
-            <div className="text-muted small fw-bold text-uppercase mb-1">{card.label}</div>
             <div className={cn("h3 fw-bold mb-0", card.variant === 'red' && stats.totalDespesas > 0 ? "text-danger" : card.variant === 'green' ? "text-success" : "")}>
               {formatCurrency(card.value)}
             </div>
