@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Despesa, Titular, Categoria } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -26,17 +27,14 @@ export function KPICards({ stats }: KPICardsProps) {
   ];
 
   return (
-    <div className="row g-4 mb-4">
+    <div className="row g-3 mb-4 kpi-grid-mobile">
       {cards.map((card) => (
-        <div key={card.label} className="col-md-3">
+        <div key={card.label} className="col-md-3 col-6">
           <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100")}>
-            <div className="d-flex align-items-center gap-3 mb-3">
-              <div className={cn("icon-circle", `bg-${card.color}`, "bg-opacity-10", `text-${card.color}`)}>
-                <i className={cn("fa-solid", card.icon)}></i>
-              </div>
-              <div className="text-muted small fw-bold text-uppercase tracking-wider">{card.label}</div>
-            </div>
-            <div className={cn("h3 fw-bold mb-0", card.variant === 'red' && stats.totalDespesas > 0 ? "text-danger" : card.variant === 'green' ? "text-success" : "")}>
+            <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+              {card.label}
+            </small>
+            <div className={cn("centered-value h3 fw-bold mb-0", card.variant === 'red' ? "text-danger" : card.variant === 'green' ? "text-success" : card.variant === 'blue' ? "text-primary" : "")}>
               {formatCurrency(card.value)}
             </div>
           </div>
@@ -64,45 +62,55 @@ export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps
         <h5 className="fw-bold m-0"><i className="fa-solid fa-list-ul me-2 text-primary"></i>Extrato Detalhado</h5>
       </div>
       <div className="overflow-y-auto flex-1" style={{ maxHeight: '520px' }}>
-        <table className="table table-hover align-middle mb-0">
-          <thead className="table-light sticky-top">
-            <tr>
-              <th className="px-4 py-3 text-uppercase small fw-bold text-muted border-0">Descrição / Categoria</th>
-              <th className="px-4 py-3 text-uppercase small fw-bold text-muted border-0 text-end">Valor / Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {despesas.length === 0 ? (
-              <tr>
-                <td colSpan={2} className="p-5 text-center text-muted italic">Nenhuma movimentação identificada</td>
-              </tr>
-            ) : (
-              despesas.map((d) => (
-                <tr 
+        {despesas.length === 0 ? (
+          <div className="p-5 text-center text-muted italic">Nenhuma movimentação identificada</div>
+        ) : (
+          <div className="list-group list-group-flush">
+            {despesas.map((d) => {
+              const todayStr = format(new Date(), 'yyyy-MM-dd');
+              const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
+              
+              return (
+                <div 
                   key={d.id} 
                   onDoubleClick={() => !d.isSummary && onEdit?.(d)}
-                  className={cn("cursor-pointer", d.isSummary && "table-primary opacity-75")}
+                  className={cn(
+                    "list-group-item list-group-item-action border-0 border-bottom border-border px-4 py-3 cursor-pointer",
+                    d.isSummary && "bg-primary bg-opacity-10",
+                    isVencido && "bg-danger bg-opacity-5"
+                  )}
                 >
-                  <td className="px-4 py-3">
-                    <div className="fw-bold text-dark">{d.descricao}</div>
-                    <div className="text-muted small text-uppercase">
-                      {getCategoriaLabel(d.categoria_id)} {d.vencimento !== '-' && ` • ${formatDate(d.vencimento)}`}
+                  <div className="d-flex justify-content-between align-items-start mb-1">
+                    <div className="fw-bold text-dark text-truncate pr-2" style={{ maxWidth: '65%' }}>
+                      {d.descricao}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    <div className="fw-bold text-dark">{formatCurrency(d.valor)}</div>
-                    <span className={cn(
-                      "status-badge",
-                      d.status === 'Pago' ? "status-pago" : "status-aberto"
-                    )}>
-                      {d.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    <div className="fw-bold text-dark whitespace-nowrap">
+                      {formatCurrency(d.valor)}
+                    </div>
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-end">
+                    <div className="small text-muted flex-column d-flex">
+                      <span className="text-uppercase" style={{ fontSize: '0.65rem' }}>{getCategoriaLabel(d.categoria_id)}</span>
+                      {d.vencimento !== '-' && (
+                        <span className={cn(isVencido && "text-danger fw-bold")}>
+                          {isVencido ? `Vencido em ${formatDate(d.vencimento)}` : formatDate(d.vencimento)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <span className={cn(
+                        d.status === 'Pago' ? "status-pago" : "status-aberto"
+                      )}>
+                        {d.status === 'Pago' ? 'Pago' : 'Em aberto'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

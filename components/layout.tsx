@@ -28,21 +28,8 @@ export function Sidebar({ activeView, onViewChange, user, onLogout, onHoverChang
       onMouseLeave={() => onHoverChange?.(false)}
     >
       <div className="logo mt-4 mb-2 d-flex align-items-center gap-3" style={{ paddingLeft: '5px' }}>
-        {user.foto ? (
-          <div className="relative w-12 h-12 shrink-0">
-            <Image 
-              src={user.foto} 
-              alt={user.nome}
-              fill
-              className="sidebar-user-img"
-              referrerPolicy="no-referrer"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <i className="fa-solid fa-money-bill-trend-up text-primary" style={{ fontSize: '1.8rem' }}></i>
-        )}
-        <span className="sidebar-user-name fw-bold fs-5">FinanceBox</span>
+        <i className="fa-solid fa-chart-pie text-primary" style={{ fontSize: '1.8rem' }}></i>
+        <span className="fw-bold fs-5">Financeiro</span>
       </div>
       
       <ul className="menu">

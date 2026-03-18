@@ -201,7 +201,7 @@ export default function Home() {
                     <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
                   </div>
                   <div className="col-12 mt-4">
-                    <div className="bg-card border-0 rounded-4 shadow-sm h-100">
+                    <div className="bg-card border border-border rounded-4 shadow-sm h-100">
                       <div className="card-body p-4">
                         <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
                           <i className="fa-solid fa-note-sticky text-primary"></i> Anotações
@@ -305,23 +305,23 @@ export default function Home() {
           <div className="space-y-4">
             <div className="row g-4">
               <div className="col-md-4">
-                <div className="kpi-card border-l-4 border-l-primary flex flex-col items-center justify-center text-center">
+                <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🛡️ Saúde Financeira</span>
                   <div className="text-4xl font-black text-primary mb-2">{healthScore}%</div>
-                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-light h-2 rounded-full overflow-hidden">
                     <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${healthScore}%` }} />
                   </div>
                 </div>
               </div>
               <div className="col-md-4">
-                <div className="kpi-card border-l-4 border-l-success flex flex-col items-center justify-center text-center">
+                <div className="kpi-card kpi-card-green flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💡 Potencial de Economia</span>
                   <div className="text-3xl font-black text-success">{formatCurrency(stats.totalDespesas * 0.15)}</div>
                   <span className="text-[10px] text-gray mt-1">Baseado em gastos não essenciais</span>
                 </div>
               </div>
               <div className="col-md-4">
-                <div className="kpi-card border-l-4 border-l-faturas flex flex-col items-center justify-center text-center">
+                <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📉 Limite de Gastos</span>
                   <div className="text-3xl font-black text-faturas">{Math.round((stats.totalDespesas / (stats.totalReceitas * 0.8 || 1)) * 100)}%</div>
                   <span className="text-[10px] text-gray mt-1">Do orçamento utilizado</span>
