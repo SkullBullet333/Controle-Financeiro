@@ -110,19 +110,21 @@ export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeri
         </div>
       </div>
       <div className="topbar-controls">
-        <div className="controls">
-          <button onClick={() => onChangeMonth(-1)}><i className="fa-solid fa-chevron-left"></i></button>
-          <div 
-            className="date-display" 
-            title="Clique para selecionar o período"
-            onClick={onOpenPeriodModal}
-          >
-            <i className="fa-regular fa-calendar-check text-primary opacity-75"></i>
-            <span id="lblMes">{months[month - 1]}</span> 
-            <span id="lblAno">{year}</span>
+        {title !== 'config' && (
+          <div className="controls">
+            <button onClick={() => onChangeMonth(-1)}><i className="fa-solid fa-chevron-left"></i></button>
+            <div 
+              className="date-display" 
+              title="Clique para selecionar o período"
+              onClick={onOpenPeriodModal}
+            >
+              <i className="fa-regular fa-calendar-check text-primary opacity-75"></i>
+              <span id="lblMes">{months[month - 1]}</span> 
+              <span id="lblAno">{year}</span>
+            </div>
+            <button onClick={() => onChangeMonth(1)}><i className="fa-solid fa-chevron-right"></i></button>
           </div>
-          <button onClick={() => onChangeMonth(1)}><i className="fa-solid fa-chevron-right"></i></button>
-        </div>
+        )}
       </div>
     </header>
   );
@@ -139,6 +141,7 @@ export function MobileNav({ activeView, onViewChange }: MobileNavProps) {
     { id: 'geral', label: 'Fixas', icon: 'fa-clipboard-list' },
     { id: 'cartoes', label: 'Cartões', icon: 'fa-credit-card' },
     { id: 'receitas', label: 'Receitas', icon: 'fa-money-bill-wave' },
+    { id: 'radar', label: 'Radar', icon: 'fa-wand-magic-sparkles' },
     { id: 'config', label: 'Config', icon: 'fa-gear' },
   ];
 

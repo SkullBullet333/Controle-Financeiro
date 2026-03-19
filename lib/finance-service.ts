@@ -135,28 +135,30 @@ export function projetarProximoVencimento(
 
 export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
   if (dados.id) {
-    const dataVenc = parseISO(dados.vencimento!);
-    const diaOriginal = getDate(dataVenc);
-    const isUltimoDia = isLastDayOfMonth(dataVenc);
+    const { id, ...camposParaAtualizar } = dados;
     
-    // Aplica regra de pular fim de semana no vencimento
-    const dataAjustada = projetarProximoVencimento(dataVenc, 0, isUltimoDia, diaOriginal);
-    const comp = calcularCompetencia(dataAjustada);
+    // Se houver vencimento, recalculamos a competência e ajustamos a data
+    let updatePayload: any = { 
+      ...camposParaAtualizar,
+      updated_at: new Date().toISOString() 
+    };
+
+    if (dados.vencimento && dados.vencimento !== '-') {
+      const dataVenc = parseISO(dados.vencimento);
+      const diaOriginal = getDate(dataVenc);
+      const isUltimoDia = isLastDayOfMonth(dataVenc);
+      
+      const dataAjustada = projetarProximoVencimento(dataVenc, 0, isUltimoDia, diaOriginal);
+      const comp = calcularCompetencia(dataAjustada);
+      
+      updatePayload.vencimento = format(dataAjustada, 'yyyy-MM-dd');
+      updatePayload.competencia = comp;
+    }
 
     const { data, error } = await supabase
       .from('despesas')
-      .update({
-        descricao: dados.descricao,
-        categoria_id: dados.categoria_id,
-        valor: dados.valor,
-        vencimento: format(dataAjustada, 'yyyy-MM-dd'),
-        status: dados.status,
-        titular_id: dados.titular_id,
-        competencia: comp,
-        simulada: dados.simulada,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', dados.id)
+      .update(updatePayload)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single();
@@ -351,7 +353,7 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   // 4. Buscar faturas já consolidadas para esta competência para comparar e remover se necessário
   const { data: faturasExistentes } = await supabase
     .from('despesas')
-    .select('id, descricao, titular_id')
+    .select('id, descricao, titular_id, status')
     .eq('user_id', userId)
     .eq('competencia', competencia)
     .like('descricao', 'Fatura %');
@@ -385,7 +387,7 @@ export async function consolidarFaturas(competencia: string, userId: string) {
       parcela_atual: 1,
       parcela_total: 1,
       vencimento: format(dataVenc, 'yyyy-MM-dd'),
-      status: 'Em aberto',
+      status: existente ? (existente as any).status : 'Em aberto',
       titular_id: item.titular_id,
       competencia: competencia,
       simulada: false,

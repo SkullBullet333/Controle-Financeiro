@@ -85,10 +85,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 
                   {type === 'cartoes' && (
                     <>
-                      <td 
-                        className="px-4 py-3 fw-bold text-primary cursor-pointer hover:underline"
-                        onClick={(e) => { e.stopPropagation(); onToggleStatus?.((item as any).id, (item as any).simulada); }}
-                      >
+                      <td className="px-4 py-3 fw-bold text-primary">
                         {getCartaoName((item as any).cartao_id)}
                         {(item as any).simulada && <span className="ms-2 badge bg-warning text-dark small">Simulada</span>}
                       </td>
@@ -110,23 +107,23 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                   )}
 
                   <td className="px-4 py-3">
-                    {!(item as any).isSummary && (
-                      <div className="d-flex align-items-center gap-1">
-                        {type === 'geral' && (
-                          <button 
-                            onClick={(e: React.MouseEvent) => { 
-                              e.stopPropagation(); 
-                              onToggleStatus?.((item as any).id, (item as any).status);
-                            }}
-                            className={cn(
-                              "btn btn-sm border-0",
-                              (item as any).status === 'Pago' ? "text-success" : "text-muted"
-                            )}
-                            title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
-                          >
-                            <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
-                          </button>
-                        )}
+                    <div className="d-flex align-items-center gap-1">
+                      {type === 'geral' && (
+                        <button 
+                          onClick={(e: React.MouseEvent) => { 
+                            e.stopPropagation(); 
+                            onToggleStatus?.((item as any).id, (item as any).status);
+                          }}
+                          className={cn(
+                            "btn btn-sm border-0",
+                            (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                          )}
+                          title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
+                        >
+                          <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
+                        </button>
+                      )}
+                      {!(item as any).isSummary && (
                         <button 
                           onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
                           className="btn btn-sm btn-outline-danger border-0"
@@ -134,8 +131,8 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                         >
                           <i className="fa-solid fa-trash-can"></i>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -240,10 +237,41 @@ export function SummaryCards({
 
   const isSelected = (id: number | null) => activeFilterId === id;
 
+  const totalGeral = React.useMemo(() => {
+    if (type === 'cartoes') {
+      return Object.values(totalsByCard).reduce((acc, val) => acc + val, 0);
+    }
+    return Object.values(totalsByTitular).reduce((acc, val) => acc + (type === 'geral' ? val.despesas : val.receitas), 0);
+  }, [type, totalsByCard, totalsByTitular]);
+
   return (
-    <div className="row g-3 mb-4 overflow-x-auto flex-nowrap pb-2">
+    <div className="row g-3 mb-4">
+      {/* Card de Total Geral - Apenas para Receitas conforme solicitado */}
+      {type === 'receitas' && (
+        <div className="col-12 col-sm-6 col-md">
+          <div 
+            onClick={() => onFilterChange(null)}
+            className={cn(
+              "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
+              isSelected(null) ? "border-primary border-2 shadow-md" : "border-border"
+            )}
+          >
+            <div className="d-flex align-items-center justify-content-start gap-2">
+              <div className="bg-success bg-opacity-10 text-success rounded-3 p-2 d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }}>
+                <i className="fa-solid fs-4 fa-money-bill-trend-up"></i>
+              </div>
+              <div>
+                <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>Total Receitas</small>
+                <strong className="h5 fw-bold m-0 text-success">{formatCurrency(totalGeral)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
-        <div className="col-auto" style={{ minWidth: '220px' }}>
+        <div className="col-12 col-sm-6 col-md">
           <div className="card p-3 shadow-sm card-click card-segmento-filtro h-100" style={{ borderLeft: '5px solid var(--danger)' }}>
             <div className="d-flex align-items-center justify-content-start gap-2">
               <div className="bg-danger bg-opacity-10 text-danger rounded-3 p-2 d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }}>
@@ -263,7 +291,7 @@ export function SummaryCards({
         if (!value || value === 0) return null;
 
         return (
-          <div key={t.id} className="col-auto" style={{ minWidth: '220px' }}>
+          <div key={t.id} className="col-12 col-sm-6 col-md">
             <div 
               onClick={() => onFilterChange(t.id)}
                 className={cn(
@@ -293,7 +321,7 @@ export function SummaryCards({
       })}
 
       {type === 'cartoes' && cartoes.map((c) => (
-        <div key={c.id} className="col-auto" style={{ minWidth: '240px' }}>
+        <div key={c.id} className="col-12 col-sm-6 col-md">
           <div 
             onClick={() => onFilterChange(c.id)}
             className={cn(

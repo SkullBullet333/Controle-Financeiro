@@ -382,7 +382,7 @@ export default function Home() {
                           <Cell fill="#4361ee" />
                           <Cell fill="#ff9f1c" />
                         </Pie>
-                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                        <Tooltip formatter={(value: any) => formatCurrency(Number(value || 0))} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -426,18 +426,20 @@ export default function Home() {
                   <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
                     <UserCircle className="text-primary" /> Titulares
                   </h5>
-                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('titulares') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  <div className="d-flex align-items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
+                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                      style={{ width: '28px', height: '28px' }}
+                      title="Adicionar Titular"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('titulares') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  </div>
                 </div>
                 {expandedSections.includes('titulares') && (
                   <div className="card-body p-4 pt-0 border-top border-light">
-                    <div className="d-flex justify-content-end mb-3">
-                      <button
-                        onClick={() => { setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
-                        className="btn btn-sm btn-primary rounded-pill px-3"
-                      >
-                        <Plus size={16} className="me-1" /> Novo
-                      </button>
-                    </div>
                     <div className="list-group list-group-flush">
                       {config.titulares.map((t: Titular) => (
                         <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
@@ -475,18 +477,20 @@ export default function Home() {
                   <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
                     <CardIcon className="text-primary" /> Cartões
                   </h5>
-                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('cartoes') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  <div className="d-flex align-items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
+                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                      style={{ width: '28px', height: '28px' }}
+                      title="Adicionar Cartão"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('cartoes') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  </div>
                 </div>
                 {expandedSections.includes('cartoes') && (
                   <div className="card-body p-4 pt-0 border-top border-light">
-                    <div className="d-flex justify-content-end mb-3">
-                      <button
-                        onClick={() => { setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
-                        className="btn btn-sm btn-primary rounded-pill px-3"
-                      >
-                        <Plus size={16} className="me-1" /> Novo
-                      </button>
-                    </div>
                     <div className="list-group list-group-flush">
                       {config.cartoes.map((c: CartaoConfig) => {
                         const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
@@ -517,18 +521,20 @@ export default function Home() {
                   <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
                     <Tags className="text-primary" /> Categorias
                   </h5>
-                  <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('categorias') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  <div className="d-flex align-items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setModalType('categoria'); setEditingItem(null); setIsModalOpen(true); }}
+                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                      style={{ width: '28px', height: '28px' }}
+                      title="Adicionar Categoria"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('categorias') ? "fa-chevron-up" : "fa-chevron-down")}></i>
+                  </div>
                 </div>
                 {expandedSections.includes('categorias') && (
                   <div className="card-body p-4 pt-0 border-top border-light">
-                    <div className="d-flex justify-content-end mb-3">
-                      <button
-                        onClick={() => { setModalType('categoria'); setEditingItem(null); setIsModalOpen(true); }}
-                        className="btn btn-sm btn-primary rounded-pill px-3"
-                      >
-                        <Plus size={16} className="me-1" /> Nova
-                      </button>
-                    </div>
                     <div className="list-group list-group-flush">
                       {config.categorias.map((cat: Categoria) => (
                         <div key={cat.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
@@ -600,7 +606,7 @@ export default function Home() {
           title={
             editingItem
               ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : 'Editar Categoria')
-              : (modalType === 'despesa' ? 'Nova Despesa' : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : 'Nova Categoria')
+              : (modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : 'Nova Categoria')
           }
         >
           {modalType === 'despesa' || modalType === 'receita' ? (
