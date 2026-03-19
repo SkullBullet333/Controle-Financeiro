@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
+import { AnalysisPlan } from '@/components/analysis-view';
 import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb } from 'lucide-react';
@@ -47,6 +48,7 @@ export default function Home() {
     stats,
     totalsByCard,
     totalsByTitular,
+    projecaoSemestral,
     isLoading,
     isDarkMode,
     toggleDarkMode,
@@ -195,14 +197,14 @@ export default function Home() {
           <div className="space-y-4">
             <KPICards stats={stats} />
             <div className="row g-4 mt-4">
-              <div className="col-lg-7">
+              <div className="col-lg-8">
                 <ExtratoTable 
-                  despesas={sortExpenses(filteredDespesas).slice(0, 10)} 
+                  despesas={sortExpenses(filteredDespesas).slice(0, 15)} 
                   onEdit={(item: Despesa) => { setModalType('despesa'); setEditingItem(item); setIsModalOpen(true); }}
                   categorias={config.categorias}
                 />
               </div>
-              <div className="col-lg-5">
+              <div className="col-lg-4">
                 <div className="row g-4 h-100">
                   <div className="col-12">
                     <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
@@ -310,6 +312,8 @@ export default function Home() {
         const healthScore = Math.round(stats.totalReceitas > 0 ? (1 - (stats.totalDespesas / stats.totalReceitas)) * 100 : 0);
         return (
           <div className="space-y-4">
+            <AnalysisPlan projecao={projecaoSemestral} />
+            
             <div className="row g-4">
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100">

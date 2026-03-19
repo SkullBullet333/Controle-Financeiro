@@ -128,69 +128,65 @@ export function DashboardCharts({ despesas, stats, titulares }: { despesas: Desp
   const COLORS = ['#4361ee', '#2ec4b6', '#ff9f1c', '#e71d36', '#9b59b6'];
 
   return (
-    <div className="row g-4">
-      <div className="col-md-6">
-        <div className="bg-card rounded-4 border border-border p-4 shadow-sm h-100">
-          <h6 className="fw-bold mb-4 text-center text-uppercase small text-muted">Gastos por Titular</h6>
-          <div style={{ height: '300px' }}>
+    <div className="flex flex-col gap-4">
+      <div className="bg-card rounded-4 border border-border p-4 shadow-sm">
+        <h6 className="fw-bold mb-4 text-center text-uppercase small text-muted">Gastos por Titular</h6>
+        <div style={{ height: '240px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={titularData}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={70}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {titularData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-4 border border-border p-4 shadow-sm text-center flex flex-col justify-content-center">
+          <h6 className="fw-bold mb-4 text-uppercase small text-muted">Status de Pagamento</h6>
+          <div className="position-relative" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={titularData}
+                  data={[
+                    { name: 'Pago', value: stats.totalPago },
+                    { name: 'Em Aberto', value: stats.totalAberto },
+                  ]}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={50}
+                  outerRadius={70}
                   paddingAngle={5}
                   dataKey="value"
+                  startAngle={90}
+                  endAngle={-270}
                 >
-                  {titularData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
+                  <Cell fill="var(--success)" />
+                  <Cell fill="var(--warning)" />
                 </Pie>
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend verticalAlign="bottom" height={36}/>
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="col-md-6">
-        <div className="bg-card rounded-4 border border-border p-4 shadow-sm h-100 text-center flex flex-col justify-content-center">
-            <h6 className="fw-bold mb-4 text-uppercase small text-muted">Status de Pagamento</h6>
-            <div className="position-relative" style={{ height: '300px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Pago', value: stats.totalPago },
-                      { name: 'Em Aberto', value: stats.totalAberto },
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    startAngle={90}
-                    endAngle={-270}
-                  >
-                    <Cell fill="var(--success)" />
-                    <Cell fill="var(--warning)" />
-                  </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Legend verticalAlign="bottom" height={36}/>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="position-absolute top-50 start-50 translate-middle">
-                <div className="h4 fw-bold mb-0">
-                  {stats.totalDespesas > 0 ? Math.round((stats.totalPago / stats.totalDespesas) * 100) : 0}%
-                </div>
-                <div className="small text-muted fw-bold uppercase">Pago</div>
+            <div className="position-absolute top-50 start-50 translate-middle">
+              <div className="h4 fw-bold mb-0">
+                {stats.totalDespesas > 0 ? Math.round((stats.totalPago / stats.totalDespesas) * 100) : 0}%
               </div>
+              <div className="small text-muted fw-bold uppercase">Pago</div>
             </div>
-        </div>
+          </div>
       </div>
     </div>
   );
