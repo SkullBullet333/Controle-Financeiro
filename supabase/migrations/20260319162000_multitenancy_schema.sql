@@ -26,12 +26,34 @@ CREATE TABLE profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Usuários podem ler perfis de quem compartilha o mesmo family_id
+-- Usamos get_my_family_id() que é SECURITY DEFINER para evitar recursão
 CREATE POLICY "Leitura de membros da família" ON profiles 
-    FOR SELECT USING (family_id = (SELECT family_id FROM profiles WHERE id = auth.uid()));
+    FOR SELECT USING (id = auth.uid() OR family_id = get_my_family_id());
 
--- Usuários podem atualizar apenas seu próprio e-mail ou perfil
+-- Usuários podem atualizar apenas seu próprio perfil
 CREATE POLICY "Atualização do próprio perfil" ON profiles 
-    FOR UPDATE USING (auth.uid() = id);
+    FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+-- Gatilho para criar perfil automaticamente ao cadastrar novo usuário no Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, family_id)
+  VALUES (new.id, new.email, gen_random_uuid());
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Se o gatilho já existir, remova-o antes de recriar
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- IMPORTANTE: Para usuários que já existem, execute este comando manualmente no SQL Editor:
+-- INSERT INTO public.profiles (id, email, family_id) 
+-- SELECT id, email, gen_random_uuid() FROM auth.users 
+-- WHERE id NOT IN (SELECT id FROM public.profiles);
 
 
 -- 2. Função de Segurança para obter o family_id do usuário logado
@@ -146,13 +168,13 @@ ALTER TABLE notas ENABLE ROW LEVEL SECURITY;
 -- Políticas Unificadas: O SELECT, INSERT, UPDATE e DELETE dependem apenas do family_id
 -- O check "family_id = get_my_family_id()" garante o isolamento entre famílias.
 
-CREATE POLICY "Acesso por Família" ON categorias FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON titulares FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON cartoes_config FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON cartoes FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON despesas FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON receitas FOR ALL USING (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON notas FOR ALL USING (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON categorias FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON titulares FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON cartoes_config FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON cartoes FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON despesas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON receitas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+CREATE POLICY "Acesso por Família" ON notas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
 
 -- ==================== TRIGGERS (UTILITIES) ====================
 
