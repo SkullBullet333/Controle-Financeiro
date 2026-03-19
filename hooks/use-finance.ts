@@ -16,6 +16,7 @@ export function useFinance(activeView: string) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
+  const [familyId, setFamilyId] = useState<string | null>(null);
 
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
@@ -67,6 +68,23 @@ export function useFinance(activeView: string) {
     }
   }, [user?.id]);
 
+  const fetchProfile = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from('profiles').select('family_id').eq('id', user.id).maybeSingle();
+    if (data) setFamilyId(data.family_id);
+  }, [user]);
+
+  const joinFamily = async (newId: string) => {
+    if (!user) return { error: 'Não logado' };
+    const { error } = await supabase.from('profiles').update({ family_id: newId }).eq('id', user.id);
+    if (!error) {
+      setFamilyId(newId);
+      await fetchData();
+      return { success: true };
+    }
+    return { error: error.message };
+  };
+
   // Auth listener
   useEffect(() => {
     supabase.auth.getSession()
@@ -74,13 +92,13 @@ export function useFinance(activeView: string) {
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchData(session.user.id);
+          fetchProfile();
         } else {
           setIsLoading(false);
         }
       })
       .catch(async (error) => {
         console.error('Error getting session:', error);
-        // If there's a refresh token error, sign out to clear local storage
         if (error.message?.includes('refresh_token_not_found') || error.message?.includes('Refresh Token Not Found')) {
           await supabase.auth.signOut();
         }
@@ -96,19 +114,21 @@ export function useFinance(activeView: string) {
         setCartaoTransacoes([]);
         setConfig({ titulares: [], cartoes: [], categorias: [] });
         setNota('');
+        setFamilyId(null);
         setIsLoading(false);
         return;
       }
 
       if (session?.user) {
         fetchData(session.user.id);
+        fetchProfile();
       } else {
         setIsLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchData]);
+  }, [fetchData, fetchProfile]);
 
   // Sync dark mode to localStorage
   useEffect(() => {
@@ -553,6 +573,8 @@ export function useFinance(activeView: string) {
     deleteCategoria,
     setDespesas,
     setReceitas,
-    setConfig
+    setConfig,
+    familyId,
+    joinFamily
   };
 }
