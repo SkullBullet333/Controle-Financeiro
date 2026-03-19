@@ -70,6 +70,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TABLE categorias (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
     label TEXT NOT NULL,
     keywords TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
@@ -79,6 +80,7 @@ CREATE TABLE categorias (
 CREATE TABLE titulares (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
     nome TEXT NOT NULL,
     foto TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -89,6 +91,7 @@ CREATE TABLE titulares (
 CREATE TABLE cartoes_config (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
     nome_cartao TEXT NOT NULL,
     titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
     dia_vencimento INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 31),
@@ -100,14 +103,15 @@ CREATE TABLE cartoes_config (
 CREATE TABLE cartoes (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Identifica quem lançou (opcional)
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Identifica quem lançou
     cartao_id INTEGER REFERENCES cartoes_config(id) ON DELETE CASCADE,
-    descricao TEXT NOT NULL,
+    estabelecimento TEXT NOT NULL,
     categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
+    titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
     valor DECIMAL(12,2) NOT NULL,
     parcela_atual INTEGER DEFAULT 1,
     parcela_total INTEGER DEFAULT 1,
-    vencimento_original DATE NOT NULL,
+    data_compra DATE NOT NULL,
     competencia TEXT NOT NULL, -- Formato "MM/YYYY"
     simulada BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now()
