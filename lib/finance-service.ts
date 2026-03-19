@@ -159,7 +159,6 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
       .from('despesas')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', userId)
       .select()
       .single();
     
@@ -189,7 +188,6 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
         simulada: dados.simulada
       })
       .eq('id', dados.id)
-      .eq('user_id', userId)
       .select()
       .single();
     
@@ -318,8 +316,7 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   // 1. Buscar configurações de cartões
   const { data: configs, error: configError } = await supabase
     .from('cartoes_config')
-    .select('*')
-    .eq('user_id', userId);
+    .select('*');
   
   if (configError) throw configError;
 
@@ -327,7 +324,6 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   const { data: lancamentos, error: lancError } = await supabase
     .from('cartoes')
     .select('*, cartoes_config(nome_cartao, titular_id, titulares(nome))')
-    .eq('user_id', userId)
     .eq('competencia', competencia);
   
   if (lancError) throw lancError;
@@ -354,7 +350,6 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   const { data: faturasExistentes } = await supabase
     .from('despesas')
     .select('id, descricao, titular_id, status')
-    .eq('user_id', userId)
     .eq('competencia', competencia)
     .like('descricao', 'Fatura %');
 

@@ -2,9 +2,9 @@ import { Despesa, Receita, ConfigApp } from './types';
 
 export const MOCK_CONFIG: ConfigApp = {
   titulares: [
-    { id: 1, nome: "Noádia", foto: "https://images.icon-icons.com/2643/PNG/512/female_woman_person_people_avatar_icon_159366.png" },
-    { id: 2, nome: "Pablo", foto: "https://images.icon-icons.com/2643/PNG/512/male_man_people_person_avatar_white_tone_icon_159363.png" },
-    { id: 3, nome: "Casa", foto: "https://images.icon-icons.com/1483/PNG/512/wifihome_102155.png" }
+    { id: 1, nome: "Noádia", foto: "https://i.ibb.co/9khpdR2J/Titular-2.webp" },
+    { id: 2, nome: "Pablo", foto: "https://i.ibb.co/zWWnfSv6/Titular-1.webp" },
+    { id: 3, nome: "Casa", foto: "https://i.ibb.co/C5bZR01S/Titular-3.webp" }
   ],
   cartoes: [
     { id: 1, nome_cartao: "Nubank", titular_id: 2, dia_vencimento: 10, dia_fechamento: 7 },

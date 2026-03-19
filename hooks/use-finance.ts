@@ -35,13 +35,13 @@ export function useFinance(activeView: string) {
         { data: categoriasData },
         { data: notaData }
       ] = await Promise.all([
-        supabase.from('despesas').select('*').eq('user_id', targetId).gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
-        supabase.from('receitas').select('*').eq('user_id', targetId).gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
-        supabase.from('cartoes').select('*').eq('user_id', targetId).gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
-        supabase.from('titulares').select('*').eq('user_id', targetId),
-        supabase.from('cartoes_config').select('*').eq('user_id', targetId).order('id', { ascending: true }),
-        supabase.from('categorias').select('*').eq('user_id', targetId).order('id', { ascending: true }),
-        supabase.from('notas').select('conteudo').eq('user_id', targetId).maybeSingle()
+        supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('titulares').select('*'),
+        supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
+        supabase.from('categorias').select('*').order('id', { ascending: true }),
+        supabase.from('notas').select('conteudo').maybeSingle()
       ]);
 
       if (despesasData) {
@@ -366,8 +366,11 @@ export function useFinance(activeView: string) {
 
   const updateNota = async (conteudo: string) => {
     if (!user) return;
-    const { error } = await supabase.from('notas').upsert({ user_id: user.id, conteudo });
+    // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
+    // cuidarão para que o upsert caia na linha correta da família.
+    const { error } = await supabase.from('notas').upsert({ conteudo });
     if (!error) setNota(conteudo);
+    else console.error('Error updating nota:', error);
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
