@@ -82,6 +82,28 @@ export default function Home() {
     setSearchTerm('');
   }, [activeView]);
 
+  const translateError = (error: any) => {
+    const msg = error?.message || error || 'Erro inesperado';
+    if (typeof msg !== 'string') return 'Erro na autenticação';
+    
+    if (msg.includes('Email rate limit exceeded')) {
+      return 'Limite de envio de e-mail excedido. Por favor, aguarde alguns minutos antes de tentar novamente.';
+    }
+    if (msg.includes('Invalid login credentials')) {
+      return 'E-mail ou senha incorretos.';
+    }
+    if (msg.includes('User already registered')) {
+      return 'Este e-mail já está cadastrado.';
+    }
+    if (msg.includes('Signup disabled')) {
+      return 'O cadastro está temporariamente desativado.';
+    }
+    if (msg.includes('Password should be at least 6 characters')) {
+      return 'A senha deve ter pelo menos 6 caracteres.';
+    }
+    return msg;
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -90,13 +112,13 @@ export default function Home() {
     try {
       if (isSignUp) {
         await signUp(loginForm.email, loginForm.pass);
-        alert('Conta criada! Verifique seu e-mail (se configurado) ou tente entrar.');
+        alert('Conta criada com sucesso! Verifique seu e-mail para confirmar o cadastro (se necessário) ou tente entrar agora.');
         setIsSignUp(false);
       } else {
         await signIn(loginForm.email, loginForm.pass);
       }
     } catch (error: any) {
-      setLoginError(error.message || 'Erro na autenticação');
+      setLoginError(translateError(error));
     } finally {
       setIsLoggingIn(false);
     }
