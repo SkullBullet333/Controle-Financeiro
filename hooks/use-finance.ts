@@ -69,10 +69,10 @@ export function useFinance(activeView: string) {
   }, [user?.id]);
 
   const fetchProfile = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
     const { data } = await supabase.from('profiles').select('family_id').eq('id', user.id).maybeSingle();
     if (data) setFamilyId(data.family_id);
-  }, [user]);
+  }, [user?.id]);
 
   const joinFamily = async (newId: string) => {
     if (!user) return { error: 'Não logado' };
@@ -85,27 +85,30 @@ export function useFinance(activeView: string) {
     return { error: error.message };
   };
 
-  // Auth listener
+  // Carregamento de dados disparado por mudanças no usuário ou no período
+  useEffect(() => {
+    if (user?.id) {
+      fetchData(user.id);
+      fetchProfile();
+    }
+  }, [user?.id, currentMonth, currentYear, fetchData, fetchProfile]);
+
+  // Auth listener - roda apenas uma vez para configurar o ouvinte
   useEffect(() => {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchData(session.user.id);
-          fetchProfile();
-        } else {
-          setIsLoading(false);
-        }
+        if (!session?.user) setIsLoading(false);
       })
       .catch(async (error) => {
         console.error('Error getting session:', error);
-        if (error.message?.includes('refresh_token_not_found') || error.message?.includes('Refresh Token Not Found')) {
+        if (error.message?.includes('refresh_token_not_found')) {
           await supabase.auth.signOut();
         }
         setIsLoading(false);
       });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       
       if (event === 'SIGNED_OUT') {
@@ -116,19 +119,11 @@ export function useFinance(activeView: string) {
         setNota('');
         setFamilyId(null);
         setIsLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        fetchData(session.user.id);
-        fetchProfile();
-      } else {
-        setIsLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchData, fetchProfile]);
+  }, []);
 
   // Sync dark mode to localStorage
   useEffect(() => {
