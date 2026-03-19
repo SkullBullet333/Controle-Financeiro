@@ -26,7 +26,7 @@ export function AnalysisPlan({ projecao }: AnalysisPlanProps) {
 
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden mb-4">
-      <div className="p-4 border-b border-border d-flex justify-content-between align-items-center bg-primary bg-opacity-5">
+      <div className="p-4 border-b border-border d-flex justify-content-between align-items-center bg-light bg-opacity-30">
         <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
           <Calendar className="text-primary" /> Análise de Projeção (8 Meses)
         </h5>
@@ -40,7 +40,7 @@ export function AnalysisPlan({ projecao }: AnalysisPlanProps) {
               key={mes.competencia} 
               className={cn(
                 "flex-shrink-0 rounded-4 p-4 border transition-all hover:scale-105",
-                idx === 0 ? "border-primary bg-primary bg-opacity-5 shadow-sm" : "border-border bg-light bg-opacity-50"
+                idx === 0 ? "border-primary bg-light bg-opacity-30 shadow-sm" : "border-border bg-transparent"
               )}
               style={{ width: '220px' }}
             >

@@ -16,7 +16,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
   const [inviteCode, setInviteCode] = useState('');
-  const [loginForm, setLoginForm] = useState({ email: '', pass: '' });
+  const [loginForm, setLoginForm] = useState({ email: '', pass: '', nome: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -77,7 +77,8 @@ export default function Home() {
     updateCategoria,
     deleteCategoria,
     familyId,
-    joinFamily
+    joinFamily,
+    userName
   } = useFinance(activeView);
 
   React.useEffect(() => {
@@ -114,7 +115,7 @@ export default function Home() {
 
     try {
       if (isSignUp) {
-        await signUp(loginForm.email, loginForm.pass);
+        await signUp(loginForm.email, loginForm.pass, loginForm.nome);
         alert('Conta criada com sucesso! Verifique seu e-mail para confirmar o cadastro (se necessário) ou tente entrar agora.');
         setIsSignUp(false);
       } else {
@@ -141,6 +142,22 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleAuth}>
+              {isSignUp && (
+                <div className="mb-3">
+                  <label className="form-label small fw-bold text-muted text-uppercase">Como quer ser chamado?</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-0"><i className="fa-solid fa-user text-muted"></i></span>
+                    <input
+                      type="text"
+                      className="form-control bg-light border-0 py-2"
+                      placeholder="Seu nome ou apelido"
+                      required={isSignUp}
+                      value={loginForm.nome}
+                      onChange={(e) => setLoginForm({ ...loginForm, nome: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="mb-3">
                 <label className="form-label small fw-bold text-muted text-uppercase">E-mail</label>
                 <div className="input-group">
@@ -444,7 +461,7 @@ export default function Home() {
 
               {/* Família Section */}
               <div className="card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
-                <div className="card-body p-4 bg-primary bg-opacity-5">
+                <div className="card-body p-4 bg-light bg-opacity-20">
                   <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
                     <Users className="text-primary" /> Minha Família
                   </h5>
@@ -652,7 +669,7 @@ export default function Home() {
         activeView={activeView}
         onViewChange={setActiveView}
         user={{
-          nome: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário',
+          nome: userName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário',
           foto: user?.user_metadata?.avatar_url
         }}
         onLogout={signOut}

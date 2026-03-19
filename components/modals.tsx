@@ -197,7 +197,7 @@ export function FinanceForm({
               checked={formData.simulada}
               onChange={e => setFormData({...formData, simulada: e.target.checked})}
             />
-            <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoCartao">Pago?</label>
+            <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoCartao">Simulação?</label>
           </div>
         </div>
 
@@ -312,17 +312,19 @@ export function FinanceForm({
             </div>
           </div>
 
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Status</label>
-            <select 
-              className="form-select rounded-3"
-              value={formData.status}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, status: e.target.value as Status})}
-            >
-              <option value="Em aberto">Em aberto</option>
-              <option value="Pago">Pago</option>
-            </select>
-          </div>
+          {subType !== 'cartao' && (
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Status</label>
+              <select 
+                className="form-select rounded-3"
+                value={formData.status}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, status: e.target.value as Status})}
+              >
+                <option value="Em aberto">Em aberto</option>
+                <option value="Pago">Pago</option>
+              </select>
+            </div>
+          )}
 
           <div className="col-md-6 d-flex align-items-end">
             <div className="form-check mb-2">

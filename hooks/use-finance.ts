@@ -17,6 +17,7 @@ export function useFinance(activeView: string) {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
@@ -70,8 +71,11 @@ export function useFinance(activeView: string) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('profiles').select('family_id').eq('id', user.id).maybeSingle();
-    if (data) setFamilyId(data.family_id);
+    const { data } = await supabase.from('profiles').select('family_id, nome').eq('id', user.id).maybeSingle();
+    if (data) {
+      setFamilyId(data.family_id);
+      setUserName(data.nome);
+    }
   }, [user?.id]);
 
   const joinFamily = async (newId: string) => {
@@ -151,8 +155,16 @@ export function useFinance(activeView: string) {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signUp({ email, password: pass });
+  const signUp = async (email: string, pass: string, name: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          display_name: name
+        }
+      }
+    });
     if (error) throw error;
   };
 
@@ -570,6 +582,7 @@ export function useFinance(activeView: string) {
     setReceitas,
     setConfig,
     familyId,
-    joinFamily
+    joinFamily,
+    userName
   };
 }
