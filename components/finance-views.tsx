@@ -51,8 +51,8 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
               </tr>
             ) : (
               data.map((item) => (
-                <tr 
-                  key={(item as any).id} 
+                <tr
+                  key={(item as any).id}
                   onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
                   className={cn(
                     "cursor-pointer transition-all",
@@ -65,13 +65,13 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                       <td className="px-4 py-3">
                         {(() => {
                           if (item.status === 'Pago') return <span className="status-pago">Pago</span>;
-                          
+
                           const todayStr = format(new Date(), 'yyyy-MM-dd');
                           if (item.vencimento && item.vencimento !== '-') {
                             if (item.vencimento < todayStr) return <span className="status-vencida">Vencida</span>;
                             if (item.vencimento === todayStr) return <span className="status-hoje">Hoje</span>;
                           }
-                          
+
                           return <span className="status-aberto">Em aberto</span>;
                         })()}
                       </td>
@@ -109,9 +109,9 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                   <td className="px-4 py-3">
                     <div className="d-flex align-items-center gap-1">
                       {type === 'geral' && (
-                        <button 
-                          onClick={(e: React.MouseEvent) => { 
-                            e.stopPropagation(); 
+                        <button
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
                             onToggleStatus?.((item as any).id, (item as any).status);
                           }}
                           className={cn(
@@ -124,7 +124,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                         </button>
                       )}
                       {!(item as any).isSummary && (
-                        <button 
+                        <button
                           onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
                           className="btn btn-sm btn-outline-danger border-0"
                           title="Excluir"
@@ -144,15 +144,15 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
   );
 }
 
-export function FilterBar({ 
-  onAdd, 
-  searchTerm, 
+export function FilterBar({
+  onAdd,
+  searchTerm,
   onSearchChange,
   activeFilterId,
   onClearFilter
-}: { 
-  onAdd: () => void, 
-  searchTerm: string, 
+}: {
+  onAdd: () => void,
+  searchTerm: string,
   onSearchChange: (value: string) => void,
   activeFilterId?: number | null,
   onClearFilter?: () => void
@@ -164,16 +164,16 @@ export function FilterBar({
           <span className="input-group-text bg-white border-end-0 text-muted">
             <i className="fa-solid fa-magnifying-glass"></i>
           </span>
-          <input 
-            type="text" 
-            className="form-control border-start-0 ps-0 shadow-none border-end-0" 
-            placeholder="O que você procura?" 
+          <input
+            type="text"
+            className="form-control border-start-0 ps-0 shadow-none border-end-0"
+            placeholder="O que você procura?"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
           />
           {searchTerm && (
-            <button 
-              className="btn bg-white border-start-0 text-muted border-end-0" 
+            <button
+              className="btn bg-white border-start-0 text-muted border-end-0"
               onClick={() => onSearchChange('')}
             >
               <i className="fa-solid fa-xmark"></i>
@@ -183,7 +183,7 @@ export function FilterBar({
         </div>
 
         {activeFilterId !== null && onClearFilter && (
-          <button 
+          <button
             onClick={onClearFilter}
             className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2 border-2"
           >
@@ -192,7 +192,7 @@ export function FilterBar({
         )}
       </div>
 
-      <button 
+      <button
         onClick={onAdd}
         className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
       >
@@ -202,33 +202,40 @@ export function FilterBar({
   );
 }
 
-export function SummaryCards({ 
-  type, 
-  cartoes, 
-  titulares, 
-  totalsByCard, 
-  totalsByTitular, 
+export function SummaryCards({
+  type,
+  cartoes,
+  titulares,
+  totalsByCard,
+  totalsByTitular,
   totalVencido,
   activeFilterId,
   onFilterChange
-}: { 
-  type: 'geral' | 'cartoes' | 'receitas', 
-  cartoes: any[], 
-  titulares: any[], 
-  totalsByCard: Record<number, number>, 
-  totalsByTitular: Record<number, { despesas: number, receitas: number }>, 
+}: {
+  type: 'geral' | 'cartoes' | 'receitas',
+  cartoes: any[],
+  titulares: any[],
+  totalsByCard: Record<number, number>,
+  totalsByTitular: Record<number, { despesas: number, receitas: number }>,
   totalVencido?: number,
   activeFilterId: number | null,
   onFilterChange: (id: number | null) => void
 }) {
   const getCardLogo = (name: string) => {
     const lowerName = name.toLowerCase();
-    if (lowerName.includes('nubank')) return 'https://logo.clearbit.com/nubank.com.br';
-    if (lowerName.includes('inter')) return 'https://logo.clearbit.com/bancointer.com.br';
-    if (lowerName.includes('itau')) return 'https://logo.clearbit.com/itau.com.br';
-    if (lowerName.includes('bradesco')) return 'https://logo.clearbit.com/bradesco.com.br';
-    if (lowerName.includes('santander')) return 'https://logo.clearbit.com/santander.com.br';
-    if (lowerName.includes('caixa')) return 'https://logo.clearbit.com/caixa.gov.br';
+    if (lowerName.includes('nubank')) return 'https://i.ibb.co/rRRmcj5K/Nubank.png';
+    if (lowerName.includes('inter')) return 'https://i.ibb.co/mFSsyhBj/inter.png';
+    if (lowerName.includes('itaú') || lowerName.includes('itau')) return 'https://i.ibb.co/twPnVb6h/itau.avif';
+    if (lowerName.includes('bradesco')) return 'https://i.ibb.co/BH4v1bVJ/Bradesco.png';
+    if (lowerName.includes('santander')) return 'https://i.ibb.co/Pz3tF8yC/Santander.png';
+    if (lowerName.includes('caixa')) return 'https://i.ibb.co/yBk7gxR1/caixa.png';
+    if (lowerName.includes('mercado pago')) return 'https://i.ibb.co/hFkY0VVQ/Mercado-Pago.webp';
+    if (lowerName.includes('sicoob platinum')) return 'https://i.ibb.co/p6knTbFb/Sicoob-Platinum.png';
+    if (lowerName.includes('sicoob clássico')) return 'https://i.ibb.co/m5wswjcc/Sicoob-Cl-ssico.jpg';
+    if (lowerName.includes('eucard')) return 'https://i.ibb.co/93nFRcXn/Eucard.jpg';
+    if (lowerName.includes('cabal')) return 'https://i.ibb.co/fVNSC8Rs/Cabal.png';
+
+    // Fallbacks para outros bancos
     if (lowerName.includes('bb') || lowerName.includes('brasil')) return 'https://logo.clearbit.com/bb.com.br';
     if (lowerName.includes('xp')) return 'https://logo.clearbit.com/xpi.com.br';
     if (lowerName.includes('btg')) return 'https://logo.clearbit.com/btgpactual.com';
@@ -249,7 +256,7 @@ export function SummaryCards({
       {/* Card de Total Geral - Apenas para Receitas conforme solicitado */}
       {type === 'receitas' && (
         <div className="col-12 col-sm-6 col-md">
-          <div 
+          <div
             onClick={() => onFilterChange(null)}
             className={cn(
               "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
@@ -292,21 +299,21 @@ export function SummaryCards({
 
         return (
           <div key={t.id} className="col-12 col-sm-6 col-md">
-            <div 
+            <div
               onClick={() => onFilterChange(t.id)}
-                className={cn(
-                  "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
-                  isSelected(t.id) ? "border-primary border-2 shadow-md" : "border-border"
-                )}
+              className={cn(
+                "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
+                isSelected(t.id) ? "border-primary border-2 shadow-md" : "border-border"
+              )}
             >
               <div className="d-flex align-items-center justify-content-start gap-2">
                 <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '45px', height: '45px' }}>
-                  <Image 
-                    src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`} 
-                    alt={t.nome} 
-                    fill 
+                  <Image
+                    src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                    alt={t.nome}
+                    fill
                     unoptimized
-                    className="object-cover" 
+                    className="object-cover"
                     referrerPolicy="no-referrer"
                   />
                 </div>
@@ -322,7 +329,7 @@ export function SummaryCards({
 
       {type === 'cartoes' && cartoes.map((c) => (
         <div key={c.id} className="col-12 col-sm-6 col-md">
-          <div 
+          <div
             onClick={() => onFilterChange(c.id)}
             className={cn(
               "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
@@ -331,12 +338,12 @@ export function SummaryCards({
           >
             <div className="d-flex align-items-center justify-content-start gap-2">
               <div className="position-relative rounded-3 overflow-hidden border border-border bg-white p-1" style={{ width: '45px', height: '45px' }}>
-                <Image 
-                  src={getCardLogo(c.nome_cartao)} 
-                  alt={c.nome_cartao} 
-                  fill 
+                <Image
+                  src={getCardLogo(c.nome_cartao)}
+                  alt={c.nome_cartao}
+                  fill
                   unoptimized
-                  className="object-contain" 
+                  className="object-contain"
                   referrerPolicy="no-referrer"
                 />
               </div>
