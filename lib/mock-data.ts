@@ -10,13 +10,6 @@ export const MOCK_CONFIG: ConfigApp = {
     { id: 1, nome_cartao: "Nubank", titular_id: 2, dia_vencimento: 10, dia_fechamento: 7 },
     { id: 2, nome_cartao: "Inter", titular_id: 1, dia_vencimento: 15, dia_fechamento: 5 },
     { id: 3, nome_cartao: "Mercado Pago", titular_id: 2, dia_vencimento: 20, dia_fechamento: 10 }
-  ],
-  categorias: [
-    { id: 1, label: "Mercado", keywords: "mercado,supermercado,feira" },
-    { id: 2, label: "Transporte", keywords: "combustivel,gasolina,posto,carro,uber" },
-    { id: 3, label: "Moradia", keywords: "aluguel,casa,condominio,luz,agua" },
-    { id: 4, label: "Saúde", keywords: "farmacia,medico,unimed" },
-    { id: 5, label: "Lazer", keywords: "ifood,restaurante,netflix,spotify" }
   ]
 };
 
@@ -28,7 +21,7 @@ export const MOCK_DESPESAS: Despesa[] = [
   {
     id: 1,
     descricao: "Aluguel",
-    categoria_id: 3,
+    categoria: "Moradia",
     valor: 1500,
     parcela_atual: 1,
     parcela_total: 1,
@@ -41,7 +34,7 @@ export const MOCK_DESPESAS: Despesa[] = [
   {
     id: 2,
     descricao: "Supermercado",
-    categoria_id: 1,
+    categoria: "Mercado",
     valor: 850.50,
     parcela_atual: 1,
     parcela_total: 1,
@@ -54,7 +47,7 @@ export const MOCK_DESPESAS: Despesa[] = [
   {
     id: 3,
     descricao: "Internet",
-    categoria_id: 3,
+    categoria: "Moradia",
     valor: 120,
     parcela_atual: 1,
     parcela_total: 1,

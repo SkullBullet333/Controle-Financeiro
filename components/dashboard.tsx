@@ -4,7 +4,7 @@ import React from 'react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Despesa, Titular, Categoria } from '@/lib/types';
+import { Despesa, Titular } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface KPICardsProps {
@@ -47,14 +47,9 @@ export function KPICards({ stats }: KPICardsProps) {
 interface ExtratoTableProps {
   despesas: Despesa[];
   onEdit?: (item: Despesa) => void;
-  categorias: Categoria[];
 }
 
-export function ExtratoTable({ despesas, onEdit, categorias }: ExtratoTableProps) {
-  const getCategoriaLabel = (id: number | undefined) => {
-    if (!id) return 'Outros';
-    return categorias.find(c => c.id === id)?.label || 'Outros';
-  };
+export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
 
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden flex flex-col h-100">

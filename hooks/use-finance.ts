@@ -10,7 +10,7 @@ export function useFinance(activeView: string) {
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [cartaoTransacoes, setCartaoTransacoes] = useState<CartaoTransacao[]>([]);
-  const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [], categorias: [], scheduledExpenses: [] });
+  const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [] });
   const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -35,18 +35,14 @@ export function useFinance(activeView: string) {
         { data: cartaoTransacoesData },
         { data: titularesData },
         { data: cartoesConfigData },
-        { data: categoriasData },
-        { data: notaData },
-        { data: scheduledExpensesData }
+        { data: notaData }
       ] = await Promise.all([
         supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('titulares').select('*'),
         supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
-        supabase.from('categorias').select('*').order('id', { ascending: true }),
-        supabase.from('notas').select('conteudo').maybeSingle(),
-        supabase.from('despesas_agendadas').select('*').order('id', { ascending: true })
+        supabase.from('notas').select('conteudo').maybeSingle()
       ]);
 
       if (despesasData) {
@@ -61,9 +57,7 @@ export function useFinance(activeView: string) {
 
       setConfig({
         titulares: titularesData || [],
-        cartoes: cartoesConfigData || [],
-        categorias: categoriasData || [],
-        scheduledExpenses: (scheduledExpensesData as any) || []
+        cartoes: cartoesConfigData || []
       });
 
     } catch (error) {
@@ -82,11 +76,6 @@ export function useFinance(activeView: string) {
       setUserType(data.tipo as 'titular' | 'membro');
     }
   }, [user?.id]);
-
-  const triggerRecurrences = async () => {
-    if (!user) return;
-    await supabase.rpc('processar_despesas_recorrentes');
-  };
 
   const inviteMember = async (email: string) => {
     if (!user || !familyId || userType !== 'titular') return { error: 'Apenas titulares podem convidar.' };
@@ -107,10 +96,8 @@ export function useFinance(activeView: string) {
   // Carregamento de dados disparado por mudanças no usuário ou no período
   useEffect(() => {
     if (user?.id) {
-      triggerRecurrences().then(() => {
-        fetchData(user.id);
-        fetchProfile();
-      });
+      fetchData(user.id);
+      fetchProfile();
     }
   }, [user?.id, currentMonth, currentYear, fetchData, fetchProfile]);
 
@@ -136,7 +123,7 @@ export function useFinance(activeView: string) {
         setDespesas([]);
         setReceitas([]);
         setCartaoTransacoes([]);
-        setConfig({ titulares: [], cartoes: [], categorias: [], scheduledExpenses: [] });
+        setConfig({ titulares: [], cartoes: [] });
         setNota('');
         setFamilyId(null);
         setIsLoading(false);
@@ -375,39 +362,6 @@ export function useFinance(activeView: string) {
     }
   };
 
-  const addCategoria = async (cat: Omit<Categoria, 'id'>) => {
-    if (!user) return;
-    const { data, error } = await supabase.from('categorias').insert([{
-      user_id: user.id,
-      label: cat.label,
-      keywords: cat.keywords
-    }]).select();
-    if (error) {
-      console.error('Error adding categoria:', error);
-      return;
-    }
-    if (data) {
-      setConfig(prev => ({ ...prev, categorias: [...prev.categorias, data[0]] }));
-    }
-  };
-
-  const updateCategoria = async (id: number, updated: Partial<Categoria>) => {
-    const { error } = await supabase.from('categorias').update(updated).eq('id', id);
-    if (!error) {
-      setConfig(prev => ({
-        ...prev,
-        categorias: prev.categorias.map(cat => cat.id === id ? { ...cat, ...updated } : cat)
-      }));
-    }
-  };
-
-  const deleteCategoria = async (id: number) => {
-    const { error } = await supabase.from('categorias').delete().eq('id', id);
-    if (!error) {
-      setConfig(prev => ({ ...prev, categorias: prev.categorias.filter(cat => cat.id !== id) }));
-    }
-  };
-
   const updateNota = async (conteudo: string) => {
     if (!user) return;
     // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
@@ -592,30 +546,12 @@ export function useFinance(activeView: string) {
     addCartao,
     updateCartao,
     deleteCartao,
-    addCategoria,
-    updateCategoria,
-    deleteCategoria,
     setDespesas,
     setReceitas,
     setConfig,
     familyId,
     inviteMember,
     userName,
-    userType,
-    addScheduledExpense: async (d: any) => {
-      const { error } = await supabase.from('despesas_agendadas').insert(d);
-      if (!error) fetchData();
-      return { error };
-    },
-    updateScheduledExpense: async (id: number, d: any) => {
-      const { error } = await supabase.from('despesas_agendadas').update(d).eq('id', id);
-      if (!error) fetchData();
-      return { error };
-    },
-    deleteScheduledExpense: async (id: number) => {
-      const { error } = await supabase.from('despesas_agendadas').delete().eq('id', id);
-      if (!error) fetchData();
-      return { error };
-    }
+    userType
   };
 }

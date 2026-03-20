@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
-import { Titular, Categoria, Status, Despesa, Receita, CartaoConfig, DespesaAgendada } from '@/lib/types';
+import { Titular, Status, Despesa, Receita, CartaoConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
 import { parseISO, format, getDate } from 'date-fns';
+import { categorizar } from '@/lib/categories-utils';
+import { useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -40,7 +42,6 @@ export function FinanceForm({
   subType,
   onSubmit, 
   titulares, 
-  categorias,
   cartoes,
   competencia,
   initialData
@@ -49,7 +50,6 @@ export function FinanceForm({
   subType?: 'fixa' | 'cartao',
   onSubmit: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => void,
   titulares: Titular[],
-  categorias: Categoria[],
   cartoes: CartaoConfig[],
   competencia: string,
   initialData?: Despesa | Receita
@@ -58,7 +58,7 @@ export function FinanceForm({
     descricao: (initialData as any)?.descricao || '',
     valor: (initialData as any)?.valor?.toString() || '',
     titular_id: (initialData as any)?.titular_id || titulares[0]?.id || 0,
-    categoria_id: (initialData as any)?.categoria_id || categorias[0]?.id || 0,
+    categoria: (initialData as any)?.categoria || '',
     vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().toISOString().split('T')[0],
     status: (initialData as any)?.status || ('Em aberto' as Status),
     parcela_atual: (initialData as any)?.parcela_atual || 1,
@@ -94,7 +94,7 @@ export function FinanceForm({
     };
 
     if (type === 'despesa') {
-      data.categoria_id = formData.categoria_id;
+      data.categoria = formData.categoria || categorizar(formData.descricao);
       data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
@@ -140,13 +140,13 @@ export function FinanceForm({
 
         <div className="col-md-6">
           <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
-          <select 
-            className="form-select rounded-3"
-            value={formData.categoria_id}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
-          >
-            {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
+          <input 
+            type="text" 
+            className="form-control rounded-3" 
+            placeholder="Ex: Mercado, Saúde..."
+            value={formData.categoria}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, categoria: e.target.value})}
+          />
         </div>
 
         <div className="col-md-6">
@@ -255,13 +255,13 @@ export function FinanceForm({
         <>
           <div className="col-md-6">
             <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
-            <select 
-              className="form-select rounded-3"
-              value={formData.categoria_id}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
-            >
-              {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
+            <input 
+              type="text" 
+              className="form-control rounded-3" 
+              placeholder="Ex: Mercado, Saúde..."
+              value={formData.categoria}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, categoria: e.target.value})}
+            />
           </div>
 
           {subType === 'cartao' ? (
@@ -592,48 +592,6 @@ export function CartaoForm({
   );
 }
 
-export function CategoriaForm({ 
-  onSubmit, 
-  initialData 
-}: { 
-  onSubmit: (data: Omit<Categoria, 'id'>) => void, 
-  initialData?: Categoria 
-}) {
-  const [formData, setFormData] = useState({
-    label: initialData?.label || '',
-    keywords: initialData?.keywords || ''
-  });
-
-  return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
-      <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome da Categoria</label>
-        <input 
-          required
-          type="text" 
-          className="form-control rounded-3"
-          value={formData.label}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, label: e.target.value})}
-        />
-      </div>
-      <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Palavras-chave (separadas por vírgula)</label>
-        <textarea 
-          required
-          className="form-control rounded-3"
-          rows={3}
-          value={formData.keywords}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({...formData, keywords: e.target.value})}
-        />
-      </div>
-      <div className="col-12 mt-4">
-        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
-          <i className="fa-solid fa-tags me-2"></i>Salvar Categoria
-        </button>
-      </div>
-    </form>
-  );
-}
 
 export function MonthYearModal({ 
   isOpen, 
@@ -757,121 +715,5 @@ export function ConfirmModal({
         </div>
       </div>
     </div>
-  );
-}
-export function ScheduledExpenseForm({ 
-  onSubmit, 
-  titulares, 
-  categorias,
-  initialData
-}: { 
-  onSubmit: (data: Omit<DespesaAgendada, 'id'>) => void,
-  titulares: Titular[],
-  categorias: Categoria[],
-  initialData?: DespesaAgendada
-}) {
-  const [formData, setFormData] = useState({
-    descricao: initialData?.descricao || '',
-    valor: initialData?.valor?.toString() || '',
-    titular_id: initialData?.titular_id || titulares[0]?.id || 0,
-    categoria_id: initialData?.categoria_id || categorias[0]?.id || 0,
-    proxima_execucao: initialData?.proxima_execucao || new Date().toISOString().split('T')[0],
-    ativo: initialData?.ativo ?? true
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      descricao: formData.descricao,
-      valor: parseFloat(formData.valor),
-      titular_id: formData.titular_id,
-      categoria_id: formData.categoria_id,
-      proxima_execucao: formData.proxima_execucao,
-      ativo: formData.ativo
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="row g-3">
-      <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Descrição do Modelo</label>
-        <input 
-          required
-          type="text" 
-          className="form-control rounded-3" 
-          placeholder="Ex: Aluguel Mensal"
-          value={formData.descricao}
-          onChange={e => setFormData({...formData, descricao: e.target.value})}
-        />
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
-        <div className="input-group">
-          <span className="input-group-text bg-light border-end-0">R$</span>
-          <input 
-            required
-            type="number" 
-            step="0.01"
-            className="form-control border-start-0 rounded-end-3" 
-            value={formData.valor}
-            onChange={e => setFormData({...formData, valor: e.target.value})}
-          />
-        </div>
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular Responsável</label>
-        <select 
-          className="form-select rounded-3"
-          value={formData.titular_id}
-          onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-        >
-          {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
-        <select 
-          className="form-select rounded-3"
-          value={formData.categoria_id}
-          onChange={e => setFormData({...formData, categoria_id: parseInt(e.target.value)})}
-        >
-          {categorias.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Primeiro Lançamento</label>
-        <input 
-          required
-          type="date" 
-          className="form-control rounded-3"
-          value={formData.proxima_execucao}
-          onChange={e => setFormData({...formData, proxima_execucao: e.target.value})}
-        />
-      </div>
-
-      <div className="col-12 mt-3">
-        <div className="form-check form-switch p-3 bg-light rounded-3 d-flex align-items-center justify-content-between">
-          <label className="form-check-label fw-bold small text-muted text-uppercase mb-0" htmlFor="checkAtivo">Agendamento Ativo</label>
-          <input 
-            type="checkbox" 
-            className="form-check-input"
-            id="checkAtivo"
-            checked={formData.ativo}
-            onChange={e => setFormData({...formData, ativo: e.target.checked})}
-            style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
-          />
-        </div>
-      </div>
-
-      <div className="col-12 mt-4">
-        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
-          <i className="fa-solid fa-clock me-2"></i>Salvar Agendamento
-        </button>
-      </div>
-    </form>
   );
 }

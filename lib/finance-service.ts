@@ -24,6 +24,7 @@ import {
   isEqual,
   startOfDay
 } from 'date-fns';
+import { categorizar } from './categories-utils';
 
 // ==================== UTILITÁRIOS PUROS ====================
 
@@ -263,13 +264,13 @@ export async function lancarParcelas(
       valor: valorParcela,
       competencia: comp,
       simulada: !!dados.simulada,
+      categoria: dados.categoria || categorizar(dados.descricao || ''),
     };
 
     if (tipo === 'despesa') {
       inserts.push({
         ...common,
-        categoria_id: dados.categoria_id,
-        parcela_atual: i,
+        parcela_at: i,
         parcela_total: totalParcelas,
         vencimento: format(dataVenc, 'yyyy-MM-dd'),
         status: 'Em aberto',
@@ -289,7 +290,7 @@ export async function lancarParcelas(
         competencia: comp,
         simulada: !!dados.simulada,
         cartao_id: dados.cartao_id,
-        categoria_id: dados.categoria_id,
+        categoria: common.categoria,
         titular_id: dados.titular_id,
         parcela_atual: i,
         parcela_total: totalParcelas,

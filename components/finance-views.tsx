@@ -14,11 +14,10 @@ interface TableViewProps {
   onToggleStatus?: (id: number, currentVal: any) => void;
   onEdit?: (item: any) => void;
   titulares: Titular[];
-  categorias: Categoria[];
   cartoes: CartaoConfig[];
 }
 
-export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, categorias, cartoes }: TableViewProps) {
+export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, cartoes }: TableViewProps) {
   const headers = {
     geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Valor', 'Ações'],
     cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
@@ -28,7 +27,6 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
   const currentHeaders = headers[type];
 
   const getTitularName = (id: number) => titulares.find(t => t.id === id)?.nome || 'N/A';
-  const getCategoriaLabel = (id: number) => categorias.find(c => c.id === id)?.label || 'Outros';
   const getCartaoName = (id: number) => cartoes.find(c => c.id === id)?.nome_cartao || 'N/A';
 
   return (
@@ -77,7 +75,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                       </td>
                       <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
                       <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel((item as any).categoria_id)}</span></td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
                       <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
                       <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>
@@ -91,7 +89,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                       </td>
                       <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
                       <td className="px-4 py-3">{(item as any).estabelecimento}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{getCategoriaLabel((item as any).categoria_id)}</span></td>
+                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
                       <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
                       <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>

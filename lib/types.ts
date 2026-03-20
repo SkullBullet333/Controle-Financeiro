@@ -32,7 +32,7 @@ export interface CartaoTransacao {
   competencia: string;
   simulada: boolean;
   titular_id: number;
-  categoria_id?: number;
+  categoria?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -40,7 +40,7 @@ export interface CartaoTransacao {
 export interface Despesa {
   id: number;
   descricao: string;
-  categoria_id?: number;
+  categoria?: string;
   valor: number;
   parcela_atual: number;
   parcela_total: number;
@@ -68,22 +68,7 @@ export interface Nota {
   conteudo: string;
 }
 
-export interface DespesaAgendada {
-  id: number;
-  family_id?: string;
-  user_id?: string;
-  descricao: string;
-  categoria_id?: number;
-  valor: number;
-  proxima_execucao: string;
-  ativo: boolean;
-  titular_id: number;
-  created_at?: string;
-}
-
 export interface ConfigApp {
   titulares: Titular[];
   cartoes: CartaoConfig[];
-  categorias: Categoria[];
-  scheduledExpenses: DespesaAgendada[];
 }
