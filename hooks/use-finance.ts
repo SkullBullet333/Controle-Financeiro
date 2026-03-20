@@ -10,7 +10,7 @@ export function useFinance(activeView: string) {
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [cartaoTransacoes, setCartaoTransacoes] = useState<CartaoTransacao[]>([]);
-  const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [], categorias: [] });
+  const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [], categorias: [], scheduledExpenses: [] });
   const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -36,7 +36,8 @@ export function useFinance(activeView: string) {
         { data: titularesData },
         { data: cartoesConfigData },
         { data: categoriasData },
-        { data: notaData }
+        { data: notaData },
+        { data: scheduledExpensesData }
       ] = await Promise.all([
         supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
@@ -44,7 +45,8 @@ export function useFinance(activeView: string) {
         supabase.from('titulares').select('*'),
         supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
         supabase.from('categorias').select('*').order('id', { ascending: true }),
-        supabase.from('notas').select('conteudo').maybeSingle()
+        supabase.from('notas').select('conteudo').maybeSingle(),
+        supabase.from('despesas_agendadas').select('*').order('id', { ascending: true })
       ]);
 
       if (despesasData) {
@@ -60,7 +62,8 @@ export function useFinance(activeView: string) {
       setConfig({
         titulares: titularesData || [],
         cartoes: cartoesConfigData || [],
-        categorias: categoriasData || []
+        categorias: categoriasData || [],
+        scheduledExpenses: (scheduledExpensesData as any) || []
       });
 
     } catch (error) {
@@ -79,6 +82,11 @@ export function useFinance(activeView: string) {
       setUserType(data.tipo as 'titular' | 'membro');
     }
   }, [user?.id]);
+
+  const triggerRecurrences = async () => {
+    if (!user) return;
+    await supabase.rpc('processar_despesas_recorrentes');
+  };
 
   const inviteMember = async (email: string) => {
     if (!user || !familyId || userType !== 'titular') return { error: 'Apenas titulares podem convidar.' };
@@ -99,8 +107,10 @@ export function useFinance(activeView: string) {
   // Carregamento de dados disparado por mudanças no usuário ou no período
   useEffect(() => {
     if (user?.id) {
-      fetchData(user.id);
-      fetchProfile();
+      triggerRecurrences().then(() => {
+        fetchData(user.id);
+        fetchProfile();
+      });
     }
   }, [user?.id, currentMonth, currentYear, fetchData, fetchProfile]);
 
@@ -126,7 +136,7 @@ export function useFinance(activeView: string) {
         setDespesas([]);
         setReceitas([]);
         setCartaoTransacoes([]);
-        setConfig({ titulares: [], cartoes: [], categorias: [] });
+        setConfig({ titulares: [], cartoes: [], categorias: [], scheduledExpenses: [] });
         setNota('');
         setFamilyId(null);
         setIsLoading(false);
@@ -591,6 +601,21 @@ export function useFinance(activeView: string) {
     familyId,
     inviteMember,
     userName,
-    userType
+    userType,
+    addScheduledExpense: async (d: any) => {
+      const { error } = await supabase.from('despesas_agendadas').insert(d);
+      if (!error) fetchData();
+      return { error };
+    },
+    updateScheduledExpense: async (id: number, d: any) => {
+      const { error } = await supabase.from('despesas_agendadas').update(d).eq('id', id);
+      if (!error) fetchData();
+      return { error };
+    },
+    deleteScheduledExpense: async (id: number) => {
+      const { error } = await supabase.from('despesas_agendadas').delete().eq('id', id);
+      if (!error) fetchData();
+      return { error };
+    }
   };
 }

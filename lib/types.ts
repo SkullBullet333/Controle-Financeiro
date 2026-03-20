@@ -68,8 +68,22 @@ export interface Nota {
   conteudo: string;
 }
 
+export interface DespesaAgendada {
+  id: number;
+  family_id?: string;
+  user_id?: string;
+  descricao: string;
+  categoria_id?: number;
+  valor: number;
+  proxima_execucao: string;
+  ativo: boolean;
+  titular_id: number;
+  created_at?: string;
+}
+
 export interface ConfigApp {
   titulares: Titular[];
   cartoes: CartaoConfig[];
   categorias: Categoria[];
+  scheduledExpenses: DespesaAgendada[];
 }

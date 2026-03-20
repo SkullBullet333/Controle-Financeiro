@@ -6,9 +6,9 @@ import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal, ScheduledExpenseForm } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
-import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
+import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb, Users, Mail, Send, CalendarClock } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Categoria, Status } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
@@ -22,10 +22,10 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria'>('despesa');
+  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'scheduled'>('despesa');
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | Categoria | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'categoria' | 'scheduled' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
@@ -79,7 +79,10 @@ export default function Home() {
     familyId,
     inviteMember,
     userName,
-    userType
+    userType,
+    addScheduledExpense,
+    updateScheduledExpense,
+    deleteScheduledExpense
   } = useFinance(activeView);
 
   React.useEffect(() => {
@@ -516,6 +519,71 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Despesas Recorrentes Accordion */}
+              <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
+                <div 
+                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
+                  onClick={() => toggleSection('scheduled')}
+                >
+                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
+                    <CalendarClock className="text-primary" /> Despesas Recorrentes
+                  </h5>
+                  <div className="d-flex align-items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setModalType('scheduled'); setEditingItem(null); setIsModalOpen(true); }}
+                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                      style={{ width: '28px', height: '28px' }}
+                    >
+                      <Plus size={16} />
+                    </button>
+                    <i className={`fa-solid fa-chevron-${expandedSections.includes('scheduled') ? 'up' : 'down'} text-muted`}></i>
+                  </div>
+                </div>
+                
+                {expandedSections.includes('scheduled') && (
+                  <div className="card-footer bg-white border-0 p-4 pt-0">
+                    <div className="list-group list-group-flush border-top">
+                      {config.scheduledExpenses.length === 0 ? (
+                        <div className="p-4 text-center text-muted">
+                          <i className="fa-solid fa-calendar-check fa-2xl mb-3 opacity-20"></i>
+                          <p className="small mb-0">Nenhuma despesa recorrente agendada.</p>
+                        </div>
+                      ) : (
+                        config.scheduledExpenses.map(item => (
+                          <div key={item.id} className="list-group-item px-0 py-3 border-bottom d-flex align-items-center justify-content-between">
+                            <div className="d-flex align-items-center gap-3">
+                              <div className={`p-2 rounded-circle ${item.ativo ? 'bg-primary bg-opacity-10 text-primary' : 'bg-light text-muted'}`}>
+                                <CalendarClock size={20} />
+                              </div>
+                              <div>
+                                <h6 className="fw-bold m-0">{item.descricao}</h6>
+                                <div className="text-[10px] text-muted text-uppercase fw-bold">
+                                  {formatCurrency(item.valor)} • Próximo: {new Date(item.proxima_execucao).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="d-flex gap-2">
+                                <button 
+                                  onClick={() => { setModalType('scheduled'); setEditingItem(item as any); setIsModalOpen(true); }}
+                                  className="btn btn-sm btn-light rounded-circle shadow-sm"
+                                >
+                                  <i className="fa-solid fa-pen-to-square text-primary"></i>
+                                </button>
+                                <button 
+                                  onClick={() => { setItemToDelete({ id: item.id, type: 'scheduled' }); setIsConfirmDeleteOpen(true); }}
+                                  className="btn btn-sm btn-light rounded-circle shadow-sm"
+                                >
+                                  <Trash2 size={14} className="text-danger" />
+                                </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Titulares Accordion */}
               <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
                 <div 
@@ -704,8 +772,8 @@ export default function Home() {
           }}
           title={
             editingItem
-              ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : 'Editar Categoria')
-              : (modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : 'Nova Categoria')
+              ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : modalType === 'scheduled' ? 'Editar Agendamento' : 'Editar Categoria')
+              : (modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : modalType === 'scheduled' ? 'Novo Agendamento' : 'Nova Categoria')
           }
         >
           {modalType === 'despesa' || modalType === 'receita' ? (
@@ -752,6 +820,19 @@ export default function Home() {
                 setEditingItem(null);
               }}
             />
+          ) : modalType === 'scheduled' ? (
+            <ScheduledExpenseForm
+              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+              initialData={editingItem as any}
+              titulares={config.titulares}
+              categorias={config.categorias}
+              onSubmit={async (data) => {
+                if (editingItem) await updateScheduledExpense((editingItem as any).id, data);
+                else await addScheduledExpense(data);
+                setIsModalOpen(false);
+                setEditingItem(null);
+              }}
+            />
           ) : (
             <CategoriaForm
               key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
@@ -792,6 +873,7 @@ export default function Home() {
             else if (type === 'titular') deleteTitular(id);
             else if (type === 'cartao') deleteCartao(id);
             else if (type === 'categoria') deleteCategoria(id);
+            else if (type === 'scheduled') deleteScheduledExpense(id);
           }}
           title="Confirmar Exclusão"
           message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."

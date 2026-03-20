@@ -185,6 +185,20 @@ CREATE TABLE table_notas (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 10. DESPESAS AGENDADAS (RECORRENTES)
+CREATE TABLE despesas_agendadas (
+    id SERIAL PRIMARY KEY,
+    family_id UUID NOT NULL DEFAULT get_my_family_id(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    descricao TEXT NOT NULL,
+    categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
+    valor DECIMAL(12,2) NOT NULL,
+    proxima_execucao DATE NOT NULL, -- Data de quando deve ser lançada
+    ativo BOOLEAN DEFAULT true,
+    titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 6. SEGURANÇA (ROW LEVEL SECURITY)
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -196,6 +210,7 @@ ALTER TABLE cartoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE receitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE table_notas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE despesas_agendadas ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Leitura de membros da família" ON profiles FOR SELECT USING (id = auth.uid() OR family_id = get_my_family_id());
 CREATE POLICY "Atualização do próprio perfil" ON profiles FOR UPDATE USING (auth.uid() = id);
@@ -204,6 +219,8 @@ CREATE POLICY "Atualização do próprio perfil" ON profiles FOR UPDATE USING (a
 CREATE POLICY "Gerenciamento de Convites" ON convites FOR ALL 
     USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND tipo = 'titular' AND family_id = convites.family_id))
     WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND tipo = 'titular' AND family_id = convites.family_id));
+
+CREATE POLICY "Acesso por Família" ON despesas_agendadas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
 
 DO $$ 
 DECLARE 
@@ -227,3 +244,28 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER tr_despesas_updated_at BEFORE UPDATE ON despesas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
 CREATE TRIGGER tr_notas_updated_at BEFORE UPDATE ON table_notas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+-- 8. AUTOMA��O DE RECORR�NCIAS
+CREATE OR REPLACE FUNCTION public.processar_despesas_recorrentes()
+RETURNS void AS d:\Documentos HD\CF\Controle-Financeiro
+BEGIN
+    -- 1. Insere na tabela de despesas real os itens agendados para hoje ou datas passadas
+    INSERT INTO public.despesas (family_id, user_id, descricao, categoria_id, valor, vencimento, titular_id, competencia, status)
+    SELECT 
+        family_id, 
+        user_id, 
+        descricao, 
+        categoria_id, 
+        valor, 
+        proxima_execucao, 
+        titular_id, 
+        to_char(proxima_execucao, 'MM/YYYY'), 
+        'Em aberto'
+    FROM public.despesas_agendadas
+    WHERE ativo = true AND proxima_execucao <= CURRENT_DATE;
+
+    -- 2. Atualiza a pr�xima data para o m�s seguinte (+ 1 month)
+    UPDATE public.despesas_agendadas
+    SET proxima_execucao = proxima_execucao + interval '1 month'
+    WHERE ativo = true AND proxima_execucao <= CURRENT_DATE;
+END;
+d:\Documentos HD\CF\Controle-Financeiro LANGUAGE plpgsql SECURITY DEFINER;
