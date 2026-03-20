@@ -182,6 +182,7 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
       .from('receitas')
       .update({
         descricao: dados.descricao,
+        categoria: dados.categoria,
         valor: dados.valor,
         data_recebimento: format(dataAjustada, 'yyyy-MM-dd'),
         titular_id: dados.titular_id,
@@ -270,7 +271,7 @@ export async function lancarParcelas(
     if (tipo === 'despesa') {
       inserts.push({
         ...common,
-        parcela_at: i,
+        parcela_atual: i,
         parcela_total: totalParcelas,
         vencimento: format(dataVenc, 'yyyy-MM-dd'),
         status: 'Em aberto',

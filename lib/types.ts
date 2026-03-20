@@ -56,6 +56,7 @@ export interface Despesa {
 export interface Receita {
   id: number;
   descricao: string;
+  categoria?: string;
   valor: number;
   data_recebimento: string;
   titular_id: number;

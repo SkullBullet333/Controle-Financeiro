@@ -164,6 +164,7 @@ CREATE TABLE receitas (
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     descricao TEXT NOT NULL,
+    categoria TEXT, -- Texto livre (Gerado automaticamente)
     valor DECIMAL(12,2) NOT NULL,
     data_recebimento DATE NOT NULL,
     titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
