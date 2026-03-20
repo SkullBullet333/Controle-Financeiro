@@ -1,97 +1,129 @@
 -- =========================================================================
--- SCRIPT DE MIGRAÇÃO: MULTI-TENANCY (SISTEMA DE FAMÍLIAS)
--- Este script refaz o banco de dados para permitir que vários membros
--- de uma mesma família compartilhem as mesmas receitas e despesas.
+-- SCRIPT UNIFICADO: MULTI-TENANCY (SISTEMA DE FAMÍLIAS)
+-- Versão Final Corrigida: Profiles (Nome, Tipo, Foto) + Migração
 -- =========================================================================
 
--- Reset do schema (Cuidado: apaga os dados existentes!)
+-- 0. RESET DO SCHEMA (Ajustado para incluir table_notas e evitar erro 42P07)
 DROP TABLE IF EXISTS receitas CASCADE;
 DROP TABLE IF EXISTS despesas CASCADE;
 DROP TABLE IF EXISTS cartoes CASCADE;
 DROP TABLE IF EXISTS cartoes_config CASCADE;
 DROP TABLE IF EXISTS titulares CASCADE;
 DROP TABLE IF EXISTS categorias CASCADE;
-DROP TABLE IF EXISTS notas CASCADE;
+DROP TABLE IF EXISTS table_notas CASCADE; -- Nome corrigido aqui
+DROP TABLE IF EXISTS notas CASCADE;       -- Remove versão antiga se existir
 DROP TABLE IF EXISTS profiles CASCADE;
 
--- 1. Tabela de Perfis (Profiles)
--- Faz a ligação de cada usuário do Auth.Users a uma família específica
+-- 1. TABELA DE PERFIS (PROFILES)
+-- Tipo: 'titular' (quem criou a família) ou 'membro' (quem foi convidado)
 CREATE TABLE profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT,
-    family_id UUID NOT NULL, -- UUID único que identifica o grupo/família
+    nome TEXT, 
+    tipo TEXT NOT NULL DEFAULT 'membro',
+    foto TEXT, 
+    family_id UUID NOT NULL, 
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+-- 2. TABELA DE CONVITES
+-- Armazena convites pendentes por e-mail
+CREATE TABLE convites (
+    id SERIAL PRIMARY KEY,
+    family_id UUID NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
 
--- Usuários podem ler perfis de quem compartilha o mesmo family_id
--- Usamos get_my_family_id() que é SECURITY DEFINER para evitar recursão
-CREATE POLICY "Leitura de membros da família" ON profiles 
-    FOR SELECT USING (id = auth.uid() OR family_id = get_my_family_id());
+-- 3. FUNÇÃO DE APOIO: Obter Family ID do usuário logado
+CREATE OR REPLACE FUNCTION get_my_family_id()
+RETURNS UUID AS $$
+BEGIN
+    RETURN (SELECT family_id FROM public.profiles WHERE id = auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Usuários podem atualizar apenas seu próprio perfil
-CREATE POLICY "Atualização do próprio perfil" ON profiles 
-    FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
--- Gatilho para criar perfil automaticamente ao cadastrar novo usuário no Auth
+-- 4. GATILHO PARA NOVOS USUÁRIOS (AUTH.USERS -> PROFILES)
+-- Agora verifica se há um convite ativo para o e-mail que está se cadastrando
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  target_family_id UUID;
 BEGIN
-  INSERT INTO public.profiles (id, email, family_id)
-  VALUES (new.id, new.email, gen_random_uuid());
+  -- Verifica se existe um convite para este e-mail
+  SELECT family_id INTO target_family_id FROM public.convites WHERE email = new.email;
+  
+  IF target_family_id IS NOT NULL THEN
+    -- Se houver convite, entra na família convidada como 'membro' e apaga o convite
+    INSERT INTO public.profiles (id, email, family_id, nome, foto, tipo)
+    VALUES (
+      new.id, 
+      new.email, 
+      target_family_id, 
+      COALESCE(new.raw_user_meta_data->>'display_name', new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+      new.raw_user_meta_data->>'avatar_url',
+      'membro'
+    );
+    DELETE FROM public.convites WHERE email = new.email;
+  ELSE
+    -- Se não houver convite, cria uma nova família e entra como 'titular'
+    INSERT INTO public.profiles (id, email, family_id, nome, foto, tipo)
+    VALUES (
+      new.id, 
+      new.email, 
+      gen_random_uuid(), 
+      COALESCE(new.raw_user_meta_data->>'display_name', new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+      new.raw_user_meta_data->>'avatar_url',
+      'titular'
+    );
+  END IF;
+  
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Se o gatilho já existir, remova-o antes de recriar
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- IMPORTANTE: Para usuários que já existem, execute este comando manualmente no SQL Editor:
--- INSERT INTO public.profiles (id, email, family_id) 
--- SELECT id, email, gen_random_uuid() FROM auth.users 
--- WHERE id NOT IN (SELECT id FROM public.profiles);
+-- 4. MIGRAÇÃO: CRIAR PERFIS PARA USUÁRIOS QUE JÁ EXISTEM
+INSERT INTO public.profiles (id, email, family_id, nome, foto, tipo) 
+SELECT 
+    id, 
+    email, 
+    gen_random_uuid(), 
+    COALESCE(raw_user_meta_data->>'display_name', raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+    raw_user_meta_data->>'avatar_url',
+    'membro'
+FROM auth.users 
+WHERE id NOT IN (SELECT id FROM public.profiles);
 
+-- 5. TABELAS DE NEGÓCIO (COMPARTILHADAS POR FAMILY_ID)
 
--- 2. Função de Segurança para obter o family_id do usuário logado
--- Usada para preenchimento automático e validação de permissões
-CREATE OR REPLACE FUNCTION get_my_family_id()
-RETURNS UUID AS $$
-BEGIN
-    RETURN (SELECT family_id FROM profiles WHERE id = auth.uid());
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-
--- 3. Categorias (Compartilhadas pela família)
 CREATE TABLE categorias (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     label TEXT NOT NULL,
     keywords TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Titulares (Membros da família ou apenas nomes de titulação para despesas da casa)
 CREATE TABLE titulares (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     nome TEXT NOT NULL,
     foto TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(family_id, nome)
 );
 
--- 5. Configuração de Cartões (Compartilhada pela família)
 CREATE TABLE cartoes_config (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Criador
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     nome_cartao TEXT NOT NULL,
     titular_id INTEGER REFERENCES titulares(id) ON DELETE CASCADE,
     dia_vencimento INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 31),
@@ -99,11 +131,10 @@ CREATE TABLE cartoes_config (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. Lançamentos de Cartão (Visíveis para todos na mesma família)
 CREATE TABLE cartoes (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Identifica quem lançou
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     cartao_id INTEGER REFERENCES cartoes_config(id) ON DELETE CASCADE,
     estabelecimento TEXT NOT NULL,
     categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
@@ -112,16 +143,15 @@ CREATE TABLE cartoes (
     parcela_atual INTEGER DEFAULT 1,
     parcela_total INTEGER DEFAULT 1,
     data_compra DATE NOT NULL,
-    competencia TEXT NOT NULL, -- Formato "MM/YYYY"
+    competencia TEXT NOT NULL,
     simulada BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. Despesas Fixas e Variáveis (Unificadas por família)
 CREATE TABLE despesas (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Identifica quem lançou (opcional)
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     descricao TEXT NOT NULL,
     categoria_id INTEGER REFERENCES categorias(id) ON DELETE SET NULL,
     valor DECIMAL(12,2) NOT NULL,
@@ -136,11 +166,10 @@ CREATE TABLE despesas (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 8. Receitas (Unificadas por família)
 CREATE TABLE receitas (
     id SERIAL PRIMARY KEY,
     family_id UUID NOT NULL DEFAULT get_my_family_id(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Identifica quem lançou (opcional)
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     descricao TEXT NOT NULL,
     valor DECIMAL(12,2) NOT NULL,
     data_recebimento DATE NOT NULL,
@@ -150,41 +179,46 @@ CREATE TABLE receitas (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. Notas/Lembretes (Uma nota compartilhada por família)
-CREATE TABLE notas (
+CREATE TABLE table_notas (
     family_id UUID PRIMARY KEY DEFAULT get_my_family_id(),
     conteudo TEXT,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 6. SEGURANÇA (ROW LEVEL SECURITY)
 
--- ==================== RLS (FAMILY LEVEL SECURITY) ====================
-
--- Habilitar RLS em todas as tabelas
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE convites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE titulares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cartoes_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cartoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE despesas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE receitas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE table_notas ENABLE ROW LEVEL SECURITY;
 
--- Políticas Unificadas: O SELECT, INSERT, UPDATE e DELETE dependem apenas do family_id
--- O check "family_id = get_my_family_id()" garante o isolamento entre famílias.
+CREATE POLICY "Leitura de membros da família" ON profiles FOR SELECT USING (id = auth.uid() OR family_id = get_my_family_id());
+CREATE POLICY "Atualização do próprio perfil" ON profiles FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Acesso por Família" ON categorias FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON titulares FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON cartoes_config FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON cartoes FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON despesas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON receitas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
-CREATE POLICY "Acesso por Família" ON notas FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id());
+-- Convites: Só o titular da família pode gerenciar (ver, criar, deletar)
+CREATE POLICY "Gerenciamento de Convites" ON convites FOR ALL 
+    USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND tipo = 'titular' AND family_id = convites.family_id))
+    WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND tipo = 'titular' AND family_id = convites.family_id));
 
--- ==================== TRIGGERS (UTILITIES) ====================
+DO $$ 
+DECLARE 
+    tab TEXT;
+BEGIN
+    FOR tab IN SELECT table_name FROM information_schema.tables 
+               WHERE table_schema = 'public' AND table_name IN ('categorias', 'titulares', 'cartoes_config', 'cartoes', 'despesas', 'receitas', 'table_notas')
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Acesso por Família" ON %I', tab);
+        EXECUTE format('CREATE POLICY "Acesso por Família" ON %I FOR ALL USING (family_id = get_my_family_id()) WITH CHECK (family_id = get_my_family_id())', tab);
+    END LOOP;
+END $$;
 
--- Função para atualizar updated_at automaticamente na tabela despesas e notas
-CREATE OR REPLACE FUNCTION handle_updated_at()
-RETURNS TRIGGER AS $$
+-- 7. UTILITÁRIOS (UPDATED_AT)
+CREATE OR REPLACE FUNCTION handle_updated_at() RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
@@ -192,4 +226,4 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER tr_despesas_updated_at BEFORE UPDATE ON despesas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
-CREATE TRIGGER tr_notas_updated_at BEFORE UPDATE ON notas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER tr_notas_updated_at BEFORE UPDATE ON table_notas FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();

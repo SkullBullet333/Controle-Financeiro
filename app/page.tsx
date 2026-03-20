@@ -8,14 +8,14 @@ import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-view
 import { AnalysisPlan } from '@/components/analysis-view';
 import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, CategoriaForm, MonthYearModal } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
-import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb, Users } from 'lucide-react';
+import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Tags, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Categoria, Status } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', pass: '', nome: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -77,8 +77,9 @@ export default function Home() {
     updateCategoria,
     deleteCategoria,
     familyId,
-    joinFamily,
-    userName
+    inviteMember,
+    userName,
+    userType
   } = useFinance(activeView);
 
   React.useEffect(() => {
@@ -116,7 +117,7 @@ export default function Home() {
     try {
       if (isSignUp) {
         await signUp(loginForm.email, loginForm.pass, loginForm.nome);
-        alert('Conta criada com sucesso! Verifique seu e-mail para confirmar o cadastro (se necessário) ou tente entrar agora.');
+        alert('Conta criada com sucesso! Verifique seu e-mail (ou entre se já tiver convite para uma família).');
         setIsSignUp(false);
       } else {
         await signIn(loginForm.email, loginForm.pass);
@@ -125,6 +126,17 @@ export default function Home() {
       setLoginError(translateError(error));
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleInvite = async () => {
+    if (!inviteEmail) return;
+    const result = await inviteMember(inviteEmail);
+    if (result?.error) {
+      alert(result.error);
+    } else {
+      alert('Convite enviado com sucesso! O membro entrará na família ao se cadastrar.');
+      setInviteEmail('');
     }
   };
 
@@ -465,57 +477,42 @@ export default function Home() {
                   <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
                     <Users className="text-primary" /> Minha Família
                   </h5>
-                  <p className="small text-muted mt-2 mb-3">
-                    Compartilhe este código com outras pessoas para que elas possam ver e gerenciar este dashboard.
-                  </p>
                   
-                  <div className="input-group mb-3 shadow-sm border rounded-3 overflow-hidden">
-                    <input 
-                      type="text" 
-                      className="form-control border-0 bg-white" 
-                      value={familyId || 'Carregando...'} 
-                      readOnly 
-                    />
-                    <button 
-                      className="btn btn-outline-primary border-0 bg-white" 
-                      onClick={() => {
-                        navigator.clipboard.writeText(familyId || '');
-                        alert('Código copiado!');
-                      }}
-                    >
-                      Copiar
-                    </button>
-                  </div>
-
-                  <hr className="my-3 opacity-10" />
-
-                  <h6 className="fw-bold small text-muted text-uppercase mb-2">Entrar em outra Família</h6>
-                  <div className="d-flex gap-2">
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      placeholder="Cole o código da família aqui..."
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value)}
-                    />
-                    <button 
-                      className="btn btn-primary"
-                      onClick={async () => {
-                        if (!inviteCode) return;
-                        if (confirm('Ao entrar em outra família, você deixará de ver seus dados atuais. Continuar?')) {
-                          const res = await joinFamily(inviteCode);
-                          if (res.success) {
-                            alert('Vinculado com sucesso!');
-                            setInviteCode('');
-                          } else {
-                            alert('Erro: ' + res.error);
-                          }
-                        }
-                      }}
-                    >
-                      Entrar
-                    </button>
-                  </div>
+                  {userType === 'titular' ? (
+                    <>
+                      <p className="small text-muted mt-2 mb-3">
+                        Convide novos membros para compartilharem este dashboard financeiro com você. Eles entrarão automaticamente na sua família ao se cadastrarem.
+                      </p>
+                      
+                      <div className="input-group mb-2 shadow-sm border rounded-3 overflow-hidden">
+                        <span className="input-group-text border-0 bg-white">
+                          <Mail className="text-muted" size={18} />
+                        </span>
+                        <input 
+                          type="email" 
+                          className="form-control border-0 bg-white" 
+                          placeholder="E-mail do novo membro"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                        />
+                        <button 
+                          className="btn btn-primary d-flex align-items-center gap-2"
+                          onClick={handleInvite}
+                        >
+                          Convidar <Send size={16} />
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-muted uppercase font-black tracking-widest">
+                        Você é o titular desta família
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-3 p-3 bg-white rounded-3 border">
+                      <p className="small text-muted m-0">
+                        Você faz parte desta família como <strong>membro</strong>. Apenas o titular pode convidar novas pessoas.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

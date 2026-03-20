@@ -18,6 +18,7 @@ export function useFinance(activeView: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userType, setUserType] = useState<'titular' | 'membro'>('membro');
 
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
@@ -71,22 +72,28 @@ export function useFinance(activeView: string) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('profiles').select('family_id, nome').eq('id', user.id).maybeSingle();
+    const { data } = await supabase.from('profiles').select('family_id, nome, tipo').eq('id', user.id).maybeSingle();
     if (data) {
       setFamilyId(data.family_id);
       setUserName(data.nome);
+      setUserType(data.tipo as 'titular' | 'membro');
     }
   }, [user?.id]);
 
-  const joinFamily = async (newId: string) => {
-    if (!user) return { error: 'Não logado' };
-    const { error } = await supabase.from('profiles').update({ family_id: newId }).eq('id', user.id);
-    if (!error) {
-      setFamilyId(newId);
-      await fetchData();
-      return { success: true };
+  const inviteMember = async (email: string) => {
+    if (!user || !familyId || userType !== 'titular') return { error: 'Apenas titulares podem convidar.' };
+    
+    const { error } = await supabase.from('convites').insert({
+      family_id: familyId,
+      email: email.toLowerCase().trim()
+    });
+
+    if (error) {
+      if (error.code === '23505') return { error: 'Este e-mail já possui um convite pendente.' };
+      return { error: error.message };
     }
-    return { error: error.message };
+
+    return { success: true };
   };
 
   // Carregamento de dados disparado por mudanças no usuário ou no período
@@ -582,7 +589,8 @@ export function useFinance(activeView: string) {
     setReceitas,
     setConfig,
     familyId,
-    joinFamily,
-    userName
+    inviteMember,
+    userName,
+    userType
   };
 }
