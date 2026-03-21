@@ -1224,7 +1224,7 @@ export function SettingsModal({
         <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
           <div className="d-flex h-100 flex-column flex-md-row">
             {/* SideNavBar Interna */}
-            <aside className="bg-muted/20 border-end border-border d-flex flex-column h-full py-6 flex-shrink-0" style={{ width: '210px' }}>
+            <aside className="bg-muted/20 border-end border-border d-flex flex-column h-full py-6 flex-shrink-0" style={{ width: '240px' }}>
               <div className="px-6 mb-8 mt-2">
                 <h2 className="text-foreground fw-bold h4 m-0 tracking-tighter text-uppercase">Definições</h2>
                 <p className="text-muted-foreground m-0 tracking-widest text-uppercase mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>Preferências</p>

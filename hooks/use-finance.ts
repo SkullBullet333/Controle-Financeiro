@@ -88,7 +88,16 @@ export function useFinance(activeView: string) {
     if (!user?.id) return;
     const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
     if (!error) {
+      // Sync with titulares if name matches
+      const currentName = updates.nome || userName;
+      if (updates.foto && currentName) {
+        await supabase.from('titulares')
+          .update({ foto: updates.foto })
+          .eq('nome', currentName)
+          .eq('user_id', user.id);
+      }
       await fetchProfile();
+      await fetchData(); // Refresh titulares in config
     }
     return { error };
   };
@@ -332,6 +341,16 @@ export function useFinance(activeView: string) {
   const updateTitular = async (id: number, updated: Partial<Titular>) => {
     const { error } = await supabase.from('titulares').update(updated).eq('id', id);
     if (!error) {
+       // Sync with profile if name matches
+       const titular = config.titulares.find(t => t.id === id);
+       const tName = updated.nome || titular?.nome;
+       if (updated.foto && tName === userName && user?.id) {
+         await supabase.from('profiles')
+           .update({ foto: updated.foto })
+           .eq('id', user.id);
+         await fetchProfile();
+       }
+
       setConfig(prev => ({
         ...prev,
         titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
