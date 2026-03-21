@@ -22,8 +22,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
-      <div className="modal-dialog modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+    <div className="modal fade show d-block modal-standard-custom" tabIndex={-1}>
+      <div className="modal-backdrop fade show modal-standard-backdrop-custom" onClick={onClose}></div>
+      <div className="modal-dialog modal-dialog-centered px-3" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
@@ -831,6 +832,20 @@ export function ProfileForm({
   );
 }
 
+const getCardLogo = (name: string) => {
+  const n = name.toLowerCase();
+  if (n.includes('nubank')) return <div className="w-8 h-8 rounded-lg bg-[#8a05be] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Nu</div>;
+  if (n.includes('inter')) return <div className="w-8 h-8 rounded-lg bg-[#ff7a00] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">In</div>;
+  if (n.includes('itau') || n.includes('itaú')) return <div className="w-8 h-8 rounded-lg bg-[#ec7000] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ border: '2px solid #003399' }}>It</div>;
+  if (n.includes('santander')) return <div className="w-8 h-8 rounded-lg bg-[#ec0000] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Sn</div>;
+  if (n.includes('c6')) return <div className="w-8 h-8 rounded-lg bg-[#212121] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">C6</div>;
+  if (n.includes('picpay')) return <div className="w-8 h-8 rounded-lg bg-[#21c25e] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Pp</div>;
+  if (n.includes('visa')) return <div className="w-8 h-8 rounded-lg bg-[#1a1f71] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ border: '1px solid #f7b600' }}>V</div>;
+  if (n.includes('master')) return <div className="w-8 h-8 rounded-lg bg-[#eb001b] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ borderBottom: '4px solid #f79e1b' }}>M</div>;
+  
+  return <div className="w-8 h-8 rounded-lg bg-slate-700 d-flex align-items-center justify-content-center text-white opacity-40 shadow-sm"><span className="material-symbols-outlined text-[16px]">credit_card</span></div>;
+};
+
 export function SettingsModal({ 
   isOpen, 
   onClose, 
@@ -1053,8 +1068,8 @@ export function SettingsModal({
                     </div>
                   </div>
                   <div className="d-flex gap-2">
-                     <button onClick={() => onUpdateTitular(t)} className="btn-icon rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[20px]">edit</span></button>
-                     <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 hover:text-danger transition-colors"><span className="material-symbols-outlined text-[20px]">delete</span></button>
+                     <button onClick={() => onUpdateTitular(t)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
+                     <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
                   </div>
                 </div>
               ))}
@@ -1096,9 +1111,7 @@ export function SettingsModal({
                     <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
                       <div className="d-flex justify-content-between align-items-start relative z-10">
                         <div className="d-flex align-items-center gap-4">
-                          <div className="w-14 h-9 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 d-flex align-items-center justify-content-center text-white border border-white/10 shadow-sm flex-shrink-0">
-                            <i className="fa-solid fa-credit-card opacity-50"></i>
-                          </div>
+                          {getCardLogo(c.nome_cartao)}
                           <div className="overflow-hidden">
                             <div className="fw-bold text-foreground tracking-tight m-0 text-truncate">{c.nome_cartao}</div>
                             <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
@@ -1107,8 +1120,8 @@ export function SettingsModal({
                           </div>
                         </div>
                         <div className="d-flex gap-1">
-                          <button onClick={() => onUpdateCartao(c)} className="btn-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[18px]">edit</span></button>
-                          <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 hover:text-danger transition-colors"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+                          <button onClick={() => onUpdateCartao(c)} className="btn-icon rounded-lg hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-edit-blue">edit</span></button>
+                          <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-delete-red">delete</span></button>
                         </div>
                       </div>
                       

@@ -271,6 +271,33 @@ body.dark-mode .user-profile-popup {
   background: var(--light);
 }
 
+/* Modal Layering */
+.settings-modal-custom {
+  z-index: 1040 !important;
+}
+
+.modal-backdrop.settings-backdrop-custom {
+  z-index: 1039 !important;
+}
+
+/* Ensure standard modals are above settings */
+.modal-standard-custom {
+  z-index: 1060 !important;
+}
+
+.modal-backdrop.modal-standard-backdrop-custom {
+  z-index: 1059 !important;
+}
+
+/* Icon Colors */
+.text-edit-blue {
+  color: #3b82f6 !important; /* Blue 500 */
+}
+
+.text-delete-red {
+  color: #ef4444 !important; /* Red 500 */
+}
+
 .family-list::-webkit-scrollbar {
   width: 4px;
 }

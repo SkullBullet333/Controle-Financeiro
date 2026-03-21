@@ -23,6 +23,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings'>('despesa');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
@@ -453,174 +454,6 @@ export default function Home() {
           </div>
         );
 
-      case 'config':
-        return (
-          <div className="row g-4">
-            <div className="col-lg-6">
-              <div className="card border-0 rounded-4 shadow-sm mb-4">
-                <div className="card-body p-4">
-                  <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
-                    <SettingsIcon className="text-primary" /> Preferências
-                  </h5>
-                  <div className="flex items-center justify-between p-3 bg-light rounded-3">
-                    <span className="fw-bold">Modo Escuro</span>
-                    <div className="form-check form-switch">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={isDarkMode}
-                        onChange={toggleDarkMode}
-                        style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Família Section */}
-              <div className="card border-0 rounded-4 shadow-sm overflow-hidden mb-4">
-                <div className="card-body p-4 bg-light bg-opacity-20">
-                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                    <Users className="text-primary" /> Minha Família
-                  </h5>
-                  
-                  {userType === 'titular' ? (
-                    <>
-                      <p className="small text-muted mt-2 mb-3">
-                        Convide novos membros para compartilharem este dashboard financeiro com você. Eles entrarão automaticamente na sua família ao se cadastrarem.
-                      </p>
-                      
-                      <div className="input-group mb-2 shadow-sm border rounded-3 overflow-hidden">
-                        <span className="input-group-text border-0 bg-white">
-                          <Mail className="text-muted" size={18} />
-                        </span>
-                        <input 
-                          type="email" 
-                          className="form-control border-0 bg-white" 
-                          placeholder="E-mail do novo membro"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                        />
-                        <button 
-                          className="btn btn-primary d-flex align-items-center gap-2"
-                          onClick={handleInvite}
-                        >
-                          Convidar <Send size={16} />
-                        </button>
-                      </div>
-                      <div className="text-[10px] text-muted uppercase font-black tracking-widest">
-                        Você é o titular desta família
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-3 p-3 bg-white rounded-3 border">
-                      <p className="small text-muted m-0">
-                        Você faz parte desta família como <strong>membro</strong>. Apenas o titular pode convidar novas pessoas.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Titulares Accordion */}
-              <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
-                <div 
-                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
-                  onClick={() => toggleSection('titulares')}
-                >
-                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                    <UserCircle className="text-primary" /> Titulares
-                  </h5>
-                  <div className="d-flex align-items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
-                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
-                      style={{ width: '28px', height: '28px' }}
-                      title="Adicionar Titular"
-                    >
-                      <Plus size={18} />
-                    </button>
-                    <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('titulares') ? "fa-chevron-up" : "fa-chevron-down")}></i>
-                  </div>
-                </div>
-                {expandedSections.includes('titulares') && (
-                  <div className="card-body p-4 pt-0 border-top border-light">
-                    <div className="list-group list-group-flush">
-                      {config.titulares.map((t: Titular) => (
-                        <div key={t.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
-                          <div className="d-flex align-items-center gap-3">
-                            <div className="position-relative" style={{ width: '32px', height: '32px' }}>
-                              <Image
-                                src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
-                                fill
-                                unoptimized
-                                className="rounded-circle object-fit-cover"
-                                alt={t.nome}
-                              />
-                            </div>
-                            <span className="fw-bold">{t.nome}</span>
-                          </div>
-                          <div>
-                            <button onClick={() => { setModalType('titular'); setEditingItem(t); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                            <button onClick={() => { setItemToDelete({ id: t.id, type: 'titular' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="col-lg-6">
-              {/* Cartões Accordion */}
-              <div className="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
-                <div 
-                  className="card-body p-4 cursor-pointer d-flex align-items-center justify-content-between hover:bg-light transition-colors"
-                  onClick={() => toggleSection('cartoes')}
-                >
-                  <h5 className="fw-bold m-0 d-flex align-items-center gap-2">
-                    <CardIcon className="text-primary" /> Cartões
-                  </h5>
-                  <div className="d-flex align-items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
-                      className="btn btn-sm btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
-                      style={{ width: '28px', height: '28px' }}
-                      title="Adicionar Cartão"
-                    >
-                      <Plus size={18} />
-                    </button>
-                    <i className={cn("fa-solid transition-transform duration-300", expandedSections.includes('cartoes') ? "fa-chevron-up" : "fa-chevron-down")}></i>
-                  </div>
-                </div>
-                {expandedSections.includes('cartoes') && (
-                  <div className="card-body p-4 pt-0 border-top border-light">
-                    <div className="list-group list-group-flush">
-                      {config.cartoes.map((c: CartaoConfig) => {
-                        const titular = config.titulares.find((t: Titular) => t.id === c.titular_id);
-                        return (
-                          <div key={c.id} className="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-light bg-transparent">
-                            <div>
-                              <span className="fw-bold d-block">{c.nome_cartao}</span>
-                              <span className="small text-muted text-uppercase">{titular?.nome || 'N/A'} • Venc. {c.dia_vencimento}</span>
-                            </div>
-                            <div>
-                              <button onClick={() => { setModalType('cartao'); setEditingItem(c); setIsModalOpen(true); }} className="btn btn-sm btn-outline-primary border-0 me-1"><i className="fa-solid fa-pen"></i></button>
-                              <button onClick={() => { setItemToDelete({ id: c.id, type: 'cartao' }); setIsConfirmDeleteOpen(true); }} className="btn btn-sm btn-outline-danger border-0"><Trash2 size={16} /></button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -639,9 +472,12 @@ export default function Home() {
         onInvite={handleInvite}
         onUpdateProfile={updateProfile}
         onOpenModal={(type) => {
-          setModalType(type);
-          setEditingItem(null);
-          setIsModalOpen(true);
+          if (type === 'settings') setIsSettingsOpen(true);
+          else {
+            setModalType(type as any);
+            setEditingItem(null);
+            setIsModalOpen(true);
+          }
         }}
       />
 
@@ -665,7 +501,10 @@ export default function Home() {
 
         <MobileNav
           activeView={activeView}
-          onViewChange={setActiveView}
+          onViewChange={(view) => {
+            if (view === 'config') setIsSettingsOpen(true);
+            else setActiveView(view);
+          }}
         />
 
         {/* Modals */}
@@ -767,8 +606,8 @@ export default function Home() {
         />
 
         <SettingsModal 
-          isOpen={isModalOpen && modalType === 'settings'}
-          onClose={() => setIsModalOpen(false)}
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
           user={userProfile}
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
