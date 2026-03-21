@@ -1224,7 +1224,7 @@ export function SettingsModal({
         <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
           <div className="d-flex h-100 flex-column flex-md-row">
             {/* SideNavBar Interna */}
-            <aside className="w-100 w-md-64 bg-muted/20 border-end border-border d-flex flex-column h-full py-6">
+            <aside className="bg-muted/20 border-end border-border d-flex flex-column h-full py-6 flex-shrink-0" style={{ width: '210px' }}>
               <div className="px-6 mb-8 mt-2">
                 <h2 className="text-foreground fw-bold h4 m-0 tracking-tighter text-uppercase">Definições</h2>
                 <p className="text-muted-foreground m-0 tracking-widest text-uppercase mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>Preferências</p>
@@ -1236,15 +1236,15 @@ export function SettingsModal({
                     type="button"
                     key={tab.id}
                     className={cn(
-                      "w-100 d-flex align-items-center gap-4 px-5 py-3.5 border-0 transition-all duration-300 rounded-2xl mb-1",
+                      "w-100 d-flex align-items-center gap-3 px-4 py-3 border-0 transition-all duration-300 rounded-xl mb-1",
                       activeTab === tab.id 
                         ? "bg-primary text-white shadow-lg shadow-primary/20" 
                         : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
-                    style={{ fontSize: '11px', textAlign: 'left' }}
+                    style={{ fontSize: '10px', textAlign: 'left' }}
                     onClick={() => setActiveTab(tab.id)}
                   >
-                    <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+                    <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
                     <span className="font-bold tracking-widest text-uppercase">{tab.label}</span>
                   </button>
                 ))}
