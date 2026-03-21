@@ -140,6 +140,11 @@ body {
   padding: 0 15px;
 }
 
+.sidebar .sidebar-footer,
+.sidebar .user-profile-btn {
+  overflow: visible !important;
+}
+
 .sidebar:hover {
   width: 240px;
   box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
@@ -238,19 +243,20 @@ body {
 
 .user-profile-popup {
   position: absolute;
-  bottom: 100%;
-  left: 15px;
-  right: 15px;
-  background: var(--card);
-  backdrop-filter: blur(10px);
+  bottom: 85px;
+  left: 10px;
+  width: 280px !important;
+  min-width: 280px !important;
+  background: var(--card) !important;
+  backdrop-filter: blur(20px);
   z-index: 1001;
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+  overflow: visible !important;
 }
 
 body.dark-mode .user-profile-popup {
   background: rgba(30, 41, 59, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 @keyframes slideUp {

@@ -82,69 +82,73 @@ export function Sidebar({
         ))}
       </ul>
 
-      <div className="sidebar-footer mt-auto mb-4 px-1 px-md-2 position-relative">
+      <div className="sidebar-footer mt-auto mb-4 px-1 px-md-2 position-relative" style={{ overflow: 'visible' }}>
         {showPopup && (
-          <div className="user-profile-popup shadow-2xl border border-border rounded-xl p-4 mb-3" ref={popupRef} style={{ width: '288px', left: '16px', bottom: '80px' }}>
+          <div className="user-profile-popup shadow-2xl border border-border rounded-xl p-4" ref={popupRef} style={{ width: '288px', left: '10px', bottom: '85px' }}>
             {/* Profile Header */}
             <div className="d-flex align-items-center gap-3 mb-4 p-2">
-              <div className="position-relative" style={{ width: '48px', height: '48px' }}>
+              <div className="position-relative flex-shrink-0" style={{ width: '48px', height: '48px' }}>
                 <Image
                   src={user.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=4361ee&color=fff&bold=true`}
                   fill
                   unoptimized
-                  className="rounded-circle object-fit-cover ring-2 ring-white/10"
+                  className="rounded-circle object-fit-cover ring-2 ring-primary/20"
                   alt={user.nome}
                 />
               </div>
-              <div className="overflow-hidden flex-fill">
-                <div className="fw-bold text-truncate small" style={{ color: isDarkMode ? 'white' : 'var(--text)' }}>
+              <div className="flex-fill overflow-hidden text-start">
+                <div className="fw-bold text-truncate small" style={{ color: 'var(--text)' }}>
                   {user.nome || 'Usuário'}
                 </div>
-                <div className="text-muted text-truncate" style={{ fontSize: '11px' }}>@{user.email.split('@')[0]}</div>
+                <div className="text-muted text-truncate" style={{ fontSize: '11px', color: 'var(--gray)' }}>@{user.email.split('@')[0]}</div>
               </div>
             </div>
 
-
-              {/* Definições / Ajuda */}
+            <div className="popup-menu space-y-1">
+              {/* Definições / Perfil */}
               <button 
-                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
+                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-light transition-colors d-flex align-items-center gap-3 border-0 bg-transparent"
+                style={{ color: 'var(--text)' }}
                 onClick={() => onOpenModal('settings')}
               >
-                <i className="fa-solid fa-gear text-on-surface-variant"></i>
+                <i className="fa-solid fa-gear" style={{ color: 'var(--gray)', width: '20px' }}></i>
                 <span className="small font-medium">Definições</span>
               </button>
 
               <button 
-                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
+                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-light transition-colors d-flex align-items-center gap-3 border-0 bg-transparent"
+                style={{ color: 'var(--text)' }}
                 onClick={() => onOpenModal('profile')}
               >
-                <i className="fa-solid fa-user text-on-surface-variant"></i>
+                <i className="fa-solid fa-user" style={{ color: 'var(--gray)', width: '20px' }}></i>
                 <span className="small font-medium">Perfil</span>
               </button>
 
-              <div className="h-[1px] bg-white/10 my-2"></div>
+              <div className="h-[1px] bg-border my-2 opacity-50"></div>
 
               {/* Cadastros */}
-              <div className="px-3 py-1 text-on-surface-variant fw-bold text-uppercase" style={{ fontSize: '10px' }}>Cadastros</div>
+              <div className="px-3 py-1 fw-bold text-uppercase" style={{ fontSize: '10px', color: 'var(--gray)' }}>Cadastros</div>
               <button 
-                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
+                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-light transition-colors d-flex align-items-center gap-3 border-0 bg-transparent"
+                style={{ color: 'var(--text)' }}
                 onClick={() => onOpenModal('titular')}
               >
-                <i className="fa-solid fa-address-card text-on-surface-variant"></i>
+                <i className="fa-solid fa-address-card" style={{ color: 'var(--gray)', width: '20px' }}></i>
                 <span className="small font-medium">Titular</span>
               </button>
               <button 
-                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
+                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-light transition-colors d-flex align-items-center gap-3 border-0 bg-transparent"
+                style={{ color: 'var(--text)' }}
                 onClick={() => onOpenModal('cartao')}
               >
-                <i className="fa-solid fa-credit-card text-on-surface-variant"></i>
+                <i className="fa-solid fa-credit-card" style={{ color: 'var(--gray)', width: '20px' }}></i>
                 <span className="small font-medium">Cartões</span>
               </button>
 
-              <div className="h-[1px] bg-white/10 my-2"></div>
+              <div className="h-[1px] bg-border my-2 opacity-50"></div>
 
               {/* Minha Família */}
-              <div className="px-3 py-1 text-on-surface-variant fw-bold text-uppercase d-flex justify-content-between align-items-center" style={{ fontSize: '10px' }}>
+              <div className="px-3 py-1 fw-bold text-uppercase d-flex justify-content-between align-items-center" style={{ fontSize: '10px', color: 'var(--gray)' }}>
                 <span>Minha Família</span>
                 {user.tipo === 'titular' && (
                   <button 
@@ -157,30 +161,31 @@ export function Sidebar({
                 )}
               </div>
               
-              <div className="family-list max-h-32 overflow-y-auto space-y-2 mt-1 px-1">
+              <div className="family-list max-h-32 overflow-y-auto mt-1 px-1 custom-scrollbar">
                 {familyMembers.map((member) => (
-                  <div key={member.id} className="d-flex align-items-center justify-content-between p-2 rounded-lg bg-white/5 border border-white/5">
-                    <div className="d-flex align-items-center gap-2">
-                       <div className="position-relative" style={{ width: '24px', height: '24px' }}>
+                  <div key={member.id} className="d-flex align-items-center justify-content-between p-2 rounded-lg bg-light/5 border border-border/10 mb-2">
+                    <div className="d-flex align-items-center gap-2 overflow-hidden w-100">
+                       <div className="position-relative flex-shrink-0" style={{ width: '24px', height: '24px' }}>
                          <Image
                            src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
                            fill
                            unoptimized
-                           className="rounded-circle object-fit-cover ring-1 ring-white/10"
+                           className="rounded-circle object-fit-cover ring-1 ring-border/20"
                            alt={member.nome}
                          />
                        </div>
-                       <div className="flex-1 overflow-hidden">
-                         <div className="text-white text-truncate fw-bold" style={{ fontSize: '10px' }}>{member.nome}</div>
-                         <div className="text-on-surface-variant text-truncate" style={{ fontSize: '8px' }}>{member.tipo === 'titular' ? 'Titular' : 'Membro'}</div>
+                       <div className="flex-fill overflow-hidden text-start">
+                         <div className="text-truncate fw-bold" style={{ fontSize: '10px', color: 'var(--text)' }}>{member.nome}</div>
+                         <div className="text-muted text-truncate" style={{ fontSize: '8px', color: 'var(--gray)' }}>{member.tipo === 'titular' ? 'Titular' : 'Membro'}</div>
                        </div>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
 
             {/* Divider */}
-            <div className="h-[1px] bg-white/10 my-3 mx-2"></div>
+            <div className="h-[1px] bg-border my-3 mx-2 opacity-50"></div>
 
             {/* Sign Out */}
             <button 
@@ -197,7 +202,7 @@ export function Sidebar({
           className="user-profile-btn d-flex align-items-center gap-3 p-2 rounded-4 cursor-pointer hover:bg-light transition-all"
           onClick={() => setShowPopup(!showPopup)}
         >
-          <div className="position-relative" style={{ width: '40px', height: '40px' }}>
+          <div className="position-relative flex-shrink-0" style={{ width: '40px', height: '40px', minWidth: '40px' }}>
             <Image
               src={user.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=4361ee&color=fff&bold=true`}
               fill
@@ -205,7 +210,7 @@ export function Sidebar({
               className="rounded-circle object-fit-cover shadow-sm"
               alt={user.nome}
             />
-            <div className="online-indicator position-absolute bottom-0 end-0 bg-success rounded-circle border border-white" style={{ width: '10px', height: '10px' }}></div>
+            <div className="online-indicator position-absolute bottom-0 end-0 bg-success rounded-circle border-2 border-white" style={{ width: '12px', height: '12px' }}></div>
           </div>
           <div className="sidebar-user-info overflow-hidden">
             <div className="fw-bold text-truncate" style={{ fontSize: '14px' }}>{user.nome}</div>
