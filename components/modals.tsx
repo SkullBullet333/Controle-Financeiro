@@ -60,7 +60,7 @@ export function FinanceForm({
     valor: (initialData as any)?.valor?.toString() || '',
     titular_id: (initialData as any)?.titular_id || titulares[0]?.id || 0,
     categoria: (initialData as any)?.categoria || '',
-    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().toISOString().split('T')[0],
+    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().getDate().toString(),
     status: (initialData as any)?.status || ('Em aberto' as Status),
     parcela_atual: (initialData as any)?.parcela_atual || 1,
     parcela_total: (initialData as any)?.parcela_total || 1,
@@ -137,6 +137,9 @@ export function FinanceForm({
             value={formData.descricao}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
           />
+          <div className="mt-1 small text-primary fw-medium">
+             Lançamento para: <span className="fw-bold">{competencia}</span>
+          </div>
         </div>
 
         <div className="col-md-6">
@@ -224,6 +227,9 @@ export function FinanceForm({
           value={formData.descricao}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
         />
+        <div className="mt-1 small text-primary fw-medium">
+           Lançamento para: <span className="fw-bold">{competencia}</span>
+        </div>
       </div>
       
       <div className="col-md-6">
