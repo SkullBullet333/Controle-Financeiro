@@ -22,12 +22,11 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal fade show d-block modal-standard-custom" tabIndex={-1}>
-      <div className="modal-backdrop fade show modal-standard-backdrop-custom" onClick={onClose}></div>
+    <div className="modal fade show d-block modal-standard-custom" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={onClose} tabIndex={-1}>
       <div className="modal-dialog modal-dialog-centered px-3" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
+        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200 bg-card">
           <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold">{title}</h5>
+            <h5 className="modal-title fw-bold text-foreground">{title}</h5>
             <button type="button" className="btn-close" onClick={onClose}></button>
           </div>
           <div className="modal-body p-4">
@@ -391,10 +390,12 @@ export function FinanceForm({
 
 export function TitularForm({ 
   onSubmit, 
-  initialData 
+  initialData,
+  onCancel
 }: { 
   onSubmit: (data: Omit<Titular, 'id'>) => void, 
-  initialData?: Titular 
+  initialData?: Titular,
+  onCancel?: () => void
 }) {
   const [formData, setFormData] = useState({
     nome: initialData?.nome || '',
@@ -494,7 +495,16 @@ export function TitularForm({
           </div>
         </div>
       </div>
-      <div className="col-12 mt-4">
+      <div className="col-12 mt-4 d-flex gap-3">
+        {onCancel && (
+          <button 
+            type="button"
+            onClick={onCancel}
+            className="btn btn-outline-secondary w-100 py-3 fw-bold rounded-pill text-uppercase"
+          >
+            Cancelar
+          </button>
+        )}
         <button 
             disabled={isUploading}
             className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase"
@@ -528,11 +538,13 @@ export function TitularForm({
 export function CartaoForm({ 
   onSubmit, 
   titulares,
-  initialData 
+  initialData,
+  onCancel
 }: { 
   onSubmit: (data: Omit<CartaoConfig, 'id'>) => void, 
   titulares: Titular[],
-  initialData?: CartaoConfig 
+  initialData?: CartaoConfig,
+  onCancel?: () => void
 }) {
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
@@ -585,7 +597,16 @@ export function CartaoForm({
           onChange={e => setFormData({...formData, dia_fechamento: parseInt(e.target.value)})}
         />
       </div>
-      <div className="col-12 mt-4">
+      <div className="col-12 mt-4 d-flex gap-3">
+        {onCancel && (
+          <button 
+            type="button"
+            onClick={onCancel}
+            className="btn btn-outline-secondary w-100 py-3 fw-bold rounded-pill text-uppercase"
+          >
+            Cancelar
+          </button>
+        )}
         <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
           <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
         </button>
@@ -892,6 +913,19 @@ export function SettingsModal({
   const [internalView, setInternalView] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<any>(null);
 
+  // Handle Esc to go back to list if in edit/add mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && internalView !== 'list') {
+        e.stopPropagation();
+        setInternalView('list');
+        setEditingItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [internalView]);
+
   // Reset internal view when changing tabs
   useEffect(() => {
     setInternalView('list');
@@ -1057,7 +1091,7 @@ export function SettingsModal({
               </div>
               {internalView === 'list' ? (
                 <button 
-                  onClick={() => setInternalView('add')}
+                  onClick={() => { setEditingItem(null); setInternalView('add'); }}
                   className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
                 >
                   <span className="material-symbols-outlined">add</span>
@@ -1065,7 +1099,7 @@ export function SettingsModal({
                 </button>
               ) : (
                 <button 
-                  onClick={() => setInternalView('list')}
+                  onClick={() => { setInternalView('list'); setEditingItem(null); }}
                   className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
                 >
                   <span className="material-symbols-outlined">arrow_back</span>
@@ -1114,10 +1148,12 @@ export function SettingsModal({
               <div className="bg-card p-6 rounded-3xl border border-border shadow-sm border-dashed">
                 <TitularForm 
                   initialData={editingItem} 
+                  onCancel={() => { setInternalView('list'); setEditingItem(null); }}
                   onSubmit={(data) => {
                     if (editingItem) onUpdateTitular(editingItem.id, data);
                     else onAddTitular(data);
                     setInternalView('list');
+                    setEditingItem(null);
                   }} 
                 />
               </div>
@@ -1141,7 +1177,7 @@ export function SettingsModal({
               </div>
               {internalView === 'list' ? (
                 <button 
-                  onClick={() => setInternalView('add')}
+                  onClick={() => { setEditingItem(null); setInternalView('add'); }}
                   className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
                 >
                   <span className="material-symbols-outlined">add_card</span>
@@ -1149,7 +1185,7 @@ export function SettingsModal({
                 </button>
               ) : (
                 <button 
-                  onClick={() => setInternalView('list')}
+                  onClick={() => { setInternalView('list'); setEditingItem(null); }}
                   className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
                 >
                   <span className="material-symbols-outlined">arrow_back</span>
@@ -1204,10 +1240,12 @@ export function SettingsModal({
                 <CartaoForm 
                   initialData={editingItem} 
                   titulares={titulares}
+                  onCancel={() => { setInternalView('list'); setEditingItem(null); }}
                   onSubmit={(data) => {
                     if (editingItem) onUpdateCartao(editingItem.id, data);
                     else onAddCartao(data);
                     setInternalView('list');
+                    setEditingItem(null);
                   }} 
                 />
               </div>
