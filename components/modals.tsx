@@ -9,6 +9,7 @@ import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, ca
 import { parseISO, format, getDate } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 interface ModalProps {
   isOpen: boolean;
@@ -21,9 +22,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(19, 19, 19, 0.8)', backdropFilter: 'blur(20px)', zIndex: 1050 }} onClick={onClose}>
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border border-outline-variant/20 shadow-2xl animate-in zoom-in-95 duration-200 bg-surface-container-low text-white">
+        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
             <button type="button" className="btn-close" onClick={onClose}></button>
@@ -827,5 +828,275 @@ export function ProfileForm({
         </button>
       </div>
     </form>
+  );
+}
+
+export function SettingsModal({ 
+  isOpen, 
+  onClose, 
+  user,
+  isDarkMode,
+  toggleDarkMode,
+  familyMembers,
+  onInvite,
+  userType
+}: { 
+  isOpen: boolean, 
+  onClose: () => void,
+  user: Profile | null,
+  isDarkMode: boolean,
+  toggleDarkMode: () => void,
+  familyMembers: Profile[],
+  onInvite: (email: string) => void,
+  userType: 'titular' | 'membro'
+}) {
+  const [activeTab, setActiveTab] = useState('geral');
+  const [inviteEmail, setInviteEmail] = useState('');
+
+  if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'geral', label: 'General', icon: 'settings' },
+    { id: 'notificacoes', label: 'Notifications', icon: 'notifications' },
+    { id: 'personalizacao', label: 'Personalization', icon: 'palette' },
+    { id: 'familia', label: 'Data Control', icon: 'database' },
+    { id: 'seguranca', label: 'Security', icon: 'shield' },
+    { id: 'parental', label: 'Parental Controls', icon: 'family_history' },
+    { id: 'billing', label: 'Billing', icon: 'payments' },
+  ];
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'geral':
+        return (
+          <div className="space-y-12 animate-in fade-in duration-500">
+            <header className="mb-12">
+              <h1 className="text-4xl font-headline font-bold text-white tracking-tighter mb-2">Geral</h1>
+              <p className="text-on-surface-variant text-lg">Personalize a sua experiência e segurança da conta.</p>
+            </header>
+
+            {/* MFA Security Banner */}
+            <div className="relative group mb-12 overflow-hidden rounded-2xl bg-white bg-opacity-5 p-4 d-flex flex-column md:flex-row items-center justify-between border border-white/5">
+              <div className="absolute inset-0 monolithic-gradient opacity-5"></div>
+              <div className="d-flex align-items-center gap-6 relative z-10 w-100">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center border border-white/10" style={{ minWidth: '64px' }}>
+                  <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
+                </div>
+                <div className="flex-grow-1">
+                  <h3 className="text-xl fw-bold text-white mb-1">Torne a sua conta segura</h3>
+                  <p className="text-muted mb-0">Adicione uma camada extra de proteção ao configurar a autenticação de dois fatores.</p>
+                </div>
+                <button className="btn monolithic-gradient text-dark fw-bold text-sm tracking-wide text-uppercase rounded-pill px-5 shadow-lg border-0">
+                  Configurar MFA
+                </button>
+              </div>
+            </div>
+
+            {/* Settings Grid */}
+            <div className="space-y-12">
+              {/* Aspeto */}
+              <section className="row g-4 align-items-start">
+                <div className="col-md-4">
+                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Aspeto</h4>
+                  <p className="text-muted small">Escolha como o sistema deve aparecer no seu dispositivo.</p>
+                </div>
+                <div className="col-md-8">
+                  <div className="position-relative">
+                    <select 
+                      className="form-select bg-[#353535] border-0 text-white py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer shadow-lg"
+                      value={isDarkMode ? 'dark' : 'light'}
+                      onChange={(e) => {
+                        if ((e.target.value === 'dark' && !isDarkMode) || (e.target.value === 'light' && isDarkMode)) {
+                          toggleDarkMode();
+                        }
+                      }}
+                    >
+                      <option value="system">Sistema</option>
+                      <option value="dark">Modo Escuro</option>
+                      <option value="light">Modo Claro</option>
+                    </select>
+                    <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 pointer-events-none text-muted">expand_more</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Cor de Destaque */}
+              <section className="row g-4 align-items-start pt-5 border-top border-white border-opacity-5">
+                <div className="col-md-4">
+                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Cor de destaque</h4>
+                  <p className="text-muted small">A cor principal usada em botões, links e estados ativos.</p>
+                </div>
+                <div className="col-md-8">
+                  <div className="d-flex flex-wrap gap-4 p-2 bg-[#0e0e0e] bg-opacity-50 rounded-4 border border-white/5">
+                    <button type="button" className="w-12 h-12 rounded-circle border-4 border-white bg-white transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-primary transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-info transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-warning transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-white border-opacity-10 bg-[#353535] transition-transform hover:scale-110 d-flex align-items-center justify-content-center">
+                      <span className="material-symbols-outlined text-sm text-white">colorize</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Idioma */}
+              <section className="row g-4 align-items-start pt-5 border-top border-white border-opacity-5">
+                <div className="col-md-4">
+                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Idioma</h4>
+                  <p className="text-muted small">O idioma principal da interface do utilizador.</p>
+                </div>
+                <div className="col-md-8">
+                  <div className="position-relative">
+                    <select className="form-select bg-[#353535] border-0 text-white py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer shadow-lg">
+                      <option>Detetar automaticamente</option>
+                      <option>Português (Brasil)</option>
+                      <option>English (US)</option>
+                    </select>
+                    <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 pointer-events-none text-muted">language</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        );
+      case 'familia':
+        return (
+          <div className="space-y-12 animate-in fade-in duration-500">
+            <header className="mb-12">
+              <h1 className="text-4xl font-headline font-bold text-white tracking-tighter mb-2">Controlos de dados</h1>
+              <p className="text-on-surface-variant text-lg">Gerencie quem compartilha a conta com você e como os dados são acessados.</p>
+            </header>
+
+            {userType === 'titular' && (
+              <div className="relative group mb-12 overflow-hidden rounded-2xl bg-white bg-opacity-5 p-6 border border-white/5 shadow-2xl">
+                 <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-4">Convidar Membro</h4>
+                 <div className="d-flex gap-3">
+                   <input 
+                      type="email" 
+                      className="form-control bg-[#353535] border-0 text-white rounded-xl px-6 py-4" 
+                      placeholder="E-mail da pessoa"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                   />
+                   <button 
+                      className="px-8 rounded-xl monolithic-gradient text-dark fw-bold text-sm text-uppercase border-0 shadow-lg"
+                      onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
+                   >
+                     Enviar
+                   </button>
+                 </div>
+              </div>
+            )}
+
+            <div className="row g-6">
+              {familyMembers.map((member) => (
+                <div key={member.id} className="col-md-6 mb-4">
+                  <div className="glass-panel p-6 rounded-2xl border border-white border-opacity-5 d-flex align-items-center justify-content-between hover:bg-opacity-80 transition-all shadow-xl">
+                    <div className="d-flex align-items-center gap-6">
+                      <div className="position-relative" style={{ width: '64px', height: '64px' }}>
+                        <Image
+                          src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
+                          fill
+                          unoptimized
+                          className="rounded-circle object-fit-cover ring-4 ring-primary ring-opacity-20"
+                          alt={member.nome}
+                        />
+                      </div>
+                      <div>
+                        <div className="fw-bold text-white text-xl tracking-tight">{member.nome}</div>
+                        <div className="text-muted text-sm opacity-60">@{member.email.split('@')[0]}</div>
+                      </div>
+                    </div>
+                    <span className={cn(
+                      "badge rounded-pill shadow-lg px-4 py-2 border",
+                      member.tipo === 'titular' ? "bg-white text-dark border-white" : "bg-transparent text-muted border-white border-opacity-10"
+                    )} style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      {member.tipo === 'titular' ? 'Titular' : 'Membro'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-30 text-white">
+            <span className="material-symbols-outlined text-[120px] mb-8">construction</span>
+            <h3 className="fw-bold h2 tracking-tighter">Em breve</h3>
+            <p className="fs-5 tracking-widest text-uppercase">Esta seção está sendo preparada.</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 1051 }} onClick={onClose}>
+      <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
+        <div className="modal-content border-white border-opacity-5 shadow-2xl overflow-hidden rounded-[2rem] glass-panel" style={{ height: '870px' }}>
+          <div className="d-flex h-100 flex-column flex-md-row">
+            {/* SideNavBar Interna */}
+            <aside className="w-100 w-md-72 bg-[#1b1b1c] border-end border-white border-opacity-5 d-flex flex-column h-full py-5">
+              <div className="px-8 mb-10 mt-3">
+                <h2 className="text-white fw-bold h3 m-0 tracking-tighter text-uppercase">Settings</h2>
+                <p className="text-on-surface-variant small m-0 tracking-widest text-uppercase mt-2" style={{ fontSize: '10px', fontWeight: 'bold' }}>Manage your gallery</p>
+              </div>
+
+              <nav className="flex-fill space-y-1 px-4 overflow-auto mt-4">
+                {tabs.map((tab) => (
+                  <button
+                    type="button"
+                    key={tab.id}
+                    className={cn(
+                      "w-100 d-flex align-items-center gap-4 px-5 py-4 border-0 transition-all duration-300 text-uppercase tracking-widest fw-bold",
+                      activeTab === tab.id 
+                        ? "bg-[#353535] text-white border-start border-white border-2" 
+                        : "bg-transparent text-[#c6c6c6] hover:bg-[#353535]/50 hover:text-white"
+                    )}
+                    style={{ fontSize: '11px', textAlign: 'left' }}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+                    <span className="font-label tracking-widest">{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+
+              <div className="px-8 mt-auto pt-8 border-top border-white border-opacity-5">
+                <div className="d-flex align-items-center gap-4">
+                  <div className="w-12 h-12 rounded-circle bg-white bg-opacity-5 d-flex align-items-center justify-content-center border border-white border-opacity-10 shadow-lg" style={{ width: '40px', height: '40px' }}>
+                    <span className="material-symbols-outlined text-white opacity-80">person</span>
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="text-white fw-bold small text-truncate">{user?.nome || 'Alex Volkov'}</div>
+                    <div className="text-on-surface-variant text-uppercase tracking-widest" style={{ fontSize: '9px', fontWeight: 'bold' }}>
+                      {user?.tipo === 'titular' ? 'Pro Member' : 'Family Member'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <main className="flex-fill overflow-auto p-5 p-md-10 bg-transparent custom-scrollbar">
+              <div className="max-w-4xl h-100 d-flex flex-column">
+                <div className="flex-fill">
+                  {renderContent()}
+                </div>
+                
+                <footer className="mt-16 pt-8 border-top border-white border-opacity-5 d-flex justify-content-end gap-6 pb-6">
+                  <button type="button" className="px-10 py-3 rounded-pill bg-[#353535] text-white border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors hover:bg-opacity-80" onClick={onClose}>
+                    Cancelar
+                  </button>
+                  <button type="button" className="px-12 py-3 rounded-pill monolithic-gradient text-dark border-0 fw-bold text-sm text-uppercase tracking-wide shadow-lg hover:shadow-white/10 transition-all">
+                    Guardar Alterações
+                  </button>
+                </footer>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

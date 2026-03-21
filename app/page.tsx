@@ -6,7 +6,7 @@ import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile'>('despesa');
+  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings'>('despesa');
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
@@ -654,16 +654,16 @@ export default function Home() {
           onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
           onLogout={signOut}
         />
-        
-        <main className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
+
+        <div className="content-body p-3 p-md-4">
           {isLoading ? (
             <div className="d-flex align-items-center justify-content-center h-50 pt-5">
               <div className="spinner-border text-primary" role="status"></div>
             </div>
           ) : renderContent()}
-        </main>
-        
-        <MobileNav 
+        </div>
+
+        <MobileNav
           activeView={activeView}
           onViewChange={setActiveView}
         />
@@ -764,6 +764,17 @@ export default function Home() {
           title="Confirmar Exclusão"
           message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
           confirmLabel="Excluir"
+        />
+
+        <SettingsModal 
+          isOpen={isModalOpen && modalType === 'settings'}
+          onClose={() => setIsModalOpen(false)}
+          user={userProfile}
+          isDarkMode={isDarkMode}
+          toggleDarkMode={toggleDarkMode}
+          familyMembers={familyMembers}
+          onInvite={handleInvite}
+          userType={userType}
         />
       </div>
     </div>
