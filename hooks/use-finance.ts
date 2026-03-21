@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, Categoria, CartaoTransacao, Nota } from '@/lib/types';
+import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, Categoria, CartaoTransacao, Nota, Profile } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas } from '@/lib/finance-service';

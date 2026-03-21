@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
-import { Titular, Status, Despesa, Receita, CartaoConfig } from '@/lib/types';
+import { Titular, Status, Despesa, Receita, CartaoConfig, Profile } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
 import { parseISO, format, getDate } from 'date-fns';
@@ -715,5 +715,117 @@ export function ConfirmModal({
         </div>
       </div>
     </div>
+  );
+}
+export function ProfileForm({ 
+  onSubmit, 
+  initialData 
+}: { 
+  onSubmit: (data: Partial<Profile>) => void, 
+  initialData?: Profile | null 
+}) {
+  const [formData, setFormData] = useState({
+    nome: initialData?.nome || '',
+    foto: initialData?.foto || ''
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      setSizeError('Arquivo muito grande! O limite para a foto de perfil é de 1MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `profile-${initialData?.id || Date.now()}.${fileExt}`;
+      const filePath = `profiles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, foto: publicUrl });
+    } catch (error: any) {
+      console.warn('Supabase Storage error (falling back to local):', error.message || error);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev: { nome: string; foto: string }) => ({ ...prev, foto: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Seu Nome</label>
+        <input 
+          required
+          type="text" 
+          className="form-control rounded-3"
+          value={formData.nome}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, nome: e.target.value })}
+        />
+      </div>
+      <div className="col-12">
+        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Sua Foto</label>
+        <div className="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
+          <div className="position-relative" style={{ width: '60px', height: '60px' }}>
+            {formData.foto ? (
+              <Image 
+                src={formData.foto} 
+                alt="Preview" 
+                fill 
+                className="rounded-circle object-cover border" 
+                unoptimized
+              />
+            ) : (
+              <div className="w-100 h-100 rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center text-secondary">
+                <i className="fa-solid fa-user fa-xl"></i>
+              </div>
+            )}
+          </div>
+          <div className="flex-grow-1">
+            <input 
+              type="file" 
+              accept="image/*"
+              className="d-none" 
+              id="profile-foto-upload"
+              onChange={handleFileChange}
+            />
+            <label 
+              htmlFor="profile-foto-upload"
+              className="btn btn-sm btn-outline-primary fw-bold text-uppercase"
+            >
+              {isUploading ? 'Processando...' : 'Trocar Foto'}
+            </label>
+            <p className="small text-muted mb-0 mt-1" style={{ fontSize: '10px' }}>PNG, JPG ou GIF (Máx. 1MB)</p>
+          </div>
+        </div>
+      </div>
+      {sizeError && <div className="col-12 mt-2 alert alert-danger small py-2">{sizeError}</div>}
+      <div className="col-12 mt-4">
+        <button 
+            disabled={isUploading}
+            className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase"
+        >
+            <i className="fa-solid fa-check me-2"></i>Atualizar Perfil
+        </button>
+      </div>
+    </form>
   );
 }

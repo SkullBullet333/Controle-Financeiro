@@ -6,11 +6,11 @@ import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status } from '@/lib/types';
+import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 export default function Home() {
@@ -22,7 +22,7 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria'>('despesa');
+  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile'>('despesa');
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
@@ -74,10 +74,21 @@ export default function Home() {
     updateCartao,
     deleteCartao,
     familyId,
+    familyMembers,
     inviteMember,
     userName,
-    userType
+    userType,
+    updateProfile
   } = useFinance(activeView);
+
+  const userProfile: Profile | null = user ? {
+    id: user.id,
+    email: user.email || '',
+    nome: userName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+    foto: user.user_metadata?.avatar_url,
+    tipo: userType,
+    family_id: familyId || ''
+  } : null;
 
   React.useEffect(() => {
     setActiveFilterId(null);
@@ -620,11 +631,18 @@ export default function Home() {
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
-        user={{
-          nome: userName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário',
-          foto: user?.user_metadata?.avatar_url
-        }}
+        user={userProfile}
+        familyMembers={familyMembers}
         onLogout={signOut}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
+        onInvite={handleInvite}
+        onUpdateProfile={updateProfile}
+        onOpenModal={(type) => {
+          setModalType(type);
+          setEditingItem(null);
+          setIsModalOpen(true);
+        }}
       />
 
       <div className="content">
@@ -660,10 +678,18 @@ export default function Home() {
           title={
             editingItem
               ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : 'Editar Cartão')
-              : (modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : 'Novo Cartão')
+              : (modalType === 'profile' ? 'Editar Meu Perfil' : modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : 'Novo Cartão')
           }
         >
-          {modalType === 'despesa' || modalType === 'receita' ? (
+          {modalType === 'profile' ? (
+            <ProfileForm 
+              initialData={userProfile}
+              onSubmit={(data) => {
+                updateProfile(data);
+                setIsModalOpen(false);
+              }}
+            />
+          ) : modalType === 'despesa' || modalType === 'receita' ? (
             <FinanceForm
               type={modalType}
               subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}

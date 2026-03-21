@@ -167,6 +167,64 @@ body {
   background: rgba(67, 97, 238, 0.1);
 }
 
+.sidebar-footer {
+  width: 100%;
+}
+
+.user-profile-btn {
+  width: 100%;
+  border: 1px solid transparent;
+}
+
+.sidebar:hover .user-profile-btn {
+  border-color: var(--border);
+  background: var(--light);
+}
+
+.sidebar-user-info {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .sidebar-user-info {
+  opacity: 1;
+}
+
+.user-profile-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 15px;
+  right: 15px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  z-index: 1001;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.dark-mode .user-profile-popup {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popup-menu button:hover {
+  background: var(--light);
+}
+
+.family-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.family-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
