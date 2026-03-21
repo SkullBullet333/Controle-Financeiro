@@ -1224,10 +1224,10 @@ export function SettingsModal({
         <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
           <div className="d-flex h-100 flex-column flex-md-row">
             {/* SideNavBar Interna */}
-            <aside className="w-100 w-md-72 bg-muted/30 border-end border-border d-flex flex-column h-full py-5">
-              <div className="px-8 mb-10 mt-3">
-                <h2 className="text-foreground fw-bold h3 m-0 tracking-tighter text-uppercase">Definições</h2>
-                <p className="text-muted-foreground small m-0 tracking-widest text-uppercase mt-2" style={{ fontSize: '10px', fontWeight: 'bold' }}>Gerencie suas preferências</p>
+            <aside className="w-100 w-md-64 bg-muted/20 border-end border-border d-flex flex-column h-full py-6">
+              <div className="px-6 mb-8 mt-2">
+                <h2 className="text-foreground fw-bold h4 m-0 tracking-tighter text-uppercase">Definições</h2>
+                <p className="text-muted-foreground m-0 tracking-widest text-uppercase mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>Preferências</p>
               </div>
 
               <nav className="flex-fill space-y-1 px-4 overflow-auto mt-2">
@@ -1250,19 +1250,19 @@ export function SettingsModal({
                 ))}
               </nav>
 
-              <div className="px-8 mt-auto pt-8 border-top border-border">
-                <div className="d-flex align-items-center gap-4">
-                  <div className="w-12 h-12 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm" style={{ width: '40px', height: '40px' }}>
+              <div className="px-6 mt-auto pt-6 border-top border-border">
+                <div className="d-flex align-items-center gap-3">
+                  <div className="w-10 h-10 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm flex-shrink-0">
                     {user?.foto ? (
-                      <Image src={user.foto} fill className="rounded-circle object-cover" unoptimized alt={user.nome} />
+                      <Image src={user.foto} width={40} height={40} className="rounded-circle object-cover" unoptimized alt={user.nome} />
                     ) : (
-                      <span className="material-symbols-outlined text-primary opacity-80">person</span>
+                      <span className="material-symbols-outlined text-primary opacity-80" style={{ fontSize: '18px' }}>person</span>
                     )}
                   </div>
                   <div className="overflow-hidden">
-                    <div className="text-foreground fw-bold small text-truncate">{user?.nome || 'Usuário'}</div>
-                    <div className="text-muted-foreground text-uppercase tracking-widest" style={{ fontSize: '9px', fontWeight: 'bold' }}>
-                      {user?.tipo === 'titular' ? 'Pro Member' : 'Family Member'}
+                    <div className="text-foreground fw-bold extra-small text-truncate" style={{ fontSize: '12px' }}>{user?.nome || 'Usuário'}</div>
+                    <div className="text-muted-foreground text-uppercase tracking-widest" style={{ fontSize: '8px', fontWeight: 'bold' }}>
+                      {user?.tipo === 'titular' ? 'Admin' : 'Membro'}
                     </div>
                   </div>
                 </div>
