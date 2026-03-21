@@ -839,7 +839,15 @@ export function SettingsModal({
   toggleDarkMode,
   familyMembers,
   onInvite,
-  userType
+  userType,
+  titulares,
+  cartoes,
+  onAddTitular,
+  onUpdateTitular,
+  onDeleteTitular,
+  onAddCartao,
+  onUpdateCartao,
+  onDeleteCartao
 }: { 
   isOpen: boolean, 
   onClose: () => void,
@@ -848,7 +856,15 @@ export function SettingsModal({
   toggleDarkMode: () => void,
   familyMembers: Profile[],
   onInvite: (email: string) => void,
-  userType: 'titular' | 'membro'
+  userType: 'titular' | 'membro',
+  titulares: Titular[],
+  cartoes: CartaoConfig[],
+  onAddTitular: () => void,
+  onUpdateTitular: (t: Titular) => void,
+  onDeleteTitular: (id: number) => void,
+  onAddCartao: () => void,
+  onUpdateCartao: (c: CartaoConfig) => void,
+  onDeleteCartao: (id: number) => void
 }) {
   const [activeTab, setActiveTab] = useState('geral');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -856,13 +872,13 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'geral', label: 'General', icon: 'settings' },
-    { id: 'notificacoes', label: 'Notifications', icon: 'notifications' },
-    { id: 'personalizacao', label: 'Personalization', icon: 'palette' },
-    { id: 'familia', label: 'Data Control', icon: 'database' },
-    { id: 'seguranca', label: 'Security', icon: 'shield' },
-    { id: 'parental', label: 'Parental Controls', icon: 'family_history' },
-    { id: 'billing', label: 'Billing', icon: 'payments' },
+    { id: 'geral', label: 'Geral', icon: 'settings' },
+    { id: 'titulares', label: 'Titulares', icon: 'person_add' },
+    { id: 'cartoes', label: 'Cartões', icon: 'credit_card' },
+    { id: 'familia', label: 'Controle de Dados', icon: 'database' },
+    { id: 'notificacoes', label: 'Notificações', icon: 'notifications' },
+    { id: 'personalizacao', label: 'Personalização', icon: 'palette' },
+    { id: 'billing', label: 'Assinatura', icon: 'payments' },
   ];
 
   const renderContent = () => {
@@ -871,22 +887,21 @@ export function SettingsModal({
         return (
           <div className="space-y-12 animate-in fade-in duration-500">
             <header className="mb-12">
-              <h1 className="text-4xl font-headline font-bold text-white tracking-tighter mb-2">Geral</h1>
-              <p className="text-on-surface-variant text-lg">Personalize a sua experiência e segurança da conta.</p>
+              <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Geral</h1>
+              <p className="text-muted-foreground text-lg">Personalize a sua experiência e segurança da conta.</p>
             </header>
 
-            {/* MFA Security Banner */}
-            <div className="relative group mb-12 overflow-hidden rounded-2xl bg-white bg-opacity-5 p-4 d-flex flex-column md:flex-row items-center justify-between border border-white/5">
-              <div className="absolute inset-0 monolithic-gradient opacity-5"></div>
+            {/* Security Banner */}
+            <div className="relative group mb-12 overflow-hidden rounded-2xl bg-primary/5 p-4 d-flex flex-column md:flex-row items-center justify-between border border-primary/10">
               <div className="d-flex align-items-center gap-6 relative z-10 w-100">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center border border-white/10" style={{ minWidth: '64px' }}>
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20" style={{ minWidth: '64px' }}>
                   <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
                 </div>
                 <div className="flex-grow-1">
-                  <h3 className="text-xl fw-bold text-white mb-1">Torne a sua conta segura</h3>
-                  <p className="text-muted mb-0">Adicione uma camada extra de proteção ao configurar a autenticação de dois fatores.</p>
+                  <h3 className="text-xl fw-bold text-foreground mb-1">Torne a sua conta segura</h3>
+                  <p className="text-muted small mb-0">Adicione uma camada extra de proteção ao configurar a autenticação de dois fatores.</p>
                 </div>
-                <button className="btn monolithic-gradient text-dark fw-bold text-sm tracking-wide text-uppercase rounded-pill px-5 shadow-lg border-0">
+                <button className="btn btn-primary text-white fw-bold text-sm tracking-wide text-uppercase rounded-pill px-5 shadow-lg border-0">
                   Configurar MFA
                 </button>
               </div>
@@ -897,13 +912,13 @@ export function SettingsModal({
               {/* Aspeto */}
               <section className="row g-4 align-items-start">
                 <div className="col-md-4">
-                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Aspeto</h4>
+                  <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-1">Aspeto</h4>
                   <p className="text-muted small">Escolha como o sistema deve aparecer no seu dispositivo.</p>
                 </div>
                 <div className="col-md-8">
                   <div className="position-relative">
                     <select 
-                      className="form-select bg-[#353535] border-0 text-white py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer shadow-lg"
+                      className="form-select bg-muted border-0 text-foreground py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm"
                       value={isDarkMode ? 'dark' : 'light'}
                       onChange={(e) => {
                         if ((e.target.value === 'dark' && !isDarkMode) || (e.target.value === 'light' && isDarkMode)) {
@@ -921,41 +936,114 @@ export function SettingsModal({
               </section>
 
               {/* Cor de Destaque */}
-              <section className="row g-4 align-items-start pt-5 border-top border-white border-opacity-5">
+              <section className="row g-4 align-items-start pt-5 border-top border-border">
                 <div className="col-md-4">
-                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Cor de destaque</h4>
+                  <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-1">Cor de destaque</h4>
                   <p className="text-muted small">A cor principal usada em botões, links e estados ativos.</p>
                 </div>
                 <div className="col-md-8">
-                  <div className="d-flex flex-wrap gap-4 p-2 bg-[#0e0e0e] bg-opacity-50 rounded-4 border border-white/5">
-                    <button type="button" className="w-12 h-12 rounded-circle border-4 border-white bg-white transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-primary transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-info transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-transparent bg-warning transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-12 h-12 rounded-circle border-2 border-white border-opacity-10 bg-[#353535] transition-transform hover:scale-110 d-flex align-items-center justify-content-center">
-                      <span className="material-symbols-outlined text-sm text-white">colorize</span>
+                  <div className="d-flex flex-wrap gap-4 p-2 bg-muted rounded-4 border border-border">
+                    <button type="button" className="w-100 h-10 w-10 h-10 rounded-circle border-4 border-white bg-white transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-primary transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-info transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-warning transition-transform hover:scale-110 shadow-sm"></button>
+                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-border bg-background transition-transform hover:scale-110 d-flex align-items-center justify-content-center">
+                      <span className="material-symbols-outlined text-sm text-foreground">colorize</span>
                     </button>
                   </div>
                 </div>
               </section>
+            </div>
+          </div>
+        );
+      case 'titulares':
+        return (
+          <div className="space-y-12 animate-in fade-in duration-500">
+            <header className="mb-12 d-flex justify-content-between align-items-end">
+              <div>
+                <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Titulares</h1>
+                <p className="text-muted-foreground text-lg">Gerencie as pessoas que possuem contas e cartões nesta família.</p>
+              </div>
+              <button 
+                onClick={onAddTitular}
+                className="btn btn-primary rounded-pill px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg"
+              >
+                <span className="material-symbols-outlined">person_add</span>
+                NOVO TITULAR
+              </button>
+            </header>
 
-              {/* Idioma */}
-              <section className="row g-4 align-items-start pt-5 border-top border-white border-opacity-5">
-                <div className="col-md-4">
-                  <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-1">Idioma</h4>
-                  <p className="text-muted small">O idioma principal da interface do utilizador.</p>
-                </div>
-                <div className="col-md-8">
-                  <div className="position-relative">
-                    <select className="form-select bg-[#353535] border-0 text-white py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer shadow-lg">
-                      <option>Detetar automaticamente</option>
-                      <option>Português (Brasil)</option>
-                      <option>English (US)</option>
-                    </select>
-                    <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 pointer-events-none text-muted">language</span>
+            <div className="row g-6">
+              {titulares.map((t) => (
+                <div key={t.id} className="col-md-6 mb-4">
+                  <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm hover:shadow-md">
+                    <div className="d-flex align-items-center gap-6">
+                      <div className="position-relative" style={{ width: '64px', height: '64px' }}>
+                        <Image
+                          src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                          fill
+                          unoptimized
+                          className="rounded-circle object-fit-cover ring-2 ring-primary/20"
+                          alt={t.nome}
+                        />
+                      </div>
+                      <div>
+                        <div className="fw-bold text-foreground text-xl tracking-tight">{t.nome}</div>
+                        <div className="text-muted text-sm opacity-60">ID: #{t.id}</div>
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2">
+                       <button onClick={() => onUpdateTitular(t)} className="btn btn-icon btn-light rounded-circle"><i className="fa-solid fa-pen"></i></button>
+                       <button onClick={() => onDeleteTitular(t.id)} className="btn btn-icon btn-light text-danger rounded-circle"><i className="fa-solid fa-trash"></i></button>
+                    </div>
                   </div>
                 </div>
-              </section>
+              ))}
+            </div>
+          </div>
+        );
+      case 'cartoes':
+        return (
+          <div className="space-y-12 animate-in fade-in duration-500">
+            <header className="mb-12 d-flex justify-content-between align-items-end">
+              <div>
+                <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Cartões</h1>
+                <p className="text-muted-foreground text-lg">Configure os cartões de crédito da família.</p>
+              </div>
+              <button 
+                onClick={onAddCartao}
+                className="btn btn-primary rounded-pill px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg"
+              >
+                <span className="material-symbols-outlined">credit_card</span>
+                NOVO CARTÃO
+              </button>
+            </header>
+
+            <div className="row g-6">
+              {cartoes.map((c) => {
+                const titular = titulares.find(t => t.id === c.titular_id);
+                return (
+                  <div key={c.id} className="col-md-6 mb-4">
+                    <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm hover:shadow-md">
+                      <div className="d-flex align-items-center gap-6">
+                        <div className="w-16 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-focus d-flex align-items-center justify-content-center text-white">
+                          <i className="fa-solid fa-credit-card fa-xl"></i>
+                        </div>
+                        <div>
+                          <div className="fw-bold text-foreground text-xl tracking-tight">{c.nome_cartao}</div>
+                          <div className="text-muted text-sm opacity-80">
+                            {titular?.nome || 'Sem titular'} • Fechamento: {c.dia_fechamento} • Vencimento: {c.dia_vencimento}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="d-flex gap-2">
+                         <button onClick={() => onUpdateCartao(c)} className="btn btn-icon btn-light rounded-circle"><i className="fa-solid fa-pen"></i></button>
+                         <button onClick={() => onDeleteCartao(c.id)} className="btn btn-icon btn-light text-danger rounded-circle"><i className="fa-solid fa-trash"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -963,23 +1051,23 @@ export function SettingsModal({
         return (
           <div className="space-y-12 animate-in fade-in duration-500">
             <header className="mb-12">
-              <h1 className="text-4xl font-headline font-bold text-white tracking-tighter mb-2">Controlos de dados</h1>
-              <p className="text-on-surface-variant text-lg">Gerencie quem compartilha a conta com você e como os dados são acessados.</p>
+              <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Controlos de dados</h1>
+              <p className="text-muted-foreground text-lg">Gerencie quem compartilha a conta com você e como os dados são acessados.</p>
             </header>
 
             {userType === 'titular' && (
-              <div className="relative group mb-12 overflow-hidden rounded-2xl bg-white bg-opacity-5 p-6 border border-white/5 shadow-2xl">
-                 <h4 className="text-white fw-bold text-sm text-uppercase tracking-widest mb-4">Convidar Membro</h4>
+              <div className="relative group mb-12 overflow-hidden rounded-2xl bg-muted p-6 border border-border shadow-sm">
+                 <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-4">Convidar Membro</h4>
                  <div className="d-flex gap-3">
                    <input 
                       type="email" 
-                      className="form-control bg-[#353535] border-0 text-white rounded-xl px-6 py-4" 
+                      className="form-control bg-background border border-border text-foreground rounded-xl px-6 py-4" 
                       placeholder="E-mail da pessoa"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                    />
                    <button 
-                      className="px-8 rounded-xl monolithic-gradient text-dark fw-bold text-sm text-uppercase border-0 shadow-lg"
+                      className="px-8 rounded-xl btn btn-primary fw-bold text-sm text-uppercase border-0 shadow-lg"
                       onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
                    >
                      Enviar
@@ -991,25 +1079,25 @@ export function SettingsModal({
             <div className="row g-6">
               {familyMembers.map((member) => (
                 <div key={member.id} className="col-md-6 mb-4">
-                  <div className="glass-panel p-6 rounded-2xl border border-white border-opacity-5 d-flex align-items-center justify-content-between hover:bg-opacity-80 transition-all shadow-xl">
+                  <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm">
                     <div className="d-flex align-items-center gap-6">
                       <div className="position-relative" style={{ width: '64px', height: '64px' }}>
                         <Image
                           src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
                           fill
                           unoptimized
-                          className="rounded-circle object-fit-cover ring-4 ring-primary ring-opacity-20"
+                          className="rounded-circle object-fit-cover ring-2 ring-primary/20"
                           alt={member.nome}
                         />
                       </div>
                       <div>
-                        <div className="fw-bold text-white text-xl tracking-tight">{member.nome}</div>
+                        <div className="fw-bold text-foreground text-xl tracking-tight">{member.nome}</div>
                         <div className="text-muted text-sm opacity-60">@{member.email.split('@')[0]}</div>
                       </div>
                     </div>
                     <span className={cn(
-                      "badge rounded-pill shadow-lg px-4 py-2 border",
-                      member.tipo === 'titular' ? "bg-white text-dark border-white" : "bg-transparent text-muted border-white border-opacity-10"
+                      "badge rounded-pill shadow-sm px-4 py-2 border",
+                      member.tipo === 'titular' ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border"
                     )} style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       {member.tipo === 'titular' ? 'Titular' : 'Membro'}
                     </span>
@@ -1021,7 +1109,7 @@ export function SettingsModal({
         );
       default:
         return (
-          <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-30 text-white">
+          <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-30 text-foreground">
             <span className="material-symbols-outlined text-[120px] mb-8">construction</span>
             <h3 className="fw-bold h2 tracking-tighter">Em breve</h3>
             <p className="fs-5 tracking-widest text-uppercase">Esta seção está sendo preparada.</p>
@@ -1031,15 +1119,15 @@ export function SettingsModal({
   };
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: 1051 }} onClick={onClose}>
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 2000 }} onClick={onClose}>
       <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
-        <div className="modal-content border-white border-opacity-5 shadow-2xl overflow-hidden rounded-[2rem] glass-panel" style={{ height: '870px' }}>
+        <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
           <div className="d-flex h-100 flex-column flex-md-row">
             {/* SideNavBar Interna */}
-            <aside className="w-100 w-md-72 bg-[#1b1b1c] border-end border-white border-opacity-5 d-flex flex-column h-full py-5">
+            <aside className="w-100 w-md-72 bg-muted/30 border-end border-border d-flex flex-column h-full py-5">
               <div className="px-8 mb-10 mt-3">
-                <h2 className="text-white fw-bold h3 m-0 tracking-tighter text-uppercase">Settings</h2>
-                <p className="text-on-surface-variant small m-0 tracking-widest text-uppercase mt-2" style={{ fontSize: '10px', fontWeight: 'bold' }}>Manage your gallery</p>
+                <h2 className="text-foreground fw-bold h3 m-0 tracking-tighter text-uppercase">Definições</h2>
+                <p className="text-muted-foreground small m-0 tracking-widest text-uppercase mt-2" style={{ fontSize: '10px', fontWeight: 'bold' }}>Gerencie suas preferências</p>
               </div>
 
               <nav className="flex-fill space-y-1 px-4 overflow-auto mt-4">
@@ -1050,8 +1138,8 @@ export function SettingsModal({
                     className={cn(
                       "w-100 d-flex align-items-center gap-4 px-5 py-4 border-0 transition-all duration-300 text-uppercase tracking-widest fw-bold",
                       activeTab === tab.id 
-                        ? "bg-[#353535] text-white border-start border-white border-2" 
-                        : "bg-transparent text-[#c6c6c6] hover:bg-[#353535]/50 hover:text-white"
+                        ? "bg-primary/10 text-primary border-start border-primary border-4" 
+                        : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                     style={{ fontSize: '11px', textAlign: 'left' }}
                     onClick={() => setActiveTab(tab.id)}
@@ -1062,14 +1150,18 @@ export function SettingsModal({
                 ))}
               </nav>
 
-              <div className="px-8 mt-auto pt-8 border-top border-white border-opacity-5">
+              <div className="px-8 mt-auto pt-8 border-top border-border">
                 <div className="d-flex align-items-center gap-4">
-                  <div className="w-12 h-12 rounded-circle bg-white bg-opacity-5 d-flex align-items-center justify-content-center border border-white border-opacity-10 shadow-lg" style={{ width: '40px', height: '40px' }}>
-                    <span className="material-symbols-outlined text-white opacity-80">person</span>
+                  <div className="w-12 h-12 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm" style={{ width: '40px', height: '40px' }}>
+                    {user?.foto ? (
+                      <Image src={user.foto} fill className="rounded-circle object-cover" unoptimized alt={user.nome} />
+                    ) : (
+                      <span className="material-symbols-outlined text-primary opacity-80">person</span>
+                    )}
                   </div>
                   <div className="overflow-hidden">
-                    <div className="text-white fw-bold small text-truncate">{user?.nome || 'Alex Volkov'}</div>
-                    <div className="text-on-surface-variant text-uppercase tracking-widest" style={{ fontSize: '9px', fontWeight: 'bold' }}>
+                    <div className="text-foreground fw-bold small text-truncate">{user?.nome || 'Usuário'}</div>
+                    <div className="text-muted-foreground text-uppercase tracking-widest" style={{ fontSize: '9px', fontWeight: 'bold' }}>
                       {user?.tipo === 'titular' ? 'Pro Member' : 'Family Member'}
                     </div>
                   </div>
@@ -1078,18 +1170,15 @@ export function SettingsModal({
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-fill overflow-auto p-5 p-md-10 bg-transparent custom-scrollbar">
+            <main className="flex-fill overflow-auto p-5 p-md-10 bg-background custom-scrollbar">
               <div className="max-w-4xl h-100 d-flex flex-column">
                 <div className="flex-fill">
                   {renderContent()}
                 </div>
                 
-                <footer className="mt-16 pt-8 border-top border-white border-opacity-5 d-flex justify-content-end gap-6 pb-6">
-                  <button type="button" className="px-10 py-3 rounded-pill bg-[#353535] text-white border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors hover:bg-opacity-80" onClick={onClose}>
-                    Cancelar
-                  </button>
-                  <button type="button" className="px-12 py-3 rounded-pill monolithic-gradient text-dark border-0 fw-bold text-sm text-uppercase tracking-wide shadow-lg hover:shadow-white/10 transition-all">
-                    Guardar Alterações
+                <footer className="mt-16 pt-8 border-top border-border d-flex justify-content-end gap-6 pb-6">
+                  <button type="button" className="px-10 py-3 rounded-pill btn btn-light border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors" onClick={onClose}>
+                    Fechar
                   </button>
                 </footer>
               </div>

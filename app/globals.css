@@ -242,21 +242,24 @@ body {
 }
 
 .user-profile-popup {
-  position: absolute;
-  bottom: 85px;
-  left: 10px;
-  width: 280px !important;
-  min-width: 280px !important;
+  position: fixed;
+  bottom: 100px;
+  left: 16px;
+  width: 288px !important;
+  min-width: 288px !important;
   background: var(--card) !important;
   backdrop-filter: blur(20px);
-  z-index: 1001;
+  z-index: 2001;
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
   overflow: visible !important;
+  padding: 1rem;
+  border-radius: 1rem;
 }
 
 body.dark-mode .user-profile-popup {
-  background: rgba(30, 41, 59, 0.8) !important;
+  background: rgba(30, 41, 59, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 @keyframes slideUp {
@@ -596,4 +599,46 @@ body.dark-mode .status-hoje {
 .date-display span {
   font-weight: 800;
   font-size: 1.1rem;
+}
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: var(--light);
+}
+
+.bg-muted {
+  background-color: var(--light) !important;
+}
+
+body.dark-mode .bg-muted {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.text-foreground {
+  color: var(--text) !important;
+}
+
+.text-muted-foreground {
+  color: var(--gray) !important;
+}
+
+.border-border {
+  border-color: var(--border) !important;
+}
+
+.bg-card {
+  background-color: var(--card) !important;
+}
+
+.bg-background {
+  background-color: var(--bg) !important;
 }
