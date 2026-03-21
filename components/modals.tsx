@@ -21,9 +21,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(19, 19, 19, 0.8)', backdropFilter: 'blur(20px)', zIndex: 1050 }} onClick={onClose}>
       <div className="modal-dialog modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200">
+        <div className="modal-content rounded-4 border border-outline-variant/20 shadow-2xl animate-in zoom-in-95 duration-200 bg-surface-container-low text-white">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
             <button type="button" className="btn-close" onClick={onClose}></button>

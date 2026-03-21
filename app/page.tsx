@@ -654,16 +654,16 @@ export default function Home() {
           onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
           onLogout={signOut}
         />
-
-        <div className="content-body p-3 p-md-4">
+        
+        <main className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
           {isLoading ? (
             <div className="d-flex align-items-center justify-content-center h-50 pt-5">
               <div className="spinner-border text-primary" role="status"></div>
             </div>
           ) : renderContent()}
-        </div>
-
-        <MobileNav
+        </main>
+        
+        <MobileNav 
           activeView={activeView}
           onViewChange={setActiveView}
         />
