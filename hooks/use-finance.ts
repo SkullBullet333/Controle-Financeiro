@@ -20,6 +20,7 @@ export function useFinance(activeView: string) {
   const [familyMembers, setFamilyMembers] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [userType, setUserType] = useState<'titular' | 'membro'>('membro');
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
 
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
@@ -72,6 +73,7 @@ export function useFinance(activeView: string) {
     if (!user?.id) return;
     const { data: myProfile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (myProfile) {
+      setUserProfile(myProfile);
       setFamilyId(myProfile.family_id);
       setUserName(myProfile.nome);
       setUserType(myProfile.tipo as 'titular' | 'membro');
@@ -541,6 +543,7 @@ export function useFinance(activeView: string) {
 
   return {
     user,
+    userProfile,
     despesas,
     receitas,
     cartaoTransacoes,

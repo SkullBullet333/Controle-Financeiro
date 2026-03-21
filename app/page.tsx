@@ -38,7 +38,8 @@ export default function Home() {
   };
 
   const {
-    user,
+    user: authUser,
+    userProfile,
     currentMonth,
     currentYear,
     competencia,
@@ -82,14 +83,6 @@ export default function Home() {
     updateProfile
   } = useFinance(activeView);
 
-  const userProfile: Profile | null = user ? {
-    id: user.id,
-    email: user.email || '',
-    nome: userName || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-    foto: user.user_metadata?.avatar_url,
-    tipo: userType,
-    family_id: familyId || ''
-  } : null;
 
   React.useEffect(() => {
     setActiveFilterId(null);
@@ -149,7 +142,7 @@ export default function Home() {
     }
   };
 
-  if (!user) {
+  if (!authUser) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 bg-slate-900">
         <div className="card border-0 rounded-4 shadow-lg overflow-hidden w-100" style={{ maxWidth: '400px' }}>

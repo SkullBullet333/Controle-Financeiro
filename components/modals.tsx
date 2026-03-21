@@ -1372,16 +1372,16 @@ export function SettingsModal({
 
               <div className="px-6 mt-auto pt-6 border-top border-border">
                 <div className="d-flex align-items-center gap-3">
-                  <div className="w-10 h-10 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm flex-shrink-0">
+                  <div className="w-12 h-12 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm flex-shrink-0">
                     {user?.foto ? (
-                      <Image src={user.foto} width={40} height={40} className="rounded-circle object-cover" unoptimized alt={user.nome} />
+                      <Image src={user.foto} width={48} height={48} className="rounded-circle object-cover" unoptimized alt={user.nome} referrerPolicy="no-referrer" />
                     ) : (
-                      <span className="material-symbols-outlined text-primary opacity-80" style={{ fontSize: '18px' }}>person</span>
+                      <span className="material-symbols-outlined text-primary opacity-80" style={{ fontSize: '20px' }}>person</span>
                     )}
                   </div>
                   <div className="overflow-hidden">
-                    <div className="text-foreground fw-bold extra-small text-truncate" style={{ fontSize: '12px' }}>{user?.nome || 'Usuário'}</div>
-                    <div className="text-muted-foreground text-uppercase tracking-widest" style={{ fontSize: '8px', fontWeight: 'bold' }}>
+                    <div className="text-foreground fw-black text-truncate" style={{ fontSize: '15px', lineHeight: '1' }}>{user?.nome || 'Usuário'}</div>
+                    <div className="text-muted-foreground text-uppercase tracking-widest mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>
                       {user?.tipo === 'titular' ? 'Admin' : 'Membro'}
                     </div>
                   </div>
