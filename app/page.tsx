@@ -616,12 +616,18 @@ export default function Home() {
           userType={userType}
           titulares={config.titulares}
           cartoes={config.cartoes}
-          onAddTitular={() => { setModalType('titular'); setEditingItem(null); setIsModalOpen(true); }}
-          onUpdateTitular={(t) => { setModalType('titular'); setEditingItem(t); setIsModalOpen(true); }}
-          onDeleteTitular={(id) => { setItemToDelete({ id, type: 'titular' }); setIsConfirmDeleteOpen(true); }}
-          onAddCartao={() => { setModalType('cartao'); setEditingItem(null); setIsModalOpen(true); }}
-          onUpdateCartao={(c) => { setModalType('cartao'); setEditingItem(c); setIsModalOpen(true); }}
-          onDeleteCartao={(id) => { setItemToDelete({ id, type: 'cartao' }); setIsConfirmDeleteOpen(true); }}
+          onAddTitular={addTitular}
+          onUpdateTitular={updateTitular}
+          onDeleteTitular={(id) => { 
+            setItemToDelete({ id, type: 'titular' }); 
+            setIsConfirmDeleteOpen(true); 
+          }}
+          onAddCartao={addCartao}
+          onUpdateCartao={updateCartao}
+          onDeleteCartao={(id) => { 
+            setItemToDelete({ id, type: 'cartao' }); 
+            setIsConfirmDeleteOpen(true); 
+          }}
         />
       </div>
     </div>

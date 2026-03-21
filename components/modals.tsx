@@ -691,9 +691,9 @@ export function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100 }} onClick={onClose}>
-      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0 shadow-lg p-2">
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 3000 }} onClick={onClose}>
+      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '400px', zIndex: 3001 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-content rounded-4 border-0 shadow-lg p-2 bg-card">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
             <button type="button" className="btn-close" onClick={onClose}></button>
@@ -833,17 +833,23 @@ export function ProfileForm({
 }
 
 const getCardLogo = (name: string) => {
-  const n = name.toLowerCase();
-  if (n.includes('nubank')) return <div className="w-8 h-8 rounded-lg bg-[#8a05be] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Nu</div>;
-  if (n.includes('inter')) return <div className="w-8 h-8 rounded-lg bg-[#ff7a00] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">In</div>;
-  if (n.includes('itau') || n.includes('itaú')) return <div className="w-8 h-8 rounded-lg bg-[#ec7000] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ border: '2px solid #003399' }}>It</div>;
-  if (n.includes('santander')) return <div className="w-8 h-8 rounded-lg bg-[#ec0000] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Sn</div>;
-  if (n.includes('c6')) return <div className="w-8 h-8 rounded-lg bg-[#212121] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">C6</div>;
-  if (n.includes('picpay')) return <div className="w-8 h-8 rounded-lg bg-[#21c25e] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm">Pp</div>;
-  if (n.includes('visa')) return <div className="w-8 h-8 rounded-lg bg-[#1a1f71] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ border: '1px solid #f7b600' }}>V</div>;
-  if (n.includes('master')) return <div className="w-8 h-8 rounded-lg bg-[#eb001b] d-flex align-items-center justify-content-center text-white font-black text-[10px] shadow-sm" style={{ borderBottom: '4px solid #f79e1b' }}>M</div>;
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('nubank')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/rRRmcj5K/Nubank.png" alt="Nubank" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('inter')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/mFSsyhBj/inter.png" alt="Inter" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('itaú') || lowerName.includes('itau')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/twPnVb6h/itau.avif" alt="Itaú" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('bradesco')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/BH4v1bVJ/Bradesco.png" alt="Bradesco" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('santander')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/Pz3tF8yC/Santander.png" alt="Santander" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('caixa')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/yBk7gxR1/caixa.png" alt="Caixa" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('mercado pago')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/hFkY0VVQ/Mercado-Pago.webp" alt="Mercado Pago" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('sicoob platinum')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/p6knTbFb/Sicoob-Platinum.png" alt="Sicoob" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('sicoob clássico')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/m5wswjcc/Sicoob-Cl-ssico.jpg" alt="Sicoob" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('eucard')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/93nFRcXn/Eucard.jpg" alt="Eucard" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('cabal')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://i.ibb.co/fVNSC8Rs/Cabal.png" alt="Cabal" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('bb') || lowerName.includes('brasil')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://logo.clearbit.com/bb.com.br" alt="BB" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('xp')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://logo.clearbit.com/xpi.com.br" alt="XP" fill unoptimized className="object-cover" /></div>;
+  if (lowerName.includes('btg')) return <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative"><Image src="https://logo.clearbit.com/btgpactual.com" alt="BTG" fill unoptimized className="object-cover" /></div>;
   
-  return <div className="w-8 h-8 rounded-lg bg-slate-700 d-flex align-items-center justify-content-center text-white opacity-40 shadow-sm"><span className="material-symbols-outlined text-[16px]">credit_card</span></div>;
+  return <div className="w-10 h-10 rounded-xl bg-slate-700 d-flex align-items-center justify-content-center text-white opacity-40 shadow-sm"><span className="material-symbols-outlined text-[20px]">credit_card</span></div>;
 };
 
 export function SettingsModal({ 
@@ -874,15 +880,23 @@ export function SettingsModal({
   userType: 'titular' | 'membro',
   titulares: Titular[],
   cartoes: CartaoConfig[],
-  onAddTitular: () => void,
-  onUpdateTitular: (t: Titular) => void,
+  onAddTitular: (t: Omit<Titular, 'id'>) => void,
+  onUpdateTitular: (id: number, t: Partial<Titular>) => void,
   onDeleteTitular: (id: number) => void,
-  onAddCartao: () => void,
-  onUpdateCartao: (c: CartaoConfig) => void,
+  onAddCartao: (c: Omit<CartaoConfig, 'id'>) => void,
+  onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => void,
   onDeleteCartao: (id: number) => void
 }) {
   const [activeTab, setActiveTab] = useState('geral');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [internalView, setInternalView] = useState<'list' | 'add' | 'edit'>('list');
+  const [editingItem, setEditingItem] = useState<any>(null);
+
+  // Reset internal view when changing tabs
+  useEffect(() => {
+    setInternalView('list');
+    setEditingItem(null);
+  }, [activeTab]);
 
   if (!isOpen) return null;
 
@@ -1033,54 +1047,81 @@ export function SettingsModal({
               <div>
                 <div className="d-flex align-items-center gap-3 mb-2">
                   <div className="w-2 h-8 bg-primary rounded-full"></div>
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Titulares</h1>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">
+                    {internalView === 'list' ? 'Titulares' : internalView === 'add' ? 'Novo Titular' : 'Editar Titular'}
+                  </h1>
                 </div>
-                <p className="text-muted-foreground m-0">Gerencie as pessoas que possuem contas nesta família.</p>
+                <p className="text-muted-foreground m-0">
+                  {internalView === 'list' ? 'Gerencie as pessoas que possuem contas nesta família.' : 'Preencha os dados abaixo.'}
+                </p>
               </div>
-              <button 
-                onClick={onAddTitular}
-                className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
-              >
-                <span className="material-symbols-outlined">add</span>
-                NOVO
-              </button>
+              {internalView === 'list' ? (
+                <button 
+                  onClick={() => setInternalView('add')}
+                  className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
+                >
+                  <span className="material-symbols-outlined">add</span>
+                  NOVO
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setInternalView('list')}
+                  className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
+                >
+                  <span className="material-symbols-outlined">arrow_back</span>
+                  VOLTAR
+                </button>
+              )}
             </header>
 
-            <div className="grid gap-4">
-              {titulares.map((t) => (
-                <div key={t.id} className="group bg-card hover:bg-muted/30 p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all duration-300">
-                  <div className="d-flex align-items-center gap-4">
-                    <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-border shadow-sm">
-                      <Image
-                        src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
-                        fill
-                        unoptimized
-                        className="object-fit-cover"
-                        alt={t.nome}
-                      />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-foreground text-lg tracking-tight leading-tight">{t.nome}</div>
-                      <div className="d-flex align-items-center gap-2 mt-1">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary fw-bold text-[10px] uppercase tracking-wider">Titular Principal</span>
-                        <span className="text-muted-foreground text-[10px] opacity-60 uppercase font-bold tracking-tighter">ID: #{t.id}</span>
+            {internalView === 'list' ? (
+              <div className="grid gap-4">
+                {titulares.map((t) => (
+                  <div key={t.id} className="group bg-card hover:bg-muted/30 p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all duration-300">
+                    <div className="d-flex align-items-center gap-4">
+                      <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-border shadow-sm">
+                        <Image
+                          src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                          fill
+                          unoptimized
+                          className="object-fit-cover"
+                          alt={t.nome}
+                        />
+                      </div>
+                      <div>
+                        <div className="fw-bold text-foreground text-lg tracking-tight leading-tight">{t.nome}</div>
+                        <div className="d-flex align-items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary fw-bold text-[10px] uppercase tracking-wider">Titular Principal</span>
+                          <span className="text-muted-foreground text-[10px] opacity-60 uppercase font-bold tracking-tighter">ID: #{t.id}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="d-flex gap-2">
+                       <button onClick={() => { setEditingItem(t); setInternalView('edit'); }} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
+                       <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
+                    </div>
                   </div>
-                  <div className="d-flex gap-2">
-                     <button onClick={() => onUpdateTitular(t)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
-                     <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
+                ))}
+                
+                {titulares.length === 0 && (
+                  <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
+                    <span className="material-symbols-outlined text-[48px] mb-4">person_off</span>
+                    <p className="fw-bold text-uppercase tracking-widest text-sm">Nenhum titular cadastrado</p>
                   </div>
-                </div>
-              ))}
-              
-              {titulares.length === 0 && (
-                <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
-                  <span className="material-symbols-outlined text-[48px] mb-4">person_off</span>
-                  <p className="fw-bold text-uppercase tracking-widest text-sm">Nenhum titular cadastrado</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-card p-6 rounded-3xl border border-border shadow-sm border-dashed">
+                <TitularForm 
+                  initialData={editingItem} 
+                  onSubmit={(data) => {
+                    if (editingItem) onUpdateTitular(editingItem.id, data);
+                    else onAddTitular(data);
+                    setInternalView('list');
+                  }} 
+                />
+              </div>
+            )}
           </div>
         );
       case 'cartoes':
@@ -1090,39 +1131,54 @@ export function SettingsModal({
               <div>
                 <div className="d-flex align-items-center gap-3 mb-2">
                   <div className="w-2 h-8 bg-primary rounded-full"></div>
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Cartões</h1>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">
+                    {internalView === 'list' ? 'Cartões' : internalView === 'add' ? 'Novo Cartão' : 'Editar Cartão'}
+                  </h1>
                 </div>
-                <p className="text-muted-foreground m-0">Configure e gerencie seus cartões de crédito.</p>
+                <p className="text-muted-foreground m-0">
+                  {internalView === 'list' ? 'Configure e gerencie seus cartões de crédito.' : 'Preencha os dados abaixo.'}
+                </p>
               </div>
-              <button 
-                onClick={onAddCartao}
-                className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
-              >
-                <span className="material-symbols-outlined">add_card</span>
-                NOVO
-              </button>
+              {internalView === 'list' ? (
+                <button 
+                  onClick={() => setInternalView('add')}
+                  className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
+                >
+                  <span className="material-symbols-outlined">add_card</span>
+                  NOVO
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setInternalView('list')}
+                  className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
+                >
+                  <span className="material-symbols-outlined">arrow_back</span>
+                  VOLTAR
+                </button>
+              )}
             </header>
 
-            <div className="row g-4">
-              {cartoes.map((c) => {
-                const titular = titulares.find(t => t.id === c.titular_id);
-                return (
-                  <div key={c.id} className="col-md-6 mb-2">
-                    <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
-                      <div className="d-flex justify-content-between align-items-start relative z-10">
-                        <div className="d-flex align-items-center gap-4">
-                          {getCardLogo(c.nome_cartao)}
-                          <div className="overflow-hidden">
-                            <div className="fw-bold text-foreground tracking-tight m-0 text-truncate">{c.nome_cartao}</div>
-                            <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
-                              {titular?.nome || 'Personal'}
+            {internalView === 'list' ? (
+              <div className="row g-4 overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: '600px' }}>
+                {cartoes.map((c) => {
+                  const titular = titulares.find(t => t.id === c.titular_id);
+                  return (
+                    <div key={c.id} className="col-md-6 mb-2">
+                      <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
+                        <div className="d-flex justify-content-between align-items-start relative z-10">
+                          <div className="d-flex align-items-center gap-4">
+                            {getCardLogo(c.nome_cartao)}
+                            <div className="overflow-hidden">
+                              <div className="fw-bold text-foreground tracking-tight m-0 text-truncate">{c.nome_cartao}</div>
+                              <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
+                                {titular?.nome || 'Personal'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="d-flex gap-1">
-                          <button onClick={() => onUpdateCartao(c)} className="btn-icon rounded-lg hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-edit-blue">edit</span></button>
-                          <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-delete-red">delete</span></button>
-                        </div>
+                          <div className="d-flex gap-1">
+                            <button onClick={() => { setEditingItem(c); setInternalView('edit'); }} className="btn-icon rounded-lg hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-edit-blue">edit</span></button>
+                            <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-delete-red">delete</span></button>
+                          </div>
                       </div>
                       
                       <div className="mt-4 pt-4 border-top border-border/50 d-flex gap-4 relative z-10">
@@ -1142,7 +1198,20 @@ export function SettingsModal({
                   </div>
                 );
               })}
-            </div>
+              </div>
+            ) : (
+              <div className="bg-card p-6 rounded-3xl border border-border shadow-sm border-dashed">
+                <CartaoForm 
+                  initialData={editingItem} 
+                  titulares={titulares}
+                  onSubmit={(data) => {
+                    if (editingItem) onUpdateCartao(editingItem.id, data);
+                    else onAddCartao(data);
+                    setInternalView('list');
+                  }} 
+                />
+              </div>
+            )}
           </div>
         );
       case 'familia':
@@ -1232,7 +1301,7 @@ export function SettingsModal({
   };
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 2000 }} onClick={onClose}>
+    <div className="modal fade show d-block settings-modal-custom" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
       <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
         <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
           <div className="d-flex h-100 flex-column flex-md-row">
