@@ -6,6 +6,15 @@ export interface Titular {
   foto?: string;
 }
 
+export interface Profile {
+  id: string;
+  email: string;
+  nome: string;
+  tipo: 'titular' | 'membro';
+  foto?: string;
+  family_id: string;
+}
+
 export interface Categoria {
   id: number;
   label: string;

@@ -17,6 +17,7 @@ export function useFinance(activeView: string) {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
   const [userType, setUserType] = useState<'titular' | 'membro'>('membro');
 
@@ -69,13 +70,28 @@ export function useFinance(activeView: string) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('profiles').select('family_id, nome, tipo').eq('id', user.id).maybeSingle();
-    if (data) {
-      setFamilyId(data.family_id);
-      setUserName(data.nome);
-      setUserType(data.tipo as 'titular' | 'membro');
+    const { data: myProfile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    if (myProfile) {
+      setFamilyId(myProfile.family_id);
+      setUserName(myProfile.nome);
+      setUserType(myProfile.tipo as 'titular' | 'membro');
+
+      const { data: members } = await supabase.from('profiles')
+        .select('*')
+        .eq('family_id', myProfile.family_id)
+        .order('nome', { ascending: true });
+      if (members) setFamilyMembers(members);
     }
   }, [user?.id]);
+
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user?.id) return;
+    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+    if (!error) {
+      await fetchProfile();
+    }
+    return { error };
+  };
 
   const inviteMember = async (email: string) => {
     if (!user || !familyId || userType !== 'titular') return { error: 'Apenas titulares podem convidar.' };
@@ -550,8 +566,10 @@ export function useFinance(activeView: string) {
     setReceitas,
     setConfig,
     familyId,
+    familyMembers,
     inviteMember,
     userName,
-    userType
+    userType,
+    updateProfile
   };
 }
