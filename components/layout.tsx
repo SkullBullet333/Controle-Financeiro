@@ -82,7 +82,7 @@ export function Sidebar({
         ))}
       </ul>
 
-      <div className="sidebar-footer mt-auto mb-4 px-3 position-relative">
+      <div className="sidebar-footer mt-auto mb-4 px-1 px-md-2 position-relative">
         {showPopup && (
           <div className="user-profile-popup shadow-2xl border border-border rounded-xl p-4 mb-3" ref={popupRef} style={{ width: '288px', left: '16px', bottom: '80px' }}>
             {/* Profile Header */}
@@ -97,51 +97,87 @@ export function Sidebar({
                 />
               </div>
               <div className="overflow-hidden flex-fill">
-                <div className="fw-bold text-white text-truncate small">{user.nome}</div>
+                <div className="fw-bold text-truncate small" style={{ color: isDarkMode ? 'white' : 'var(--text)' }}>
+                  {user.nome || 'Usuário'}
+                </div>
                 <div className="text-muted text-truncate" style={{ fontSize: '11px' }}>@{user.email.split('@')[0]}</div>
               </div>
             </div>
 
-            {/* Premium CTA */}
-            <button className="w-100 d-flex align-items-center justify-content-between gap-3 px-3 py-2 bg-primary text-white rounded-xl mb-4 border-0 transition-transform active:scale-95">
-              <span className="fw-bold small">Atualizar plano</span>
-              <i className="fa-solid fa-arrow-right small"></i>
-            </button>
 
-            {/* Menu Links */}
-            <div className="popup-menu space-y-1">
+              {/* Definições / Ajuda */}
               <button 
                 className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
-                onClick={() => onViewChange('personalizar')}
+                onClick={() => onOpenModal('settings')}
               >
-                <i className="fa-solid fa-palette text-muted"></i>
-                <span className="small font-medium">Personalização</span>
+                <i className="fa-solid fa-gear text-on-surface-variant"></i>
+                <span className="small font-medium">Definições</span>
               </button>
 
               <button 
                 className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
                 onClick={() => onOpenModal('profile')}
               >
-                <i className="fa-solid fa-user text-muted"></i>
+                <i className="fa-solid fa-user text-on-surface-variant"></i>
                 <span className="small font-medium">Perfil</span>
               </button>
 
+              <div className="h-[1px] bg-white/10 my-2"></div>
+
+              {/* Cadastros */}
+              <div className="px-3 py-1 text-on-surface-variant fw-bold text-uppercase" style={{ fontSize: '10px' }}>Cadastros</div>
               <button 
                 className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
-                onClick={() => onOpenModal('settings')}
+                onClick={() => onOpenModal('titular')}
               >
-                <i className="fa-solid fa-gear text-muted"></i>
-                <span className="small font-medium">Definições</span>
+                <i className="fa-solid fa-address-card text-on-surface-variant"></i>
+                <span className="small font-medium">Titular</span>
+              </button>
+              <button 
+                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
+                onClick={() => onOpenModal('cartao')}
+              >
+                <i className="fa-solid fa-credit-card text-on-surface-variant"></i>
+                <span className="small font-medium">Cartões</span>
               </button>
 
-              <button 
-                className="w-100 text-start px-3 py-2 rounded-lg hover:bg-white/10 transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-white"
-                onClick={() => {}}
-              >
-                <i className="fa-solid fa-circle-question text-muted"></i>
-                <span className="small font-medium">Ajuda</span>
-              </button>
-            </div>
+              <div className="h-[1px] bg-white/10 my-2"></div>
+
+              {/* Minha Família */}
+              <div className="px-3 py-1 text-on-surface-variant fw-bold text-uppercase d-flex justify-content-between align-items-center" style={{ fontSize: '10px' }}>
+                <span>Minha Família</span>
+                {user.tipo === 'titular' && (
+                  <button 
+                    className="border-0 bg-transparent text-primary p-0 d-flex align-items-center gap-1 hover:underline"
+                    style={{ fontSize: '10px' }}
+                    onClick={() => onOpenModal('settings')}
+                  >
+                    <i className="fa-solid fa-plus-circle"></i> Convidar
+                  </button>
+                )}
+              </div>
+              
+              <div className="family-list max-h-32 overflow-y-auto space-y-2 mt-1 px-1">
+                {familyMembers.map((member) => (
+                  <div key={member.id} className="d-flex align-items-center justify-content-between p-2 rounded-lg bg-white/5 border border-white/5">
+                    <div className="d-flex align-items-center gap-2">
+                       <div className="position-relative" style={{ width: '24px', height: '24px' }}>
+                         <Image
+                           src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
+                           fill
+                           unoptimized
+                           className="rounded-circle object-fit-cover ring-1 ring-white/10"
+                           alt={member.nome}
+                         />
+                       </div>
+                       <div className="flex-1 overflow-hidden">
+                         <div className="text-white text-truncate fw-bold" style={{ fontSize: '10px' }}>{member.nome}</div>
+                         <div className="text-on-surface-variant text-truncate" style={{ fontSize: '8px' }}>{member.tipo === 'titular' ? 'Titular' : 'Membro'}</div>
+                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
             {/* Divider */}
             <div className="h-[1px] bg-white/10 my-3 mx-2"></div>

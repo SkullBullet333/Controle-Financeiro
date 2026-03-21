@@ -201,6 +201,12 @@ body {
 
 .sidebar-footer {
   width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar:hover .sidebar-footer {
+  justify-content: flex-start;
 }
 
 .user-profile-btn {
@@ -211,6 +217,14 @@ body {
 .sidebar:hover .user-profile-btn {
   border-color: var(--border);
   background: var(--light);
+}
+
+.user-profile-btn .sidebar-user-info {
+  display: none;
+}
+
+.sidebar:hover .user-profile-btn .sidebar-user-info {
+  display: block;
 }
 
 .sidebar-user-info {
