@@ -881,165 +881,250 @@ export function SettingsModal({
     { id: 'billing', label: 'Assinatura', icon: 'payments' },
   ];
 
-  const renderContent = () => {
+    const renderContent = () => {
     switch (activeTab) {
       case 'geral':
         return (
-          <div className="space-y-12 animate-in fade-in duration-500">
-            <header className="mb-12">
-              <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Geral</h1>
-              <p className="text-muted-foreground text-lg">Personalize a sua experiência e segurança da conta.</p>
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-10">
+              <div className="d-flex align-items-center gap-3 mb-2">
+                <div className="w-2 h-8 bg-primary rounded-full"></div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Geral</h1>
+              </div>
+              <p className="text-muted-foreground">Personalize a sua experiência e segurança da conta.</p>
             </header>
 
-            {/* Security Banner */}
-            <div className="relative group mb-12 overflow-hidden rounded-2xl bg-primary/5 p-4 d-flex flex-column md:flex-row items-center justify-between border border-primary/10">
-              <div className="d-flex align-items-center gap-6 relative z-10 w-100">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20" style={{ minWidth: '64px' }}>
-                  <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
+            {/* Configurações de Tema */}
+            <section className="space-y-6">
+              <div className="d-flex align-items-center justify-content-between">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground mb-1">Aparência do Sistema</h3>
+                  <p className="text-muted-foreground small mb-0">Escolha como o sistema deve aparecer no seu dispositivo.</p>
                 </div>
-                <div className="flex-grow-1">
-                  <h3 className="text-xl fw-bold text-foreground mb-1">Torne a sua conta segura</h3>
-                  <p className="text-muted small mb-0">Adicione uma camada extra de proteção ao configurar a autenticação de dois fatores.</p>
+              </div>
+              
+              <div className="row g-4">
+                <div className="col-md-6">
+                  <div 
+                    onClick={() => isDarkMode && toggleDarkMode()}
+                    className={cn(
+                      "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300 hover:scale-[1.02]",
+                      !isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
+                    )}
+                  >
+                    <div className="aspect-[16/9] rounded-xl bg-slate-100 mb-3 overflow-hidden border border-border/50 relative">
+                       {/* Mockup Light Mode */}
+                       <div className="absolute inset-0 p-3">
+                         <div className="w-full h-4 bg-white rounded shadow-sm mb-2"></div>
+                         <div className="row g-2">
+                           <div className="col-4"><div className="h-20 bg-white rounded shadow-sm"></div></div>
+                           <div className="col-8"><div className="h-20 bg-white rounded shadow-sm"></div></div>
+                         </div>
+                       </div>
+                    </div>
+                    <div className="px-3 pb-2 d-flex align-items-center justify-content-between">
+                      <span className="font-bold text-sm">Modo Claro</span>
+                      {!isDarkMode && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
+                    </div>
+                  </div>
                 </div>
-                <button className="btn btn-primary text-white fw-bold text-sm tracking-wide text-uppercase rounded-pill px-5 shadow-lg border-0">
-                  Configurar MFA
+                <div className="col-md-6">
+                  <div 
+                    onClick={() => !isDarkMode && toggleDarkMode()}
+                    className={cn(
+                      "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300 hover:scale-[1.02]",
+                      isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
+                    )}
+                  >
+                    <div className="aspect-[16/9] rounded-xl bg-slate-900 mb-3 overflow-hidden border border-border/50 relative">
+                       {/* Mockup Dark Mode */}
+                       <div className="absolute inset-0 p-3">
+                         <div className="w-full h-4 bg-slate-800 rounded shadow-sm mb-2"></div>
+                         <div className="row g-2">
+                           <div className="col-4"><div className="h-20 bg-slate-800 rounded shadow-sm"></div></div>
+                           <div className="col-8"><div className="h-20 bg-slate-800 rounded shadow-sm"></div></div>
+                         </div>
+                       </div>
+                    </div>
+                    <div className="px-3 pb-2 d-flex align-items-center justify-content-between">
+                      <span className="font-bold text-sm">Modo Escuro</span>
+                      {isDarkMode && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Cor de Destaque */}
+            <section className="pt-8 border-top border-border">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-foreground mb-1">Cor de Destaque</h3>
+                <p className="text-muted-foreground small mb-0">Personalize a identidade visual do seu painel.</p>
+              </div>
+
+              <div className="d-flex align-items-center gap-4 flex-wrap">
+                {[
+                  { id: 'default', color: '#4361ee', name: 'Indigo' },
+                  { id: 'emerald', color: '#10b981', name: 'Emerald' },
+                  { id: 'rose', color: '#f43f5e', name: 'Rose' },
+                  { id: 'amber', color: '#f59e0b', name: 'Amber' },
+                  { id: 'violet', color: '#8b5cf6', name: 'Violet' },
+                ].map((c) => (
+                  <button 
+                    key={c.id}
+                    className="group relative d-flex flex-column align-items-center gap-2 border-0 bg-transparent p-0"
+                  >
+                    <div 
+                      className="w-12 h-12 rounded-2xl transition-all duration-300 group-hover:scale-110 shadow-sm border-2"
+                      style={{ backgroundColor: c.color, borderColor: c.id === 'default' ? 'var(--primary)' : 'transparent' }}
+                    ></div>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      {c.name}
+                    </span>
+                  </button>
+                ))}
+                
+                <button className="w-12 h-12 rounded-2xl bg-muted border border-dashed border-border d-flex align-items-center justify-content-center text-muted-foreground hover:bg-primary/5 hover:border-primary hover:text-primary transition-all">
+                  <span className="material-symbols-outlined">add</span>
                 </button>
               </div>
-            </div>
+            </section>
 
-            {/* Settings Grid */}
-            <div className="space-y-12">
-              {/* Aspeto */}
-              <section className="row g-4 align-items-start">
-                <div className="col-md-4">
-                  <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-1">Aspeto</h4>
-                  <p className="text-muted small">Escolha como o sistema deve aparecer no seu dispositivo.</p>
-                </div>
-                <div className="col-md-8">
-                  <div className="position-relative">
-                    <select 
-                      className="form-select bg-muted border-0 text-foreground py-4 px-6 rounded-xl appearance-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm"
-                      value={isDarkMode ? 'dark' : 'light'}
-                      onChange={(e) => {
-                        if ((e.target.value === 'dark' && !isDarkMode) || (e.target.value === 'light' && isDarkMode)) {
-                          toggleDarkMode();
-                        }
-                      }}
-                    >
-                      <option value="system">Sistema</option>
-                      <option value="dark">Modo Escuro</option>
-                      <option value="light">Modo Claro</option>
-                    </select>
-                    <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 pointer-events-none text-muted">expand_more</span>
+            {/* Security Quick Link */}
+            <section className="pt-10">
+              <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 d-flex align-items-center justify-content-between overflow-hidden relative">
+                <div className="flex-grow-1 relative z-10">
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                    <span className="text-xs font-black text-primary uppercase tracking-widest">Segurança Pro</span>
                   </div>
+                  <h4 className="text-xl font-bold text-foreground mb-1">Proteja seus dados financeiros</h4>
+                  <p className="text-muted-foreground small mb-0 max-w-sm">Ative o 2FA para garantir que só você tenha acesso às suas movimentações bancárias.</p>
                 </div>
-              </section>
-
-              {/* Cor de Destaque */}
-              <section className="row g-4 align-items-start pt-5 border-top border-border">
-                <div className="col-md-4">
-                  <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-1">Cor de destaque</h4>
-                  <p className="text-muted small">A cor principal usada em botões, links e estados ativos.</p>
+                <button className="btn btn-primary rounded-pill px-6 py-2 fw-bold text-sm relative z-10 shadow-lg border-0">
+                  Configurar MFA
+                </button>
+                <div className="absolute end-[-20px] bottom-[-20px] opacity-[0.03] rotate-12">
+                  <span className="material-symbols-outlined" style={{ fontSize: '180px' }}>shield</span>
                 </div>
-                <div className="col-md-8">
-                  <div className="d-flex flex-wrap gap-4 p-2 bg-muted rounded-4 border border-border">
-                    <button type="button" className="w-100 h-10 w-10 h-10 rounded-circle border-4 border-white bg-white transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-primary transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-info transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-transparent bg-warning transition-transform hover:scale-110 shadow-sm"></button>
-                    <button type="button" className="w-10 h-10 rounded-circle border-2 border-border bg-background transition-transform hover:scale-110 d-flex align-items-center justify-content-center">
-                      <span className="material-symbols-outlined text-sm text-foreground">colorize</span>
-                    </button>
-                  </div>
-                </div>
-              </section>
-            </div>
+              </div>
+            </section>
           </div>
         );
       case 'titulares':
         return (
-          <div className="space-y-12 animate-in fade-in duration-500">
-            <header className="mb-12 d-flex justify-content-between align-items-end">
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-10 d-flex justify-content-between align-items-center">
               <div>
-                <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Titulares</h1>
-                <p className="text-muted-foreground text-lg">Gerencie as pessoas que possuem contas e cartões nesta família.</p>
+                <div className="d-flex align-items-center gap-3 mb-2">
+                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Titulares</h1>
+                </div>
+                <p className="text-muted-foreground m-0">Gerencie as pessoas que possuem contas nesta família.</p>
               </div>
               <button 
                 onClick={onAddTitular}
-                className="btn btn-primary rounded-pill px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg"
+                className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
               >
-                <span className="material-symbols-outlined">person_add</span>
-                NOVO TITULAR
+                <span className="material-symbols-outlined">add</span>
+                NOVO
               </button>
             </header>
 
-            <div className="row g-6">
+            <div className="grid gap-4">
               {titulares.map((t) => (
-                <div key={t.id} className="col-md-6 mb-4">
-                  <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm hover:shadow-md">
-                    <div className="d-flex align-items-center gap-6">
-                      <div className="position-relative" style={{ width: '64px', height: '64px' }}>
-                        <Image
-                          src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
-                          fill
-                          unoptimized
-                          className="rounded-circle object-fit-cover ring-2 ring-primary/20"
-                          alt={t.nome}
-                        />
-                      </div>
-                      <div>
-                        <div className="fw-bold text-foreground text-xl tracking-tight">{t.nome}</div>
-                        <div className="text-muted text-sm opacity-60">ID: #{t.id}</div>
+                <div key={t.id} className="group bg-card hover:bg-muted/30 p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all duration-300">
+                  <div className="d-flex align-items-center gap-4">
+                    <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-border shadow-sm">
+                      <Image
+                        src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                        fill
+                        unoptimized
+                        className="object-fit-cover"
+                        alt={t.nome}
+                      />
+                    </div>
+                    <div>
+                      <div className="fw-bold text-foreground text-lg tracking-tight leading-tight">{t.nome}</div>
+                      <div className="d-flex align-items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary fw-bold text-[10px] uppercase tracking-wider">Titular Principal</span>
+                        <span className="text-muted-foreground text-[10px] opacity-60 uppercase font-bold tracking-tighter">ID: #{t.id}</span>
                       </div>
                     </div>
-                    <div className="d-flex gap-2">
-                       <button onClick={() => onUpdateTitular(t)} className="btn btn-icon btn-light rounded-circle"><i className="fa-solid fa-pen"></i></button>
-                       <button onClick={() => onDeleteTitular(t.id)} className="btn btn-icon btn-light text-danger rounded-circle"><i className="fa-solid fa-trash"></i></button>
-                    </div>
+                  </div>
+                  <div className="d-flex gap-2">
+                     <button onClick={() => onUpdateTitular(t)} className="btn-icon rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[20px]">edit</span></button>
+                     <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 hover:text-danger transition-colors"><span className="material-symbols-outlined text-[20px]">delete</span></button>
                   </div>
                 </div>
               ))}
+              
+              {titulares.length === 0 && (
+                <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
+                  <span className="material-symbols-outlined text-[48px] mb-4">person_off</span>
+                  <p className="fw-bold text-uppercase tracking-widest text-sm">Nenhum titular cadastrado</p>
+                </div>
+              )}
             </div>
           </div>
         );
       case 'cartoes':
         return (
-          <div className="space-y-12 animate-in fade-in duration-500">
-            <header className="mb-12 d-flex justify-content-between align-items-end">
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-10 d-flex justify-content-between align-items-center">
               <div>
-                <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Cartões</h1>
-                <p className="text-muted-foreground text-lg">Configure os cartões de crédito da família.</p>
+                <div className="d-flex align-items-center gap-3 mb-2">
+                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Cartões</h1>
+                </div>
+                <p className="text-muted-foreground m-0">Configure e gerencie seus cartões de crédito.</p>
               </div>
               <button 
                 onClick={onAddCartao}
-                className="btn btn-primary rounded-pill px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg"
+                className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
               >
-                <span className="material-symbols-outlined">credit_card</span>
-                NOVO CARTÃO
+                <span className="material-symbols-outlined">add_card</span>
+                NOVO
               </button>
             </header>
 
-            <div className="row g-6">
+            <div className="row g-4">
               {cartoes.map((c) => {
                 const titular = titulares.find(t => t.id === c.titular_id);
                 return (
-                  <div key={c.id} className="col-md-6 mb-4">
-                    <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm hover:shadow-md">
-                      <div className="d-flex align-items-center gap-6">
-                        <div className="w-16 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-focus d-flex align-items-center justify-content-center text-white">
-                          <i className="fa-solid fa-credit-card fa-xl"></i>
-                        </div>
-                        <div>
-                          <div className="fw-bold text-foreground text-xl tracking-tight">{c.nome_cartao}</div>
-                          <div className="text-muted text-sm opacity-80">
-                            {titular?.nome || 'Sem titular'} • Fechamento: {c.dia_fechamento} • Vencimento: {c.dia_vencimento}
+                  <div key={c.id} className="col-md-6 mb-2">
+                    <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
+                      <div className="d-flex justify-content-between align-items-start relative z-10">
+                        <div className="d-flex align-items-center gap-4">
+                          <div className="w-14 h-9 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 d-flex align-items-center justify-content-center text-white border border-white/10 shadow-sm flex-shrink-0">
+                            <i className="fa-solid fa-credit-card opacity-50"></i>
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="fw-bold text-foreground tracking-tight m-0 text-truncate">{c.nome_cartao}</div>
+                            <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
+                              {titular?.nome || 'Personal'}
+                            </div>
                           </div>
                         </div>
+                        <div className="d-flex gap-1">
+                          <button onClick={() => onUpdateCartao(c)} className="btn-icon rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"><span className="material-symbols-outlined text-[18px]">edit</span></button>
+                          <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 hover:text-danger transition-colors"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+                        </div>
                       </div>
-                      <div className="d-flex gap-2">
-                         <button onClick={() => onUpdateCartao(c)} className="btn btn-icon btn-light rounded-circle"><i className="fa-solid fa-pen"></i></button>
-                         <button onClick={() => onDeleteCartao(c.id)} className="btn btn-icon btn-light text-danger rounded-circle"><i className="fa-solid fa-trash"></i></button>
+                      
+                      <div className="mt-4 pt-4 border-top border-border/50 d-flex gap-4 relative z-10">
+                        <div>
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0 opacity-50">Vencimento</p>
+                          <p className="text-xs font-bold text-foreground m-0">Dia {c.dia_vencimento}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0 opacity-50">Fechamento</p>
+                          <p className="text-xs font-bold text-foreground m-0">Dia {c.dia_fechamento}</p>
+                        </div>
                       </div>
+
+                      {/* Decoração sutil de cartão */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                     </div>
                   </div>
                 );
@@ -1049,58 +1134,73 @@ export function SettingsModal({
         );
       case 'familia':
         return (
-          <div className="space-y-12 animate-in fade-in duration-500">
-            <header className="mb-12">
-              <h1 className="text-4xl font-headline font-bold text-foreground tracking-tighter mb-2">Controlos de dados</h1>
-              <p className="text-muted-foreground text-lg">Gerencie quem compartilha a conta com você e como os dados são acessados.</p>
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-10">
+              <div className="d-flex align-items-center gap-3 mb-2">
+                <div className="w-2 h-8 bg-primary rounded-full"></div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Família</h1>
+              </div>
+              <p className="text-muted-foreground">Gerencie os membros que compartilham este painel com você.</p>
             </header>
 
             {userType === 'titular' && (
-              <div className="relative group mb-12 overflow-hidden rounded-2xl bg-muted p-6 border border-border shadow-sm">
-                 <h4 className="text-foreground fw-bold text-sm text-uppercase tracking-widest mb-4">Convidar Membro</h4>
-                 <div className="d-flex gap-3">
-                   <input 
-                      type="email" 
-                      className="form-control bg-background border border-border text-foreground rounded-xl px-6 py-4" 
-                      placeholder="E-mail da pessoa"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                   />
-                   <button 
-                      className="px-8 rounded-xl btn btn-primary fw-bold text-sm text-uppercase border-0 shadow-lg"
-                      onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
-                   >
-                     Enviar
-                   </button>
+              <section className="bg-primary/5 border border-primary/20 rounded-3xl p-6 relative overflow-hidden mb-10">
+                 <div className="relative z-10 w-100">
+                   <h4 className="text-foreground font-bold text-lg mb-1">Convidar por E-mail</h4>
+                   <p className="text-muted-foreground small mb-4">Envie um convite para um novo membro se juntar à sua família.</p>
+                   <div className="d-flex gap-2">
+                     <div className="flex-grow-1 position-relative">
+                       <input 
+                          type="email" 
+                          className="form-control bg-card border border-border text-foreground rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all" 
+                          placeholder="exemplo@email.com"
+                          value={inviteEmail}
+                          onChange={(e) => setInviteEmail(e.target.value)}
+                       />
+                       <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 text-muted opacity-30">mail</span>
+                     </div>
+                     <button 
+                        className="px-8 rounded-2xl btn btn-primary fw-bold text-sm text-uppercase border-0 shadow-lg"
+                        onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
+                     >
+                       Convidar
+                     </button>
+                   </div>
                  </div>
-              </div>
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+              </section>
             )}
 
-            <div className="row g-6">
+            <div className="grid gap-3">
               {familyMembers.map((member) => (
-                <div key={member.id} className="col-md-6 mb-4">
-                  <div className="bg-card p-6 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all shadow-sm">
-                    <div className="d-flex align-items-center gap-6">
-                      <div className="position-relative" style={{ width: '64px', height: '64px' }}>
-                        <Image
-                          src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
-                          fill
-                          unoptimized
-                          className="rounded-circle object-fit-cover ring-2 ring-primary/20"
-                          alt={member.nome}
-                        />
-                      </div>
-                      <div>
-                        <div className="fw-bold text-foreground text-xl tracking-tight">{member.nome}</div>
-                        <div className="text-muted text-sm opacity-60">@{member.email.split('@')[0]}</div>
-                      </div>
+                <div key={member.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all hover:bg-muted/20">
+                  <div className="d-flex align-items-center gap-4">
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-sm">
+                      <Image
+                        src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
+                        fill
+                        unoptimized
+                        className="object-fit-cover"
+                        alt={member.nome}
+                      />
                     </div>
+                    <div>
+                      <div className="fw-bold text-foreground text-base tracking-tight leading-tight">{member.nome}</div>
+                      <div className="text-muted-foreground text-xs opacity-60">@{member.email.split('@')[0]}</div>
+                    </div>
+                  </div>
+                  <div className="d-flex align-items-center gap-3">
                     <span className={cn(
-                      "badge rounded-pill shadow-sm px-4 py-2 border",
-                      member.tipo === 'titular' ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-border"
-                    )} style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      {member.tipo === 'titular' ? 'Titular' : 'Membro'}
+                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                      member.tipo === 'titular' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      {member.tipo === 'titular' ? 'Admin' : 'Membro'}
                     </span>
+                    {userType === 'titular' && member.email !== user?.email && (
+                      <button className="btn-icon rounded-xl hover:bg-danger/10 hover:text-danger text-muted-foreground transition-all">
+                        <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1130,22 +1230,22 @@ export function SettingsModal({
                 <p className="text-muted-foreground small m-0 tracking-widest text-uppercase mt-2" style={{ fontSize: '10px', fontWeight: 'bold' }}>Gerencie suas preferências</p>
               </div>
 
-              <nav className="flex-fill space-y-1 px-4 overflow-auto mt-4">
+              <nav className="flex-fill space-y-1 px-4 overflow-auto mt-2">
                 {tabs.map((tab) => (
                   <button
                     type="button"
                     key={tab.id}
                     className={cn(
-                      "w-100 d-flex align-items-center gap-4 px-5 py-4 border-0 transition-all duration-300 text-uppercase tracking-widest fw-bold",
+                      "w-100 d-flex align-items-center gap-4 px-5 py-3.5 border-0 transition-all duration-300 rounded-2xl mb-1",
                       activeTab === tab.id 
-                        ? "bg-primary/10 text-primary border-start border-primary border-4" 
+                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
                         : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                     style={{ fontSize: '11px', textAlign: 'left' }}
                     onClick={() => setActiveTab(tab.id)}
                   >
                     <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
-                    <span className="font-label tracking-widest">{tab.label}</span>
+                    <span className="font-bold tracking-widest text-uppercase">{tab.label}</span>
                   </button>
                 ))}
               </nav>
