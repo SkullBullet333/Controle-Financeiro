@@ -225,7 +225,7 @@ export function FinanceForm({
                       type="button"
                       style={{ border: 'none' }}
                       className={cn(
-                        "flex items-center justify-center gap-2 px-6 h-[48px] rounded-xl font-semibold transition-all w-full",
+                        "flex items-center justify-center gap-2 px-6 h-[48px] rounded-lg font-semibold transition-all w-full",
                         formData.simulada 
                           ? "bg-yellow-400 text-black border border-yellow-500/20" 
                           : "bg-[#F8FAFC] text-navy border border-outline-variant/30 hover:bg-navy/5"
@@ -299,7 +299,7 @@ export function FinanceForm({
               setStep('confirm');
             }}
             style={{ borderRadius: '9999px' }}
-            className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white py-4 font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
+            className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white h-[48px] font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-lg">check_circle</span>
             Confirmar Lançamento
@@ -317,7 +317,7 @@ export function FinanceForm({
               <button 
                 type="button"
                 className={cn(
-                  "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                  "w-full py-5 rounded-[2rem] font-bold transition-all flex flex-col items-center gap-1",
                   paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
                 )}
                 onClick={() => {
@@ -336,7 +336,7 @@ export function FinanceForm({
                 <button 
                   type="button"
                   className={cn(
-                    "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                    "w-full py-5 rounded-[2rem] font-bold transition-all flex flex-col items-center gap-1",
                     paymentType === 'Parcelado' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
                   )}
                   onClick={() => setPaymentType('Parcelado')}
@@ -382,7 +382,7 @@ export function FinanceForm({
               <button 
                 type="button"
                 onClick={() => handleSubmit(new Event('submit') as any)}
-                className="w-full bg-[#1E40AF] text-white py-5 rounded-[1.25rem] font-bold shadow-xl hover:bg-[#1E40AF]/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                className="w-full bg-[#1E40AF] text-white h-[44px] rounded-[1.25rem] font-bold shadow-xl hover:bg-[#1E40AF]/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
               >
                 <span className="material-symbols-outlined">check_circle</span>
                 <span>Confirmar e Salvar Lançamento</span>
