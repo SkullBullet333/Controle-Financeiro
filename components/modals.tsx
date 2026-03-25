@@ -316,8 +316,9 @@ export function FinanceForm({
             <div className="w-full space-y-4">
               <button 
                 type="button"
+                style={{ border: 'none', borderRadius: '32px' }}
                 className={cn(
-                  "w-full py-3 rounded-[2rem] font-bold transition-all flex flex-col items-center gap-1",
+                  "w-full py-3 font-bold !rounded-[32px] transition-all flex flex-col items-center gap-1",
                   paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
                 )}
                 onClick={() => {
@@ -335,8 +336,9 @@ export function FinanceForm({
               <div className="w-full space-y-4">
                 <button 
                   type="button"
+                  style={{ border: 'none', borderRadius: '32px' }}
                   className={cn(
-                    "w-full py-3 rounded-[2rem] font-bold transition-all flex flex-col items-center gap-1",
+                    "w-full py-3 font-bold !rounded-[32px] transition-all flex flex-col items-center gap-1",
                     paymentType === 'Parcelado' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
                   )}
                   onClick={() => setPaymentType('Parcelado')}
@@ -353,7 +355,8 @@ export function FinanceForm({
                     <div className="flex items-center justify-center gap-4 bg-white rounded-2xl p-4 border border-[#1E40AF]/10">
                       <button 
                         type="button" 
-                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] rounded-full shadow-sm transition-all"
+                        style={{ border: 'none', borderRadius: '9999px' }}
+                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] shadow-sm transition-all"
                         onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                       >
                         <span className="material-symbols-outlined text-2xl">chevron_left</span>
@@ -372,7 +375,8 @@ export function FinanceForm({
 
                       <button 
                         type="button" 
-                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] rounded-full shadow-sm transition-all"
+                        style={{ border: 'none', borderRadius: '9999px' }}
+                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] shadow-sm transition-all"
                         onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                       >
                         <span className="material-symbols-outlined text-2xl">chevron_right</span>
@@ -387,8 +391,9 @@ export function FinanceForm({
             <div className="w-full pt-6 mt-4 border-t border-slate-100">
               <button 
                 type="button"
+                style={{ border: 'none', borderRadius: '2rem' }}
                 onClick={() => handleSubmit(new Event('submit') as any)}
-                className="w-full bg-[#1E40AF] text-white h-[44px] rounded-[2rem] font-bold shadow-xl hover:bg-[#1E40AF]/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                className="w-full bg-[#1E40AF] text-white h-[44px] font-bold shadow-xl hover:bg-[#1E40AF]/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
               >
                 <span className="material-symbols-outlined">check_circle</span>
                 <span>Confirmar e Salvar Lançamento</span>
@@ -397,7 +402,7 @@ export function FinanceForm({
 
             <button 
               type="button"
-              className="mt-8 text-xs font-bold text-slate-400 hover:text-navy transition-colors uppercase tracking-widest"
+              className="mt-12 text-xs font-bold text-slate-400 hover:text-navy transition-colors uppercase tracking-widest"
               onClick={() => setStep('fill')}
             >
               Voltar ao formulário
