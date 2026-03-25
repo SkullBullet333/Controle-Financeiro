@@ -161,7 +161,7 @@ export function FinanceForm({
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
             <input 
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Assinatura Mensal Software"
               type="text"
               value={formData.descricao}
@@ -183,7 +183,7 @@ export function FinanceForm({
           <div>
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
             <input 
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Mercado, Saúde..."
               type="text"
               value={formData.categoria}
@@ -212,28 +212,30 @@ export function FinanceForm({
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
                   <input 
                     type="date"
-                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm text-on-surface"
+                    className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
                     value={formData.vencimento}
                     onChange={e => setFormData({...formData, vencimento: e.target.value})}
                   />
                 </div>
               )}
 
-              <div className="md:col-span-2 flex justify-center">
+              <div className="flex items-end">
                 <button 
                   type="button"
                   style={{ border: 'none' }}
                   className={cn(
-                    "flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all",
+                    "flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all w-full justify-center",
                     formData.simulada 
                       ? "bg-yellow-400 text-black" 
                       : "text-navy hover:bg-navy/5"
                   )}
                   onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                 >
-                  <span className="text-sm font-label tracking-wide uppercase">{formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}</span>
+                  <span className="material-symbols-outlined text-sm">{formData.simulada ? 'vial_circle_check' : 'vial_circle_outline'}</span>
+                  <span className="text-xs font-label tracking-wide uppercase">{formData.simulada ? 'Ativa' : 'Simular'}</span>
                 </button>
               </div>
+
             </>
           ) : (
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -286,7 +288,17 @@ export function FinanceForm({
           </button>
           <button 
             type="button"
-            onClick={() => setStep('confirm')}
+            onClick={() => {
+              if (!formData.valor || parseFloat(formData.valor) <= 0) {
+                alert('Por favor, informe um valor válido para o lançamento.');
+                return;
+              }
+              if (!formData.categoria) {
+                alert('Por favor, informe uma categoria.');
+                return;
+              }
+              setStep('confirm');
+            }}
             style={{ borderRadius: '9999px' }}
             className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white py-4 font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
           >
@@ -302,82 +314,78 @@ export function FinanceForm({
           <div className="bg-white w-full max-w-[360px] rounded-[2.5rem] shadow-2xl p-10 border border-slate-100 flex flex-col items-center">
             <h3 className="text-xl font-headline font-bold text-navy mb-8 text-center italic">Este lançamento é...</h3>
             
-            <div className="w-full space-y-4">
-              <button 
-                type="button"
-                className={cn(
-                  "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
-                  paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
-                )}
-                onClick={() => {
-                  setPaymentType('A vista');
-                  setFormData({...formData, parcela_total: 1});
-                  // O timeout dá um feedback visual da escolha antes de salvar
-                  setTimeout(() => handleSubmit(new Event('submit') as any), 300);
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined">payments</span>
-                  <span>À Vista</span>
-                </div>
-                <span className="text-[10px] uppercase opacity-60 tracking-tighter">Pagamento imediato</span>
-              </button>
-
-              <div className={cn(
-                "w-full p-1 rounded-2xl transition-all",
-                paymentType === 'Parcelado' ? "bg-[#1E40AF] shadow-lg scale-105" : "bg-[#F8FAFC]"
-              )}>
+              <div className="w-full space-y-4">
                 <button 
                   type="button"
                   className={cn(
-                    "w-full py-5 rounded-xl font-bold transition-all flex flex-col items-center gap-1",
-                    paymentType === 'Parcelado' ? "bg-white text-[#1E40AF]" : "text-navy hover:bg-slate-100"
+                    "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                    paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
                   )}
-                  onClick={() => setPaymentType('Parcelado')}
+                  onClick={() => {
+                    setPaymentType('A vista');
+                    setFormData({...formData, parcela_total: 1});
+                    setTimeout(() => handleSubmit(new Event('submit') as any), 300);
+                  }}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined">event_repeat</span>
-                    <span>Parcelado</span>
+                    <span className="material-symbols-outlined">payments</span>
+                    <span>À Vista</span>
                   </div>
-                  <span className="text-[10px] uppercase opacity-60 tracking-tighter">Próximos meses</span>
+                  <span className="text-[10px] uppercase opacity-60 tracking-tighter">Pagamento imediato</span>
                 </button>
 
-                {paymentType === 'Parcelado' && (
-                  <div className="p-6 space-y-4 animate-in zoom-in-95 duration-200">
-                    <div className="flex items-center justify-center gap-4 bg-[#F8FAFC] rounded-2xl p-4 border border-[#1E40AF]/20">
-                      <button 
-                        type="button" 
-                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-white rounded-full shadow-sm transition-all"
-                        onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
-                      >
-                        <span className="material-symbols-outlined text-2xl">chevron_left</span>
-                      </button>
-                      
-                      <div className="flex flex-col items-center flex-1">
-                        <span className="text-4xl font-black text-[#1E40AF] leading-none mb-1">{formData.parcela_total}</span>
-                        <span className="text-[9px] uppercase font-bold text-[#1E40AF]/40">Parcelas</span>
+                <div className="w-full space-y-4">
+                  <button 
+                    type="button"
+                    className={cn(
+                      "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                      paymentType === 'Parcelado' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
+                    )}
+                    onClick={() => setPaymentType('Parcelado')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined">event_repeat</span>
+                      <span>Parcelado</span>
+                    </div>
+                    <span className="text-[10px] uppercase opacity-60 tracking-tighter">Próximos meses</span>
+                  </button>
+
+                  {paymentType === 'Parcelado' && (
+                    <div className="bg-[#F8FAFC] rounded-[2rem] p-6 space-y-4 animate-in zoom-in-95 duration-200 border border-slate-100">
+                      <div className="flex items-center justify-center gap-4 bg-white rounded-2xl p-4 border border-[#1E40AF]/10">
+                        <button 
+                          type="button" 
+                          className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] rounded-full shadow-sm transition-all"
+                          onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                        >
+                          <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                        </button>
+                        
+                        <div className="flex flex-col items-center flex-1">
+                          <span className="text-4xl font-black text-[#1E40AF] leading-none mb-1">{formData.parcela_total}</span>
+                          <span className="text-[9px] uppercase font-bold text-[#1E40AF]/40">Parcelas</span>
+                        </div>
+
+                        <button 
+                          type="button" 
+                          className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] rounded-full shadow-sm transition-all"
+                          onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                        >
+                          <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                        </button>
                       </div>
 
                       <button 
-                        type="button" 
-                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-white rounded-full shadow-sm transition-all"
-                        onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                        type="button"
+                        onClick={() => handleSubmit(new Event('submit') as any)}
+                        className="w-full bg-[#1E40AF] text-white py-4 rounded-xl font-bold shadow-md hover:bg-[#1E40AF]/90 transition-all active:scale-95"
                       >
-                        <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                        Salvar Lançamento
                       </button>
                     </div>
-
-                    <button 
-                      type="button"
-                      onClick={() => handleSubmit(new Event('submit') as any)}
-                      className="w-full bg-[#1E40AF] text-white py-4 rounded-xl font-bold shadow-md hover:bg-[#1E40AF]/90"
-                    >
-                      Salvar Lançamento
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
 
             <button 
               type="button"
