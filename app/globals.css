@@ -22,6 +22,8 @@
   --on-secondary-container: #1D192B;
   --outline-variant: #CAC4D0;
   --shadow-premium: 0 10px 40px rgba(0, 0, 0, 0.08);
+  --navy: #001f3f;
+  --on-navy: #ffffff;
 }
 
 .material-symbols-outlined {
@@ -66,6 +68,15 @@ body:not(.dark-mode) .glass-panel {
 .text-on-surface-variant { color: var(--on-surface-variant); }
 .text-on-secondary-container { color: var(--on-secondary-container); }
 .ring-outline-variant\/30 { --tw-ring-color: rgba(202, 196, 208, 0.3); }
+
+.bg-navy { background-color: var(--navy); }
+.text-navy { color: var(--navy); }
+
+/* Remove default focus rings that look like black underlines */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
 
 body.dark-mode {
   --bg: #0f172a;
