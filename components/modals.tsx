@@ -45,7 +45,8 @@ export function FinanceForm({
   titulares, 
   cartoes,
   competencia,
-  initialData
+  initialData,
+  onCancel
 }: { 
   type: 'despesa' | 'receita', 
   subType?: 'fixa' | 'cartao',
@@ -53,7 +54,8 @@ export function FinanceForm({
   titulares: Titular[],
   cartoes: CartaoConfig[],
   competencia: string,
-  initialData?: Despesa | Receita
+  initialData?: Despesa | Receita,
+  onCancel?: () => void
 }) {
   const [formData, setFormData] = useState({
     descricao: (initialData as any)?.descricao || '',
@@ -206,191 +208,268 @@ export function FinanceForm({
     );
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="row g-3">
-      <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">
-          {type === 'receita' ? 'Descrição da Receita' : 'Descrição'}
-        </label>
-        <input 
-          required
-          type="text" 
-          className="form-control rounded-3" 
-          value={formData.descricao}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
-        />
-      </div>
-      
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
-        <div className="input-group">
-          <span className="input-group-text bg-light border-end-0">R$</span>
-          <input 
-            required
-            type="number" 
-            step="0.01"
-            className="form-control border-start-0 rounded-end-3" 
-            value={formData.valor}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
-          />
-        </div>
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular</label>
-        <select 
-          className="form-select rounded-3"
-          value={formData.titular_id}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-        >
-          {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-      </div>
-
-      {type === 'despesa' ? (
-        <>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
-            <input 
-              type="text" 
-              className="form-control rounded-3" 
-              placeholder="Ex: Mercado, Saúde..."
-              value={formData.categoria}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, categoria: e.target.value})}
-            />
-          </div>
-
-          {subType === 'cartao' ? (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome Cartão</label>
-              <select 
-                className="form-select rounded-3"
-                value={formData.cartao_vencimento_id}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-              >
-                <option value="">Selecione um Cartão</option>
-                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-              </select>
+  if (type === 'despesa') {
+    return (
+      <div className="w-full max-w-[640px] bg-white dark:bg-slate-900 rounded-[2rem] p-4 md:p-8 relative overflow-hidden shadow-2xl">
+        <header className="mb-8">
+          <div className="flex justify-between items-start">
+            <div className="space-y-1">
+              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Nova Despesa</span>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white tracking-tight">Registro de Gasto</h1>
             </div>
-          ) : (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data Vencimento</label>
+            <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-2xl text-blue-600 dark:text-blue-400">
+              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+            </div>
+          </div>
+        </header>
+
+        <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+          <div className="relative group">
+            <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Valor do Lançamento</label>
+            <div className="flex items-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl px-5 py-4 md:px-6 md:py-6 group-focus-within:ring-2 ring-blue-500/10 transition-all border border-transparent group-focus-within:border-blue-500/20">
+              <span className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 mr-3">R$</span>
               <input 
-                type="date" 
-                className="form-control rounded-3"
-                value={formData.vencimento}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, vencimento: e.target.value})}
+                className="bg-transparent border-none focus:ring-0 text-3xl md:text-5xl font-extrabold text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-700 w-full p-0 shadow-none outline-none" 
+                placeholder="0,00" 
+                type="number"
+                step="0.01"
+                required
+                value={formData.valor}
+                onChange={e => setFormData({...formData, valor: e.target.value})}
               />
             </div>
-          )}
+          </div>
 
-          {subType !== 'cartao' && (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Tipo de Pagamento</label>
-              <div className="d-flex gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 md:gap-x-8 md:gap-y-6">
+            <div className="md:col-span-2">
+              <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Descrição</label>
+              <input 
+                className="w-full bg-white dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm dark:text-white outline-none" 
+                placeholder="Ex: Assinatura Mensal Software" 
+                type="text"
+                required
+                value={formData.descricao}
+                onChange={e => setFormData({...formData, descricao: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Responsável</label>
+              <select 
+                className="w-full bg-white dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm appearance-none dark:text-white outline-none"
+                value={formData.titular_id}
+                onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+              >
+                {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Categoria</label>
+              <select 
+                className="w-full bg-white dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm appearance-none dark:text-white outline-none uppercase"
+                value={formData.categoria}
+                onChange={e => setFormData({...formData, categoria: e.target.value})}
+              >
+                <option value="ALIMENTAÇÃO">ALIMENTAÇÃO</option>
+                <option value="CARTÃO">CARTÃO</option>
+                <option value="ESTUDO">ESTUDO</option>
+                <option value="INVESTIMENTO">INVESTIMENTO</option>
+                <option value="LAZER">LAZER</option>
+                <option value="MERCADO">MERCADO</option>
+                <option value="OUTROS">OUTROS</option>
+                <option value="SAÚDE">SAÚDE</option>
+                <option value="SERVIÇOS">SERVIÇOS</option>
+                <option value="TRANSPORTE">TRANSPORTE</option>
+                <option value="VIAGEM">VIAGEM</option>
+                <option value="MORADIA">MORADIA</option>
+                <option value="PET">PET</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Data de Vencimento</label>
+              <input 
+                className="w-full bg-white dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm dark:text-white outline-none" 
+                type="date"
+                required
+                value={formData.vencimento}
+                onChange={e => setFormData({...formData, vencimento: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Tipo de Pagamento</label>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 <button 
+                  className={cn(
+                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                    paymentType === 'A vista' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  )}
                   type="button"
-                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'A vista' ? "btn-primary" : "btn-outline-primary")}
                   onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
                 >
                   À Vista
                 </button>
                 <button 
+                  className={cn(
+                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                    paymentType === 'Parcelado' ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  )}
                   type="button"
-                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'Parcelado' ? "btn-primary" : "btn-outline-primary")}
                   onClick={() => setPaymentType('Parcelado')}
                 >
                   Parcelado
                 </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {(paymentType === 'Parcelado' || subType === 'cartao' || formData.simulada) && (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">
-                {subType === 'cartao' ? 'Número de Parcelas' : 'Quantidade de Parcelas'}
-              </label>
-              <div className="input-group">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 border-t border-slate-100 dark:border-slate-800 pt-6">
+            {(paymentType === 'Parcelado' || formData.simulada) && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400 mb-2 block ml-1 uppercase tracking-wider">Quantidade de Parcelas</label>
+                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl ring-1 ring-slate-200 dark:ring-slate-700">
                   <button 
                     type="button" 
-                    className="btn btn-outline-secondary px-3"
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all"
                     onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                   >
-                    <i className="fa-solid fa-minus"></i>
+                    <span className="material-symbols-outlined">chevron_left</span>
                   </button>
                   <input 
-                      type="number" 
-                      className="form-control text-center fw-bold"
-                      value={formData.parcela_total}
-                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
+                    type="number" 
+                    className="bg-transparent border-none p-0 text-center font-bold text-slate-800 dark:text-white w-full focus:ring-0 shadow-none"
+                    value={formData.parcela_total}
+                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
                   />
                   <button 
                     type="button" 
-                    className="btn btn-outline-secondary px-3"
+                    className="w-10 h-10 flex items-center justify-center text-slate-500 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all"
                     onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                   >
-                    <i className="fa-solid fa-plus"></i>
+                    <span className="material-symbols-outlined">chevron_right</span>
                   </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="col-md-6 d-flex align-items-end">
+            <div className="space-y-2 flex flex-col justify-end">
+               <button 
+                type="button"
+                className={cn(
+                  "w-full h-11 flex items-center justify-center gap-2 font-bold text-xs rounded-xl transition-all border",
+                  formData.simulada 
+                    ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400" 
+                    : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                )}
+                onClick={() => setFormData({...formData, simulada: !formData.simulada})}
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {formData.simulada ? 'vial_circle_check' : 'vial'}
+                </span>
+                {formData.simulada ? 'SIMULAÇÃO ATIVA' : 'ATIVAR SIMULAÇÃO'}
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <button 
+              className="w-full md:w-auto text-sm font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors px-6 py-3" 
               type="button"
-              className={cn("btn w-100 fw-bold rounded-3", formData.simulada ? "btn-warning" : "btn-outline-warning")}
-              onClick={() => setFormData({...formData, simulada: !formData.simulada})}
+              onClick={onCancel}
             >
-              <i className={cn("fa-solid me-2", formData.simulada ? "fa-vial-circle-check" : "fa-vial")}></i>
-              {formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}
+              Cancelar
+            </button>
+            <button 
+              className="w-full md:w-auto bg-gradient-to-br from-blue-700 to-blue-900 text-white px-10 py-4 rounded-full font-bold text-sm shadow-lg shadow-blue-900/20 hover:scale-[1.02] active:scale-95 transition-all" 
+              type="submit"
+            >
+              Confirmar Lançamento
             </button>
           </div>
-        </>
-      ) : (
-        <>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data de Receber</label>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="finance-form bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl">
+      <form onSubmit={handleSubmit} className="row g-3">
+        <div className="col-12 mb-4">
+           <h4 className="font-bold text-slate-800 dark:text-white">Registro de Receita</h4>
+        </div>
+        <div className="col-12">
+          <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Descrição da Receita</label>
+          <input 
+            required
+            type="text" 
+            className="w-full bg-slate-50 dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm dark:text-white outline-none" 
+            value={formData.descricao}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
+          />
+        </div>
+        
+        <div className="col-md-6">
+          <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Valor</label>
+          <div className="flex items-center bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2 ring-1 ring-slate-200 dark:ring-slate-700">
+            <span className="text-blue-600 font-bold mr-2">R$</span>
             <input 
-              type="date" 
-              className="form-control rounded-3"
-              value={formData.vencimento}
-              onChange={e => setFormData({...formData, vencimento: e.target.value})}
+              required
+              type="number" 
+              step="0.01"
+              className="bg-transparent border-none focus:ring-0 w-full p-0 font-bold dark:text-white" 
+              value={formData.valor}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
             />
           </div>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Recorrência</label>
-            <div className="input-group">
-                <input 
-                    type="number" 
-                    className="form-control"
-                    value={formData.parcela_total}
-                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
-                />
-                <span className="input-group-text">Meses</span>
-            </div>
-          </div>
-          <div className="col-12 mt-3">
-             <div className="form-check">
-              <input 
-                type="checkbox" 
-                className="form-check-input"
-                id="checkSimulacaoReceita"
-                checked={formData.simulada}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, simulada: e.target.checked})}
-              />
-              <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoReceita">Simulação?</label>
-            </div>
-          </div>
-        </>
-      )}
+        </div>
 
-      <div className="col-12 mt-4">
-        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
-          <i className="fa-solid fa-cloud-arrow-up me-2"></i>Salvar Lançamento
-        </button>
-      </div>
-    </form>
+        <div className="col-md-6">
+          <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Titular</label>
+          <select 
+            className="w-full bg-slate-50 dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm appearance-none dark:text-white outline-none"
+            value={formData.titular_id}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+          >
+            {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Data de Receber</label>
+          <input 
+            type="date" 
+            className="w-full bg-slate-50 dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm dark:text-white outline-none"
+            value={formData.vencimento}
+            onChange={e => setFormData({...formData, vencimento: e.target.value})}
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Recorrência</label>
+          <input 
+            type="number" 
+            className="w-full bg-slate-50 dark:bg-slate-800/40 border-none ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 focus:ring-blue-500/40 focus:ring-2 transition-all text-sm dark:text-white outline-none"
+            value={formData.parcela_total}
+            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+          />
+        </div>
+
+        <div className="col-12 mt-4 flex justify-end gap-3 rotate-0">
+          <button 
+            type="button" 
+            className="px-6 py-3 font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            onClick={onCancel}
+          >
+            Cancelar
+          </button>
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-blue-500/20 transition-all">
+            Salvar Receita
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
