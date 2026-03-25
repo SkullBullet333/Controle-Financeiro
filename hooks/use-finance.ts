@@ -428,6 +428,18 @@ export function useFinance(activeView: string) {
   const filteredCartaoTransacoes = useMemo(() => {
     return cartaoTransacoes.filter(c => c.competencia === competencia);
   }, [cartaoTransacoes, competencia]);
+  
+  const totalsByCard = useMemo(() => {
+    const totals: Record<number, number> = {};
+    config.cartoes.forEach(c => totals[c.id] = 0);
+    
+    filteredCartaoTransacoes.forEach(d => {
+      if (!d.simulada) {
+        totals[d.cartao_id] = (totals[d.cartao_id] || 0) + Number(d.valor);
+      }
+    });
+    return totals;
+  }, [filteredCartaoTransacoes, config.cartoes]);
 
   const consolidatedDespesas = useMemo(() => {
     // 1. Filter out stored card invoices to avoid duplication
@@ -515,17 +527,6 @@ export function useFinance(activeView: string) {
     setCurrentYear(year);
   };
 
-  const totalsByCard = useMemo(() => {
-    const totals: Record<number, number> = {};
-    config.cartoes.forEach(c => totals[c.id] = 0);
-    
-    filteredCartaoTransacoes.forEach(d => {
-      if (!d.simulada) {
-        totals[d.cartao_id] = (totals[d.cartao_id] || 0) + Number(d.valor);
-      }
-    });
-    return totals;
-  }, [filteredCartaoTransacoes, config.cartoes]);
 
   const totalsByTitular = useMemo(() => {
     const totals: Record<number, { despesas: number, receitas: number }> = {};
