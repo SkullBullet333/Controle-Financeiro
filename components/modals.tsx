@@ -140,12 +140,12 @@ export function FinanceForm({
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="relative group">
           <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Lançamento</label>
-          <div className="flex items-center bg-surface-container-low rounded-2xl px-6 py-6 group-focus-within:bg-surface-container transition-all">
-            <span className="text-xl font-headline font-bold text-navy mr-3 mt-4">R$</span>
+          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-6 py-4 group-focus-within:bg-surface-container transition-all shadow-sm border border-outline-variant/30">
+            <span className="text-sm font-headline font-bold text-navy mr-3 mt-1">R$</span>
             <input 
               required
               className="bg-transparent border-none focus:ring-0 font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
-              style={{ fontSize: '60px', lineHeight: '1', height: 'auto' }}
+              style={{ fontSize: '45px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
               step="0.01"
@@ -222,7 +222,7 @@ export function FinanceForm({
                 <div className="space-y-4">
                   <div>
                     <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Pagamento</label>
-                    <div className="flex bg-surface-container-low p-1 rounded-lg">
+                    <div className="flex bg-[#F8FAFC] p-1 rounded-lg border border-outline-variant/30">
                       <button 
                         type="button"
                         className={cn("flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all", paymentType === 'A vista' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface")}
@@ -242,23 +242,20 @@ export function FinanceForm({
 
                   {(paymentType === 'Parcelado' || formData.simulada) && (
                     <div className="animate-in slide-in-from-top-2 duration-200">
-                      <div className="flex items-center gap-0 bg-surface-container-low rounded-lg overflow-hidden w-full max-w-[140px] border border-outline-variant/30">
+                      <div className="flex items-center justify-center gap-1 bg-[#F8FAFC] rounded-lg p-1 w-full max-w-[140px] border border-outline-variant/30">
                         <button 
                           type="button" 
-                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white transition-all border-r border-outline-variant/30"
+                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                           onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                         >
                           <span className="material-symbols-outlined text-sm">chevron_left</span>
                         </button>
-                        <input 
-                          className="flex-1 bg-transparent border-none text-center font-bold text-on-surface focus:ring-0 p-0"
-                          type="number"
-                          value={formData.parcela_total}
-                          onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-                        />
+                        <div className="flex-1 text-center font-bold text-on-surface">
+                          {formData.parcela_total}
+                        </div>
                         <button 
                           type="button" 
-                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white transition-all border-l border-outline-variant/30"
+                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                           onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                         >
                           <span className="material-symbols-outlined text-sm">chevron_right</span>
@@ -272,23 +269,20 @@ export function FinanceForm({
               {subType === 'cartao' && (
                 <div>
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Número de Parcelas</label>
-                  <div className="flex items-center gap-0 bg-surface-container-low rounded-lg overflow-hidden w-full max-w-[140px] border border-outline-variant/30">
+                  <div className="flex items-center justify-center gap-1 bg-[#F8FAFC] rounded-lg p-1 w-full max-w-[140px] border border-outline-variant/30">
                     <button 
                       type="button" 
-                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white transition-all border-r border-outline-variant/30"
+                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                       onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                     >
                       <span className="material-symbols-outlined text-sm">chevron_left</span>
                     </button>
-                    <input 
-                      className="flex-1 bg-transparent border-none text-center font-bold text-on-surface focus:ring-0 p-0"
-                      type="number"
-                      value={formData.parcela_total}
-                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-                    />
+                    <div className="flex-1 text-center font-bold text-on-surface">
+                      {formData.parcela_total}
+                    </div>
                     <button 
                       type="button" 
-                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white transition-all border-l border-outline-variant/30"
+                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                       onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                     >
                       <span className="material-symbols-outlined text-sm">chevron_right</span>
@@ -302,9 +296,9 @@ export function FinanceForm({
                   type="button"
                   style={{ border: 'none' }}
                   className={cn(
-                    "flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all shadow-sm",
+                    "flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all",
                     formData.simulada 
-                      ? "bg-yellow-400 text-black shadow-md" 
+                      ? "bg-yellow-400 text-black" 
                       : "text-navy hover:bg-navy/5"
                   )}
                   onClick={() => setFormData({...formData, simulada: !formData.simulada})}
