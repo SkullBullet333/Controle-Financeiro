@@ -68,17 +68,12 @@ export function FinanceForm({
     simulada: (initialData as any)?.simulada || false
   });
 
+  const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const [mes, ano] = competencia.split('/').map(Number);
     let finalDate = formData.vencimento;
-
-    if (formData.vencimento.length <= 2) {
-      const dia = parseInt(formData.vencimento);
-      const date = new Date(ano, mes - 1, dia);
-      finalDate = format(date, 'yyyy-MM-dd');
-    }
 
     let titularId = formData.titular_id;
     if (type === 'despesa' && subType === 'cartao' && formData.cartao_vencimento_id) {
@@ -99,7 +94,7 @@ export function FinanceForm({
       data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
-      data.parcela_total = formData.parcela_total;
+      data.parcela_total = paymentType === 'A vista' ? 1 : formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
       
       if (!data.cartao_vencimento_id) {
@@ -279,39 +274,58 @@ export function FinanceForm({
             </div>
           ) : (
             <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Vencimento</label>
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data Vencimento</label>
               <input 
-                type="number" 
-                min="1" max="31"
+                type="date" 
                 className="form-control rounded-3"
-                value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+                value={formData.vencimento}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, vencimento: e.target.value})}
               />
             </div>
           )}
 
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">
-              {subType === 'cartao' ? 'Número de Parcelas' : 'Parcela'}
-            </label>
-            <div className="input-group">
-                {subType !== 'cartao' && (
-                    <input 
-                        type="number" 
-                        className="form-control"
-                        value={formData.parcela_atual}
-                        onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
-                    />
-                )}
-                {subType !== 'cartao' && <span className="input-group-text">de</span>}
-                <input 
-                    type="number" 
-                    className="form-control"
-                    value={formData.parcela_total}
-                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
-                />
+          {subType !== 'cartao' && (
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Tipo de Pagamento</label>
+              <select 
+                className="form-select rounded-3"
+                value={paymentType}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  const val = e.target.value as 'A vista' | 'Parcelado';
+                  setPaymentType(val);
+                  if (val === 'A vista') setFormData({...formData, parcela_total: 1});
+                }}
+              >
+                <option value="A vista">A vista</option>
+                <option value="Parcelado">Parcelado</option>
+              </select>
             </div>
-          </div>
+          )}
+
+          {(paymentType === 'Parcelado' || subType === 'cartao') && (
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-1">
+                {subType === 'cartao' ? 'Número de Parcelas' : 'Quantidade de Parcelas'}
+              </label>
+              <div className="input-group">
+                  {subType !== 'cartao' && (
+                      <input 
+                          type="number" 
+                          className="form-control"
+                          value={formData.parcela_atual}
+                          onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
+                      />
+                  )}
+                  {subType !== 'cartao' && <span className="input-group-text">de</span>}
+                  <input 
+                      type="number" 
+                      className="form-control"
+                      value={formData.parcela_total}
+                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+                  />
+              </div>
+            </div>
+          )}
 
           {subType !== 'cartao' && (
             <div className="col-md-6">
@@ -343,12 +357,11 @@ export function FinanceForm({
       ) : (
         <>
           <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia de Receber</label>
+            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data de Receber</label>
             <input 
-              type="number" 
-              min="1" max="31"
+              type="date" 
               className="form-control rounded-3"
-              value={formData.vencimento.includes('-') ? getDate(parseISO(formData.vencimento)) : formData.vencimento}
+              value={formData.vencimento}
               onChange={e => setFormData({...formData, vencimento: e.target.value})}
             />
           </div>
