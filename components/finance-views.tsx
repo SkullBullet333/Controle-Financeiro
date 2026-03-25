@@ -19,7 +19,7 @@ interface TableViewProps {
 
 export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, cartoes }: TableViewProps) {
   const headers = {
-    geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Valor', 'Ações'],
+    geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Parc.', 'Valor', 'Ações'],
     cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
     receitas: ['Data', 'Titular', 'Descrição', 'Valor', 'Ações']
   };
@@ -77,6 +77,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                       <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
                       <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
                       <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
+                      <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
                       <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                     </>
                   )}

@@ -94,7 +94,7 @@ export function FinanceForm({
       data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
-      data.parcela_total = paymentType === 'A vista' ? 1 : formData.parcela_total;
+      data.parcela_total = (paymentType === 'A vista' && !formData.simulada) ? 1 : formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
       
       if (!data.cartao_vencimento_id) {
