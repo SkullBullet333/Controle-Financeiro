@@ -228,7 +228,16 @@ export function useFinance(activeView: string) {
   const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
     if (!user) return;
     try {
-      await salvarDespesa({ ...updates, id }, user.id);
+      if (id < 0) {
+        // Se for uma fatura virtual (ID negativo), precisamos salvá-la no banco
+        const itemVirtual = consolidatedDespesas.find(d => d.id === id);
+        if (itemVirtual) {
+          const { id: _, ...dadosParaSalvar } = { ...itemVirtual, ...updates };
+          await salvarDespesa(dadosParaSalvar, user.id);
+        }
+      } else {
+        await salvarDespesa({ ...updates, id }, user.id);
+      }
       await fetchData();
     } catch (error) {
       console.error('Error updating despesa:', error);
