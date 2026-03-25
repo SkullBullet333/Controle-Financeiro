@@ -145,7 +145,7 @@ export function FinanceForm({
             <input 
               required
               className="bg-transparent border-none focus:ring-0 font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
-              style={{ fontSize: '160px', lineHeight: '1', height: 'auto' }}
+              style={{ fontSize: '60px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
               step="0.01"
