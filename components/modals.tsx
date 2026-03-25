@@ -144,7 +144,7 @@ export function FinanceForm({
             <span className="text-xl font-headline font-bold text-navy mr-3 mt-4">R$</span>
             <input 
               required
-              className="bg-transparent border-none focus:ring-0 text-7xl font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
+              className="bg-transparent border-none focus:ring-0 text-8xl font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
               placeholder="0,00"
               type="number"
               step="0.01"
@@ -267,9 +267,6 @@ export function FinanceForm({
                         <span className="material-symbols-outlined text-sm">chevron_right</span>
                       </button>
                     </div>
-                    {subType !== 'cartao' && (
-                      <span className="text-xs text-on-surface-variant font-medium">Lançamentos automáticos para os próximos meses</span>
-                    )}
                   </div>
                 </div>
               )}
@@ -280,9 +277,6 @@ export function FinanceForm({
                   className={cn("flex items-center gap-2 font-semibold transition-all w-fit text-navy")}
                   onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                 >
-                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: formData.simulada ? "'FILL' 1" : "" }}>
-                    {formData.simulada ? 'vial_circle_check' : 'vial'}
-                  </span>
                   <span className="text-sm font-label tracking-wide uppercase">{formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}</span>
                 </button>
               </div>
