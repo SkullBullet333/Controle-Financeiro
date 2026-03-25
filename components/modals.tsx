@@ -145,7 +145,7 @@ export function FinanceForm({
             <span className="text-sm font-headline font-bold text-navy mr-3 mt-1">R$</span>
             <input 
               required
-              className="bg-transparent border-none focus:ring-0 font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
+              className="bg-transparent border-none focus:ring-1 focus:ring-slate-200 rounded-lg font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0 transition-all px-2"
               style={{ fontSize: '45px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
@@ -161,7 +161,7 @@ export function FinanceForm({
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
             <input 
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Assinatura Mensal Software"
               type="text"
               value={formData.descricao}
@@ -172,7 +172,7 @@ export function FinanceForm({
           <div>
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Responsável</label>
             <select 
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm appearance-none text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.titular_id}
               onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
             >
@@ -183,7 +183,7 @@ export function FinanceForm({
           <div>
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
             <input 
-              className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Mercado, Saúde..."
               type="text"
               value={formData.categoria}
@@ -197,7 +197,7 @@ export function FinanceForm({
                 <div>
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
                   <select 
-                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm appearance-none text-on-surface"
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm appearance-none text-on-surface"
                     value={formData.cartao_vencimento_id}
                     onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
                   >
@@ -212,30 +212,29 @@ export function FinanceForm({
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
                   <input 
                     type="date"
-                    className="w-full bg-transparent border-none ring-1 ring-outline focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-3 transition-all font-body text-sm text-on-surface"
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm text-on-surface"
                     value={formData.vencimento}
                     onChange={e => setFormData({...formData, vencimento: e.target.value})}
                   />
                 </div>
               )}
 
-              <div className="flex items-end">
+              <div className="flex flex-col justify-end">
+                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Simulação</label>
                 <button 
                   type="button"
                   style={{ border: 'none' }}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all w-full justify-center",
+                    "flex items-center justify-center gap-2 px-6 h-[46px] rounded-xl font-semibold transition-all w-full",
                     formData.simulada 
                       ? "bg-yellow-400 text-black" 
                       : "text-navy hover:bg-navy/5"
                   )}
                   onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                 >
-                  <span className="material-symbols-outlined text-sm">{formData.simulada ? 'vial_circle_check' : 'vial_circle_outline'}</span>
-                  <span className="text-xs font-label tracking-wide uppercase">{formData.simulada ? 'Ativa' : 'Simular'}</span>
+                  <span className="text-sm font-label tracking-wide uppercase">{formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}</span>
                 </button>
               </div>
-
             </>
           ) : (
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -243,7 +242,7 @@ export function FinanceForm({
                 <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Receber</label>
                 <input 
                   type="date"
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-0 transition-all font-body text-sm text-on-surface"
+                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 transition-all font-body text-sm text-on-surface"
                   value={formData.vencimento}
                   onChange={e => setFormData({...formData, vencimento: e.target.value})}
                 />
@@ -315,24 +314,37 @@ export function FinanceForm({
             <h3 className="text-xl font-headline font-bold text-navy mb-8 text-center italic">Este lançamento é...</h3>
             
               <div className="w-full space-y-4">
-                <button 
-                  type="button"
-                  className={cn(
-                    "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
-                    paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
+                <div className="w-full space-y-4">
+                  <button 
+                    type="button"
+                    className={cn(
+                      "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                      paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
+                    )}
+                    onClick={() => {
+                      setPaymentType('A vista');
+                      setFormData({...formData, parcela_total: 1});
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined">payments</span>
+                      <span>À Vista</span>
+                    </div>
+                    <span className="text-[10px] uppercase opacity-60 tracking-tighter">Pagamento imediato</span>
+                  </button>
+
+                  {paymentType === 'A vista' && (
+                    <div className="py-2 animate-in zoom-in-95 duration-200">
+                      <button 
+                        type="button"
+                        onClick={() => handleSubmit(new Event('submit') as any)}
+                        className="w-full bg-[#1E40AF] text-white py-4 rounded-xl font-bold shadow-md hover:bg-[#1E40AF]/90 transition-all active:scale-95"
+                      >
+                        Confirmar e Salvar
+                      </button>
+                    </div>
                   )}
-                  onClick={() => {
-                    setPaymentType('A vista');
-                    setFormData({...formData, parcela_total: 1});
-                    setTimeout(() => handleSubmit(new Event('submit') as any), 300);
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined">payments</span>
-                    <span>À Vista</span>
-                  </div>
-                  <span className="text-[10px] uppercase opacity-60 tracking-tighter">Pagamento imediato</span>
-                </button>
+                </div>
 
                 <div className="w-full space-y-4">
                   <button 
