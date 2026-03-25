@@ -287,71 +287,64 @@ export function FinanceForm({
           {subType !== 'cartao' && (
             <div className="col-md-6">
               <label className="form-label small fw-bold text-muted text-uppercase mb-1">Tipo de Pagamento</label>
-              <select 
-                className="form-select rounded-3"
-                value={paymentType}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  const val = e.target.value as 'A vista' | 'Parcelado';
-                  setPaymentType(val);
-                  if (val === 'A vista') setFormData({...formData, parcela_total: 1});
-                }}
-              >
-                <option value="A vista">A vista</option>
-                <option value="Parcelado">Parcelado</option>
-              </select>
+              <div className="d-flex gap-2">
+                <button 
+                  type="button"
+                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'A vista' ? "btn-primary" : "btn-outline-primary")}
+                  onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
+                >
+                  À Vista
+                </button>
+                <button 
+                  type="button"
+                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'Parcelado' ? "btn-primary" : "btn-outline-primary")}
+                  onClick={() => setPaymentType('Parcelado')}
+                >
+                  Parcelado
+                </button>
+              </div>
             </div>
           )}
 
-          {(paymentType === 'Parcelado' || subType === 'cartao') && (
+          {(paymentType === 'Parcelado' || subType === 'cartao' || formData.simulada) && (
             <div className="col-md-6">
               <label className="form-label small fw-bold text-muted text-uppercase mb-1">
                 {subType === 'cartao' ? 'Número de Parcelas' : 'Quantidade de Parcelas'}
               </label>
               <div className="input-group">
-                  {subType !== 'cartao' && (
-                      <input 
-                          type="number" 
-                          className="form-control"
-                          value={formData.parcela_atual}
-                          onChange={e => setFormData({...formData, parcela_atual: parseInt(e.target.value)})}
-                      />
-                  )}
-                  {subType !== 'cartao' && <span className="input-group-text">de</span>}
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-secondary px-3"
+                    onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                  >
+                    <i className="fa-solid fa-minus"></i>
+                  </button>
                   <input 
                       type="number" 
-                      className="form-control"
+                      className="form-control text-center fw-bold"
                       value={formData.parcela_total}
-                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
+                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
                   />
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-secondary px-3"
+                    onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                  >
+                    <i className="fa-solid fa-plus"></i>
+                  </button>
               </div>
             </div>
           )}
 
-          {subType !== 'cartao' && (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Status</label>
-              <select 
-                className="form-select rounded-3"
-                value={formData.status}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, status: e.target.value as Status})}
-              >
-                <option value="Em aberto">Em aberto</option>
-                <option value="Pago">Pago</option>
-              </select>
-            </div>
-          )}
-
           <div className="col-md-6 d-flex align-items-end">
-            <div className="form-check mb-2">
-              <input 
-                type="checkbox" 
-                className="form-check-input"
-                id="checkSimulacao"
-                checked={formData.simulada}
-                onChange={e => setFormData({...formData, simulada: e.target.checked})}
-              />
-              <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacao">Simulação?</label>
-            </div>
+            <button 
+              type="button"
+              className={cn("btn w-100 fw-bold rounded-3", formData.simulada ? "btn-warning" : "btn-outline-warning")}
+              onClick={() => setFormData({...formData, simulada: !formData.simulada})}
+            >
+              <i className={cn("fa-solid me-2", formData.simulada ? "fa-vial-circle-check" : "fa-vial")}></i>
+              {formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}
+            </button>
           </div>
         </>
       ) : (
