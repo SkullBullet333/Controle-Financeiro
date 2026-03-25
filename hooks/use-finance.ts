@@ -429,22 +429,53 @@ export function useFinance(activeView: string) {
     return cartaoTransacoes.filter(c => c.competencia === competencia);
   }, [cartaoTransacoes, competencia]);
 
+  const consolidatedDespesas = useMemo(() => {
+    // 1. Filter out stored card invoices to avoid duplication
+    const baseDespesas = filteredDespesas.filter(d => !d.isSummary && !d.descricao.startsWith('Fatura '));
+
+    // 2. Create dynamic invoices from actual card transactions
+    const dynamicInvoices: Despesa[] = config.cartoes.map(card => {
+      const total = totalsByCard[card.id] || 0;
+      if (total === 0) return null;
+
+      // Find existing invoice in DB for this card to preserve status and exact vencimento
+      const existingInDB = filteredDespesas.find(f => 
+        (f.isSummary || f.descricao.startsWith('Fatura ')) && 
+        (f.cartao_vencimento_id === card.id || f.descricao.includes(card.nome_cartao))
+      );
+
+      return {
+        id: existingInDB?.id || (card.id * -1000), // Use unique negative ID for virtual entries
+        descricao: `Fatura ${card.nome_cartao}`,
+        valor: total,
+        status: existingInDB?.status || 'Em aberto',
+        titular_id: card.titular_id,
+        vencimento: existingInDB?.vencimento || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(card.dia_vencimento).padStart(2, '0')}`,
+        competencia: competencia,
+        simulada: false,
+        isSummary: true,
+        parcela_atual: 1,
+        parcela_total: 1,
+        cartao_vencimento_id: card.id
+      } as Despesa;
+    }).filter(Boolean) as Despesa[];
+
+    return [...baseDespesas, ...dynamicInvoices];
+  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia]);
+
   const despesasGerais = useMemo(() => {
-    // 1. Get expenses without card (these are fixed/variable expenses)
-    // Note: consolidated card bills also end up in 'despesas' table but with a specific description
-    // and they don't have cartao_vencimento_id in the DB schema anymore.
-    return filteredDespesas;
-  }, [filteredDespesas]);
+    return consolidatedDespesas;
+  }, [consolidatedDespesas]);
 
   const stats = useMemo(() => {
     const totalReceitas = filteredReceitas.reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
-    const totalDespesas = filteredDespesas.reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalPago = filteredDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalAberto = filteredDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+    const totalDespesas = consolidatedDespesas.reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+    const totalPago = consolidatedDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+    const totalAberto = consolidatedDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
     
     // Check for overdue (Vencido)
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const totalVencido = filteredDespesas
+    const totalVencido = consolidatedDespesas
       .filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
       .reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
 
@@ -458,7 +489,7 @@ export function useFinance(activeView: string) {
       totalVencido,
       margem
     };
-  }, [filteredReceitas, filteredDespesas]);
+  }, [filteredReceitas, consolidatedDespesas]);
 
   const changeMonth = (delta: number) => {
     let newMonth = currentMonth + delta;
@@ -500,7 +531,7 @@ export function useFinance(activeView: string) {
     const totals: Record<number, { despesas: number, receitas: number }> = {};
     config.titulares.forEach(t => totals[t.id] = { despesas: 0, receitas: 0 });
     
-    filteredDespesas.forEach(d => {
+    consolidatedDespesas.forEach(d => {
       if (!d.simulada && totals[d.titular_id]) {
         totals[d.titular_id].despesas += d.valor;
       }
@@ -513,7 +544,7 @@ export function useFinance(activeView: string) {
     });
 
     return totals;
-  }, [filteredDespesas, filteredReceitas, config.titulares]);
+  }, [consolidatedDespesas, filteredReceitas, config.titulares]);
 
   const projecaoSemestral = useMemo(() => {
     const projecao = [];
