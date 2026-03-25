@@ -1,20 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #4361ee;
+  --primary: #00288e;
+  --primary-container: #1e40af;
+  --secondary: #785924;
+  --secondary-container: #fed392;
+  --on-secondary-container: #795a24;
+  --surface: #f7f9fb;
+  --surface-container-low: #f2f4f6;
+  --surface-container-lowest: #ffffff;
+  --on-surface: #191c1e;
+  --on-surface-variant: #444653;
+  --outline-variant: rgba(196,197,213,0.3);
   --success: #2ec4b6;
-  --danger: #e71d36;
+  --danger: #ba1a1a;
   --warning: #ff9f1c;
-  --faturas: #9b59b6;
   --dark: #1e1e2d;
   --light: #f8f9fa;
   --gray: #6c757d;
-  --edit-mode: #ff9f1c;
-  --bg: #F8FAFC;
-  --card: #FFFFFF;
+  --bg: #f7f9fb;
+  --card: #ffffff;
   --border: #E2E8F0;
-  --text: #1E293B;
-  --on-surface-variant: #c6c6c6;
+  --text: #191c1e;
 }
 
 .material-symbols-outlined {
@@ -32,8 +39,19 @@ body:not(.dark-mode) .glass-panel {
   background: rgba(255, 255, 255, 0.6) !important;
 }
 
-.monolithic-gradient {
-  background: linear-gradient(45deg, #ffffff 0%, #d4d4d4 100%) !important;
+.shadow-premium {
+  box-shadow: 0 20px 40px rgba(25, 28, 30, 0.06);
+}
+
+.font-headline {
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-md {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .tracking-widest {
