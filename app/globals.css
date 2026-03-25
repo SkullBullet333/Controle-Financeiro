@@ -14,7 +14,14 @@
   --card: #FFFFFF;
   --border: #E2E8F0;
   --text: #1E293B;
-  --on-surface-variant: #c6c6c6;
+  --on-surface-variant: #49454f;
+  --on-surface: #1C1B1F;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-low: #F7F2FA;
+  --secondary-container: #E8DEF8;
+  --on-secondary-container: #1D192B;
+  --outline-variant: #CAC4D0;
+  --shadow-premium: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
 
 .material-symbols-outlined {
@@ -44,9 +51,21 @@ body:not(.dark-mode) .glass-panel {
   letter-spacing: -0.05em;
 }
 
-.font-label {
+.font-label, .font-body, .font-headline {
   font-family: 'Inter', sans-serif;
 }
+
+.shadow-premium {
+  box-shadow: var(--shadow-premium);
+}
+
+.bg-surface-container-lowest { background-color: var(--surface-container-lowest); }
+.bg-surface-container-low { background-color: var(--surface-container-low); }
+.bg-secondary-container { background-color: var(--secondary-container); }
+.text-on-surface { color: var(--on-surface); }
+.text-on-surface-variant { color: var(--on-surface-variant); }
+.text-on-secondary-container { color: var(--on-secondary-container); }
+.ring-outline-variant\/30 { --tw-ring-color: rgba(202, 196, 208, 0.3); }
 
 body.dark-mode {
   --bg: #0f172a;

@@ -22,17 +22,19 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal fade show d-block modal-standard-custom" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} onClick={onClose} tabIndex={-1}>
-      <div className="modal-dialog modal-dialog-centered px-3" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0 shadow-lg animate-in zoom-in-95 duration-200 bg-card">
-          <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold text-foreground">{title}</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
-          </div>
-          <div className="modal-body p-4">
-            {children}
-          </div>
-        </div>
+    <div className="fixed inset-0 z-[1060] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40" onClick={onClose}>
+      <div 
+        className="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow-premium p-10 relative overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        <button 
+          type="button" 
+          className="absolute top-8 right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+          onClick={onClose}
+        >
+          <X size={24} />
+        </button>
+        {children}
       </div>
     </div>
   );
@@ -109,290 +111,257 @@ export function FinanceForm({
       data.data_recebimento = finalDate;
       const dataAjustada = ajustarDataReceita(parseISO(finalDate));
       data.competencia = calcularCompetenciaReceita(dataAjustada);
+      data.parcela_total = formData.parcela_total;
     }
 
     onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
   };
 
-  if (type === 'despesa' && subType === 'cartao') {
-    return (
-      <form onSubmit={handleSubmit} className="row g-3">
-        <div className="col-12 mb-2 d-flex align-items-center gap-2 text-primary border-bottom pb-2 mb-4">
-          <i className="fa-solid fa-credit-card fs-5"></i>
-          <h5 className="fw-bold m-0">Novo Gasto no Cartão</h5>
+  return (
+    <>
+      <header className="mb-12 pe-10">
+        <div className="flex justify-between items-start">
+          <div className="space-y-1">
+            <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">
+              {subType === 'cartao' ? 'Cartão de Crédito' : type === 'despesa' ? 'Nova Despesa' : 'Nova Receita'}
+            </span>
+            <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">
+              {type === 'despesa' ? 'Registro de Gasto' : 'Registro de Ganho'}
+            </h1>
+          </div>
+          <div className="bg-secondary-container p-3 rounded-2xl">
+            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
+            </span>
+          </div>
         </div>
+      </header>
 
-        <div className="col-12">
-          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Descrição</label>
-          <input 
-            required
-            type="text" 
-            className="form-control rounded-3" 
-            placeholder="O que você comprou?"
-            value={formData.descricao}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
-          <input 
-            type="text" 
-            className="form-control rounded-3" 
-            placeholder="Ex: Mercado, Saúde..."
-            value={formData.categoria}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, categoria: e.target.value})}
-          />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome Cartão</label>
-          <select 
-            required
-            className="form-select rounded-3"
-            value={formData.cartao_vencimento_id}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-          >
-            <option value="">Selecione um Cartão</option>
-            {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-          </select>
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
-          <div className="input-group">
-            <span className="input-group-text bg-light border-end-0">R$</span>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="relative group">
+          <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Lançamento</label>
+          <div className="flex items-center bg-surface-container-low rounded-2xl px-6 py-6 group-focus-within:ring-2 ring-primary/10 transition-all">
+            <span className="text-2xl font-headline font-bold text-primary mr-3">R$</span>
             <input 
               required
-              type="number" 
+              className="bg-transparent border-none focus:ring-0 text-5xl font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
+              placeholder="0,00"
+              type="number"
               step="0.01"
-              className="form-control border-start-0 rounded-end-3" 
               value={formData.valor}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
+              onChange={e => setFormData({...formData, valor: e.target.value})}
             />
           </div>
         </div>
 
-        <div className="col-md-6">
-          <label className="form-label small fw-bold text-muted text-uppercase mb-1">Parcelas</label>
-          <input 
-            type="number" 
-            min="1"
-            className="form-control rounded-3"
-            value={formData.parcela_total}
-            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
-          />
-        </div>
-
-        <div className="col-12 mt-3">
-          <div className="form-check">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <div className="md:col-span-2">
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
             <input 
-              type="checkbox" 
-              className="form-check-input"
-              id="checkSimulacaoCartao"
-              checked={formData.simulada}
-              onChange={e => setFormData({...formData, simulada: e.target.checked})}
+              required
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm text-on-surface"
+              placeholder="Ex: Assinatura Mensal Software"
+              type="text"
+              value={formData.descricao}
+              onChange={e => setFormData({...formData, descricao: e.target.value})}
             />
-            <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoCartao">Simulação?</label>
           </div>
-        </div>
 
-        <div className="col-12 mt-4">
-          <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
-            <i className="fa-solid fa-cloud-arrow-up me-2"></i>Salvar Lançamento
-          </button>
-        </div>
-      </form>
-    );
-  }
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Responsável</label>
+            <select 
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none text-on-surface"
+              value={formData.titular_id}
+              onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+            >
+              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+          </div>
 
-  return (
-    <form onSubmit={handleSubmit} className="row g-3">
-      <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">
-          {type === 'receita' ? 'Descrição da Receita' : 'Descrição'}
-        </label>
-        <input 
-          required
-          type="text" 
-          className="form-control rounded-3" 
-          value={formData.descricao}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, descricao: e.target.value})}
-        />
-      </div>
-      
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Valor</label>
-        <div className="input-group">
-          <span className="input-group-text bg-light border-end-0">R$</span>
-          <input 
-            required
-            type="number" 
-            step="0.01"
-            className="form-control border-start-0 rounded-end-3" 
-            value={formData.valor}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, valor: e.target.value})}
-          />
-        </div>
-      </div>
-
-      <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular</label>
-        <select 
-          className="form-select rounded-3"
-          value={formData.titular_id}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-        >
-          {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-        </select>
-      </div>
-
-      {type === 'despesa' ? (
-        <>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Categoria</label>
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
             <input 
-              type="text" 
-              className="form-control rounded-3" 
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Mercado, Saúde..."
+              type="text"
               value={formData.categoria}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, categoria: e.target.value})}
+              onChange={e => setFormData({...formData, categoria: e.target.value})}
             />
           </div>
 
-          {subType === 'cartao' ? (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome Cartão</label>
-              <select 
-                className="form-select rounded-3"
-                value={formData.cartao_vencimento_id}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-              >
-                <option value="">Selecione um Cartão</option>
-                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-              </select>
-            </div>
-          ) : (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data Vencimento</label>
-              <input 
-                type="date" 
-                className="form-control rounded-3"
-                value={formData.vencimento}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, vencimento: e.target.value})}
-              />
-            </div>
-          )}
+          {type === 'despesa' ? (
+            <>
+              {subType === 'cartao' ? (
+                <div>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
+                  <select 
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none text-on-surface"
+                    value={formData.cartao_vencimento_id}
+                    onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
+                  >
+                    <option value="">Selecione um cartão</option>
+                    {cartoes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome_cartao} (Vence {c.dia_vencimento})</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
+                  <input 
+                    type="date"
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm text-on-surface"
+                    value={formData.vencimento}
+                    onChange={e => setFormData({...formData, vencimento: e.target.value})}
+                  />
+                </div>
+              )}
 
-          {subType !== 'cartao' && (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">Tipo de Pagamento</label>
-              <div className="d-flex gap-2">
+              {subType !== 'cartao' && (
+                <div>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Pagamento</label>
+                  <div className="flex bg-surface-container-low p-1 rounded-lg">
+                    <button 
+                      type="button"
+                      className={cn("flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all", paymentType === 'A vista' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface")}
+                      onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
+                    >
+                      À Vista
+                    </button>
+                    <button 
+                      type="button"
+                      className={cn("flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all", paymentType === 'Parcelado' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface")}
+                      onClick={() => setPaymentType('Parcelado')}
+                    >
+                      Parcelado
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(paymentType === 'Parcelado' || subType === 'cartao' || formData.simulada) && (
+                <div className={cn(subType === 'cartao' ? "" : "md:col-span-2")}>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">
+                    {subType === 'cartao' ? 'Número de Parcelas' : 'Quantidade de Parcelas'}
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex bg-surface-container-low p-1 rounded-lg w-full max-w-[200px]">
+                      <button 
+                        type="button" 
+                        className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
+                        onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                      >
+                        <span className="material-symbols-outlined text-sm">chevron_left</span>
+                      </button>
+                      <input 
+                        className="flex-1 bg-transparent border-none text-center font-bold text-on-surface focus:ring-0"
+                        type="number"
+                        value={formData.parcela_total}
+                        onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
+                      />
+                      <button 
+                        type="button" 
+                        className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
+                        onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                      >
+                        <span className="material-symbols-outlined text-sm">chevron_right</span>
+                      </button>
+                    </div>
+                    {subType !== 'cartao' && (
+                      <span className="text-xs text-on-surface-variant font-medium">Lançamentos automáticos para os próximos meses</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="md:col-span-2">
                 <button 
                   type="button"
-                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'A vista' ? "btn-primary" : "btn-outline-primary")}
-                  onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
+                  className={cn("flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all w-fit", formData.simulada ? "bg-warning/10 text-orange-600 ring-2 ring-warning/20" : "bg-surface-container-low text-on-surface-variant hover:text-on-surface")}
+                  onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                 >
-                  À Vista
-                </button>
-                <button 
-                  type="button"
-                  className={cn("btn flex-grow-1 fw-bold rounded-3", paymentType === 'Parcelado' ? "btn-primary" : "btn-outline-primary")}
-                  onClick={() => setPaymentType('Parcelado')}
-                >
-                  Parcelado
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: formData.simulada ? "'FILL' 1" : "" }}>
+                    {formData.simulada ? 'vial_circle_check' : 'vial'}
+                  </span>
+                  <span className="text-sm">{formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}</span>
                 </button>
               </div>
-            </div>
-          )}
-
-          {(paymentType === 'Parcelado' || subType === 'cartao' || formData.simulada) && (
-            <div className="col-md-6">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-1">
-                {subType === 'cartao' ? 'Número de Parcelas' : 'Quantidade de Parcelas'}
-              </label>
-              <div className="input-group">
+            </>
+          ) : (
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Receber</label>
+                <input 
+                  type="date"
+                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm text-on-surface"
+                  value={formData.vencimento}
+                  onChange={e => setFormData({...formData, vencimento: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Recorrência (Meses)</label>
+                <div className="flex bg-surface-container-low p-1 rounded-lg w-full max-w-[200px]">
                   <button 
                     type="button" 
-                    className="btn btn-outline-secondary px-3"
+                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                     onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                   >
-                    <i className="fa-solid fa-chevron-left"></i>
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
                   </button>
                   <input 
-                      type="number" 
-                      className="form-control text-center fw-bold"
-                      value={formData.parcela_total}
-                      onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
+                    className="flex-1 bg-transparent border-none text-center font-bold text-on-surface focus:ring-0"
+                    type="number"
+                    value={formData.parcela_total}
+                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
                   />
                   <button 
                     type="button" 
-                    className="btn btn-outline-secondary px-3"
+                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
                     onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                   >
-                    <i className="fa-solid fa-chevron-right"></i>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
                   </button>
+                </div>
               </div>
             </div>
           )}
+        </div>
 
-          <div className="col-md-6 d-flex align-items-end">
-            <button 
-              type="button"
-              className={cn("btn w-100 fw-bold rounded-3", formData.simulada ? "btn-warning" : "btn-outline-warning")}
-              onClick={() => setFormData({...formData, simulada: !formData.simulada})}
-            >
-              <i className={cn("fa-solid me-2", formData.simulada ? "fa-vial-circle-check" : "fa-vial")}></i>
-              {formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}
-            </button>
+        <div className="p-6 bg-surface-container-low rounded-2xl flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
+            <span className="material-symbols-outlined text-secondary text-xl">auto_awesome</span>
           </div>
-        </>
-      ) : (
-        <>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Data de Receber</label>
-            <input 
-              type="date" 
-              className="form-control rounded-3"
-              value={formData.vencimento}
-              onChange={e => setFormData({...formData, vencimento: e.target.value})}
-            />
+          <div className="space-y-1">
+            <h4 className="text-xs font-headline font-bold text-on-surface tracking-wide">Dica do Curador</h4>
+            <p className="text-[13px] text-on-surface-variant leading-relaxed font-body">
+              {type === 'despesa' 
+                ? 'Economize em compras recorrentes revendo assinaturas mensais para otimizar seu fluxo de caixa.' 
+                : 'Mantenha um registro fiel de suas receitas para facilitar o planejamento financeiro a longo prazo.'}
+            </p>
           </div>
-          <div className="col-md-6">
-            <label className="form-label small fw-bold text-muted text-uppercase mb-1">Recorrência</label>
-            <div className="input-group">
-                <input 
-                    type="number" 
-                    className="form-control"
-                    value={formData.parcela_total}
-                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value)})}
-                />
-                <span className="input-group-text">Meses</span>
-            </div>
-          </div>
-          <div className="col-12 mt-3">
-             <div className="form-check">
-              <input 
-                type="checkbox" 
-                className="form-check-input"
-                id="checkSimulacaoReceita"
-                checked={formData.simulada}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, simulada: e.target.checked})}
-              />
-              <label className="form-check-label small fw-bold text-muted text-uppercase" htmlFor="checkSimulacaoReceita">Simulação?</label>
-            </div>
-          </div>
-        </>
-      )}
+        </div>
 
-      <div className="col-12 mt-4">
-        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
-          <i className="fa-solid fa-cloud-arrow-up me-2"></i>Salvar Lançamento
-        </button>
-      </div>
-    </form>
+        <div className="pt-4 grid grid-cols-2 gap-x-8 items-center">
+          <button 
+            type="button"
+            className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left"
+            onClick={() => window.dispatchEvent(new CustomEvent('closeModal'))}
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            className="bg-primary hover:bg-primary/90 text-white py-4 rounded-full font-label font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">check_circle</span>
+            Confirmar Lançamento
+          </button>
+        </div>
+      </form>
+    </>
   );
 }
+
 
 export function TitularForm({ 
   onSubmit, 
