@@ -317,16 +317,16 @@ export function FinanceForm({
             <h3 className="text-2xl font-headline font-black text-navy mb-2 text-center tracking-tight">Finalizar Lançamento</h3>
             <p className="text-slate-400 text-xs font-label uppercase tracking-[0.2em] mb-10 text-center">Escolha o fluxo de pagamento</p>
             
-            <div className="w-full space-y-4 mb-8">
+            <div className="w-full space-y-6 mb-8">
               {/* Opção À Vista */}
               <button 
                 type="button"
-                style={{ border: 'none', borderRadius: '3rem' }}
+                style={{ border: 'none', borderRadius: '1.5rem' }}
                 className={cn(
                   "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
                   paymentType === 'A vista' 
                     ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
-                    : "bg-[#F8FAFC] text-navy hover:bg-slate-100 border border-slate-100"
+                    : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
                 )}
                 onClick={() => {
                   setPaymentType('A vista');
@@ -355,12 +355,12 @@ export function FinanceForm({
               <div className="w-full space-y-4">
                 <button 
                   type="button"
-                  style={{ border: 'none', borderRadius: '3rem' }}
+                  style={{ border: 'none', borderRadius: '1.5rem' }}
                   className={cn(
                     "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
                     paymentType === 'Parcelado' 
                       ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
-                      : "bg-[#F8FAFC] text-navy hover:bg-slate-100 border border-slate-100"
+                      : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
                   )}
                   onClick={() => setPaymentType('Parcelado')}
                 >
@@ -434,11 +434,12 @@ export function FinanceForm({
 
             <button 
               type="button"
-              style={{ display: 'block', margin: '80px auto 0', border: 'none' }}
-              className="text-[10px] font-black text-slate-300 hover:text-navy transition-colors uppercase tracking-[0.3em]"
+              style={{ display: 'flex', margin: '80px auto 0', borderRadius: '9999px' }}
+              className="w-full bg-white border border-red-100 text-red-500 h-[52px] font-black hover:bg-red-50 hover:border-red-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
               onClick={() => setStep('fill')}
             >
-              Voltar ao formulário
+              <span className="material-symbols-outlined text-xl">arrow_back</span>
+              <span>Voltar ao Formulário</span>
             </button>
           </div>
         </div>
