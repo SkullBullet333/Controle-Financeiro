@@ -144,7 +144,7 @@ export function FinanceForm({
             <span className="text-xl font-headline font-bold text-navy mr-3 mt-4">R$</span>
             <input 
               required
-              className="bg-transparent border-none focus:ring-0 text-8xl font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
+              className="bg-transparent border-none focus:ring-0 text-9xl font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0"
               placeholder="0,00"
               type="number"
               step="0.01"
@@ -362,7 +362,7 @@ export function FinanceForm({
           </button>
           <button 
             type="submit"
-            className="bg-navy hover:bg-navy/90 text-white py-4 rounded-2xl font-label font-semibold text-sm shadow-lg shadow-navy/20 hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
+            className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white py-4 rounded-2xl font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-lg">check_circle</span>
             Confirmar Lançamento
