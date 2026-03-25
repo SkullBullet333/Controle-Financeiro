@@ -70,6 +70,7 @@ export function FinanceForm({
     simulada: (initialData as any)?.simulada || false
   });
 
+  const [step, setStep] = useState<'fill' | 'confirm'>('fill');
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -218,79 +219,6 @@ export function FinanceForm({
                 </div>
               )}
 
-              {subType !== 'cartao' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Pagamento</label>
-                    <div className="flex bg-[#F8FAFC] p-1 rounded-lg border border-outline-variant/30">
-                      <button 
-                        type="button"
-                        className={cn("flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all", paymentType === 'A vista' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface")}
-                        onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
-                      >
-                        À Vista
-                      </button>
-                      <button 
-                        type="button"
-                        className={cn("flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all", paymentType === 'Parcelado' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface")}
-                        onClick={() => setPaymentType('Parcelado')}
-                      >
-                        Parcelado
-                      </button>
-                    </div>
-                  </div>
-
-                  {(paymentType === 'Parcelado' || formData.simulada) && (
-                    <div className="animate-in slide-in-from-top-2 duration-200">
-                      <div className="flex items-center justify-center gap-1 bg-[#F8FAFC] rounded-lg p-1 w-full max-w-[140px] border border-outline-variant/30">
-                        <button 
-                          type="button" 
-                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                          onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
-                        >
-                          <span className="material-symbols-outlined text-sm">chevron_left</span>
-                        </button>
-                        <div className="flex-1 text-center font-bold text-on-surface">
-                          {formData.parcela_total}
-                        </div>
-                        <button 
-                          type="button" 
-                          className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                          onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
-                        >
-                          <span className="material-symbols-outlined text-sm">chevron_right</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {subType === 'cartao' && (
-                <div>
-                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Número de Parcelas</label>
-                  <div className="flex items-center justify-center gap-1 bg-[#F8FAFC] rounded-lg p-1 w-full max-w-[140px] border border-outline-variant/30">
-                    <button 
-                      type="button" 
-                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                      onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
-                    >
-                      <span className="material-symbols-outlined text-sm">chevron_left</span>
-                    </button>
-                    <div className="flex-1 text-center font-bold text-on-surface">
-                      {formData.parcela_total}
-                    </div>
-                    <button 
-                      type="button" 
-                      className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                      onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
-                    >
-                      <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <div className="md:col-span-2 flex justify-center">
                 <button 
                   type="button"
@@ -357,7 +285,8 @@ export function FinanceForm({
             Cancelar
           </button>
           <button 
-            type="submit"
+            type="button"
+            onClick={() => setStep('confirm')}
             style={{ borderRadius: '9999px' }}
             className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white py-4 font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
           >
@@ -366,6 +295,100 @@ export function FinanceForm({
           </button>
         </div>
       </form>
+
+      {/* Pop-up de Seleção de Pagamento */}
+      {step === 'confirm' && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-[360px] rounded-[2.5rem] shadow-2xl p-10 border border-slate-100 flex flex-col items-center">
+            <h3 className="text-xl font-headline font-bold text-navy mb-8 text-center italic">Este lançamento é...</h3>
+            
+            <div className="w-full space-y-4">
+              <button 
+                type="button"
+                className={cn(
+                  "w-full py-5 rounded-2xl font-bold transition-all flex flex-col items-center gap-1",
+                  paymentType === 'A vista' ? "bg-[#1E40AF] text-white shadow-lg scale-105" : "bg-[#F8FAFC] text-navy hover:bg-slate-100"
+                )}
+                onClick={() => {
+                  setPaymentType('A vista');
+                  setFormData({...formData, parcela_total: 1});
+                  // O timeout dá um feedback visual da escolha antes de salvar
+                  setTimeout(() => handleSubmit(new Event('submit') as any), 300);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined">payments</span>
+                  <span>À Vista</span>
+                </div>
+                <span className="text-[10px] uppercase opacity-60 tracking-tighter">Pagamento imediato</span>
+              </button>
+
+              <div className={cn(
+                "w-full p-1 rounded-2xl transition-all",
+                paymentType === 'Parcelado' ? "bg-[#1E40AF] shadow-lg scale-105" : "bg-[#F8FAFC]"
+              )}>
+                <button 
+                  type="button"
+                  className={cn(
+                    "w-full py-5 rounded-xl font-bold transition-all flex flex-col items-center gap-1",
+                    paymentType === 'Parcelado' ? "bg-white text-[#1E40AF]" : "text-navy hover:bg-slate-100"
+                  )}
+                  onClick={() => setPaymentType('Parcelado')}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined">event_repeat</span>
+                    <span>Parcelado</span>
+                  </div>
+                  <span className="text-[10px] uppercase opacity-60 tracking-tighter">Próximos meses</span>
+                </button>
+
+                {paymentType === 'Parcelado' && (
+                  <div className="p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-center gap-4 bg-[#F8FAFC] rounded-2xl p-4 border border-[#1E40AF]/20">
+                      <button 
+                        type="button" 
+                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-white rounded-full shadow-sm transition-all"
+                        onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                      >
+                        <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                      </button>
+                      
+                      <div className="flex flex-col items-center flex-1">
+                        <span className="text-4xl font-black text-[#1E40AF] leading-none mb-1">{formData.parcela_total}</span>
+                        <span className="text-[9px] uppercase font-bold text-[#1E40AF]/40">Parcelas</span>
+                      </div>
+
+                      <button 
+                        type="button" 
+                        className="w-12 h-12 flex items-center justify-center text-[#1E40AF] hover:bg-white rounded-full shadow-sm transition-all"
+                        onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                      >
+                        <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                      </button>
+                    </div>
+
+                    <button 
+                      type="button"
+                      onClick={() => handleSubmit(new Event('submit') as any)}
+                      className="w-full bg-[#1E40AF] text-white py-4 rounded-xl font-bold shadow-md hover:bg-[#1E40AF]/90"
+                    >
+                      Salvar Lançamento
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button 
+              type="button"
+              className="mt-8 text-xs font-bold text-slate-400 hover:text-navy transition-colors uppercase tracking-widest"
+              onClick={() => setStep('fill')}
+            >
+              Voltar ao formulário
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
