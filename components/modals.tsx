@@ -61,8 +61,8 @@ export function FinanceForm({
     descricao: (initialData as any)?.descricao || '',
     valor: (initialData as any)?.valor?.toString() || '',
     titular_id: (initialData as any)?.titular_id || titulares[0]?.id || 0,
-    categoria: (initialData as any)?.categoria || '',
-    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().toISOString().split('T')[0],
+    categoria: (initialData as any)?.categoria || 'OUTROS',
+    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || format(new Date(), 'yyyy-MM-dd'),
     status: (initialData as any)?.status || ('Em aberto' as Status),
     parcela_atual: (initialData as any)?.parcela_atual || 1,
     parcela_total: (initialData as any)?.parcela_total || 1,
@@ -74,29 +74,27 @@ export function FinanceForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalDate = formData.vencimento;
     
-    let finalDate = formData.vencimento;
-
     let titularId = formData.titular_id;
     if (type === 'despesa' && subType === 'cartao' && formData.cartao_vencimento_id) {
       const cartao = cartoes.find(c => c.id === parseInt(formData.cartao_vencimento_id as string));
       if (cartao) titularId = cartao.titular_id;
     }
 
-    const data: Partial<Despesa> & Partial<Receita> = {
+    const data: any = {
       descricao: formData.descricao,
+      categoria: formData.categoria || categorizar(formData.descricao),
       valor: parseFloat(formData.valor),
       titular_id: titularId,
-      competencia,
-      simulada: formData.simulada,
+      parcela_atual: formData.parcela_atual,
+      parcela_total: formData.parcela_total,
+      simulada: formData.simulada
     };
 
     if (type === 'despesa') {
-      data.categoria = formData.categoria || categorizar(formData.descricao);
       data.vencimento = finalDate;
       data.status = formData.status;
-      data.parcela_atual = formData.parcela_atual;
-      data.parcela_total = (paymentType === 'A vista' && !formData.simulada) ? 1 : formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
       
       if (!data.cartao_vencimento_id) {
@@ -116,331 +114,45 @@ export function FinanceForm({
     onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
   };
 
-  if (type === 'despesa' && subType === 'cartao') {
-    return (
-      <div className="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow-premium p-10 relative overflow-hidden">
-        <header className="mb-12">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">Novo Gasto</span>
-              <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Cartão de Crédito</h1>
-            </div>
-            <div className="bg-secondary-container p-3 rounded-2xl">
-              <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>credit_card</span>
-            </div>
-          </div>
-        </header>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="relative group">
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Gasto</label>
-            <div className="flex items-center bg-surface-container-low rounded-2xl px-6 py-6 group-focus-within:ring-2 ring-primary/10 transition-all">
-              <span className="text-2xl font-headline font-bold text-primary mr-3">R$</span>
-              <input 
-                className="bg-transparent border-none focus:ring-0 text-5xl font-headline font-extrabold text-on-surface placeholder:text-surface-variant w-full p-0 shadow-none outline-none" 
-                placeholder="0,00" 
-                type="number"
-                step="0.01"
-                required
-                value={formData.valor}
-                onChange={e => setFormData({...formData, valor: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="md:col-span-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
-              <input 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-                placeholder="O que você comprou?" 
-                type="text"
-                required
-                value={formData.descricao}
-                onChange={e => setFormData({...formData, descricao: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Nome Cartão</label>
-              <select 
-                required
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none outline-none"
-                value={formData.cartao_vencimento_id}
-                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
-              >
-                <option value="">Selecione um Cartão</option>
-                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
-              <input 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-                placeholder="Ex: Mercado, Saúde..." 
-                type="text"
-                value={formData.categoria}
-                onChange={e => setFormData({...formData, categoria: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-               <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Parcelas</label>
-               <input 
-                type="number" 
-                min="1"
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-                value={formData.parcela_total}
-                onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-              />
-            </div>
-
-            <div className="space-y-2 flex flex-col justify-end">
-               <button 
-                type="button"
-                className={cn(
-                  "w-full h-[46px] flex items-center justify-center gap-2 font-bold text-xs rounded-lg transition-all border",
-                  formData.simulada 
-                    ? "bg-secondary-container/20 border-secondary-container text-on-secondary-container" 
-                    : "border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low"
-                )}
-                onClick={() => setFormData({...formData, simulada: !formData.simulada})}
-              >
-                <span className="material-symbols-outlined text-lg">
-                  {formData.simulada ? 'vial_circle_check' : 'vial'}
-                </span>
-                {formData.simulada ? 'SIMULAÇÃO ATIVA' : 'ATIVAR SIMULAÇÃO'}
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-4 grid grid-cols-2 gap-x-8">
-            <button 
-              className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left" 
-              type="button"
-              onClick={onCancel}
-            >
-              Cancelar
-            </button>
-            <button 
-              className="bg-gradient-to-br from-primary to-primary-container text-white py-4 rounded-full font-label font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all w-full" 
-              type="submit"
-            >
-              Confirmar Lançamento
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  if (type === 'despesa') {
-    return (
-      <div className="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow-premium p-10 relative overflow-hidden">
-        <header className="mb-12">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">Nova Despesa</span>
-              <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Registro de Gasto</h1>
-            </div>
-            <div className="bg-secondary-container p-3 rounded-2xl">
-              <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
-            </div>
-          </div>
-        </header>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="relative group">
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Lançamento</label>
-            <div className="flex items-center bg-surface-container-low rounded-2xl px-6 py-6 group-focus-within:ring-2 ring-primary/10 transition-all">
-              <span className="text-2xl font-headline font-bold text-primary mr-3">R$</span>
-              <input 
-                className="bg-transparent border-none focus:ring-0 text-5xl font-headline font-extrabold text-on-surface placeholder:text-surface-variant w-full p-0 shadow-none outline-none" 
-                placeholder="0,00" 
-                type="number"
-                step="0.01"
-                required
-                value={formData.valor}
-                onChange={e => setFormData({...formData, valor: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="md:col-span-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
-              <input 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-                placeholder="Ex: Assinatura Mensal Software" 
-                type="text"
-                required
-                value={formData.descricao}
-                onChange={e => setFormData({...formData, descricao: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Responsável</label>
-              <select 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none outline-none"
-                value={formData.titular_id}
-                onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
-              >
-                {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
-              <select 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none outline-none uppercase"
-                value={formData.categoria}
-                onChange={e => setFormData({...formData, categoria: e.target.value})}
-              >
-                <option value="ALIMENTAÇÃO">ALIMENTAÇÃO</option>
-                <option value="CARTÃO">CARTÃO</option>
-                <option value="ESTUDO">ESTUDO</option>
-                <option value="INVESTIMENTO">INVESTIMENTO</option>
-                <option value="LAZER">LAZER</option>
-                <option value="MERCADO">MERCADO</option>
-                <option value="OUTROS">OUTROS</option>
-                <option value="SAÚDE">SAÚDE</option>
-                <option value="SERVIÇOS">SERVIÇOS</option>
-                <option value="TRANSPORTE">TRANSPORTE</option>
-                <option value="VIAGEM">VIAGEM</option>
-                <option value="MORADIA">MORADIA</option>
-                <option value="PET">PET</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
-              <input 
-                className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-                type="date"
-                required
-                value={formData.vencimento}
-                onChange={e => setFormData({...formData, vencimento: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Pagamento</label>
-              <div className="flex bg-surface-container-low p-1 rounded-lg">
-                <button 
-                  className={cn(
-                    "flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all",
-                    paymentType === 'A vista' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                  )}
-                  type="button"
-                  onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
-                >
-                  À Vista
-                </button>
-                <button 
-                  className={cn(
-                    "flex-1 py-[11px] text-xs font-label font-semibold rounded-md transition-all",
-                    paymentType === 'Parcelado' ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                  )}
-                  type="button"
-                  onClick={() => setPaymentType('Parcelado')}
-                >
-                  Parcelado
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 border-t border-outline-variant/20 pt-6">
-            {(paymentType === 'Parcelado' || formData.simulada) && (
-              <div className="space-y-2">
-                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Quantidade de Parcelas</label>
-                <div className="flex items-center gap-3 bg-surface-container-low p-1 rounded-lg ring-1 ring-outline-variant/30">
-                  <button 
-                    type="button" 
-                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                    onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
-                  >
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  <input 
-                    type="number" 
-                    className="bg-transparent border-none p-0 text-center font-bold text-on-surface w-full focus:ring-0 shadow-none"
-                    value={formData.parcela_total}
-                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-                  />
-                  <button 
-                    type="button" 
-                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                    onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2 flex flex-col justify-end">
-               <button 
-                type="button"
-                className={cn(
-                  "w-full h-[46px] flex items-center justify-center gap-2 font-bold text-xs rounded-lg transition-all border",
-                  formData.simulada 
-                    ? "bg-secondary-container/20 border-secondary-container text-on-secondary-container" 
-                    : "border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low"
-                )}
-                onClick={() => setFormData({...formData, simulada: !formData.simulada})}
-              >
-                <span className="material-symbols-outlined text-lg">
-                  {formData.simulada ? 'vial_circle_check' : 'vial'}
-                </span>
-                {formData.simulada ? 'SIMULAÇÃO ATIVA' : 'ATIVAR SIMULAÇÃO'}
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-4 grid grid-cols-2 gap-x-8">
-            <button 
-              className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left" 
-              type="button"
-              onClick={onCancel}
-            >
-              Cancelar
-            </button>
-            <button 
-              className="bg-gradient-to-br from-primary to-primary-container text-white py-4 rounded-full font-label font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all w-full" 
-              type="submit"
-            >
-              Confirmar Lançamento
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
+  const isCartao = type === 'despesa' && subType === 'cartao';
+  const isReceita = type === 'receita';
 
   return (
-    <div className="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow-premium p-10 relative overflow-hidden">
-      <header className="mb-12">
+    <div className="w-full max-w-[640px] bg-md-surface-container-lowest rounded-[2rem] shadow-premium p-6 md:p-10 relative overflow-hidden transition-all duration-500">
+      <header className="mb-8 md:mb-12">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">Nova Receita</span>
-            <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">Entrada de Valor</h1>
+            <span className="font-label-md text-md-on-surface-variant uppercase tracking-widest text-[10px]">
+              {isReceita ? 'Lançamento de Entrada' : isCartao ? 'Lançamento Cartão' : 'Lançamento Fixo'}
+              {(formData.parcela_total > 1 || formData.simulada) && ` • Parcela ${formData.parcela_atual}/${formData.parcela_total}`}
+            </span>
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-md-on-surface tracking-tight">
+              {isReceita ? 'Registro de Receita' : isCartao ? 'Fatura do Cartão' : 'Registro de Gasto'}
+            </h1>
           </div>
-          <div className="bg-secondary-container p-3 rounded-2xl">
-            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+          <div className={cn(
+            "p-3 rounded-2xl transition-colors",
+            isReceita ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-md-secondary-container"
+          )}>
+            <span className={cn(
+              "material-symbols-outlined",
+              isReceita ? "text-emerald-600" : "text-md-on-secondary-container"
+            )} style={{ fontVariationSettings: "'FILL' 1" }}>
+              {isReceita ? 'add_box' : isCartao ? 'credit_card' : 'payments'}
+            </span>
           </div>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
         <div className="relative group">
-          <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor da Receita</label>
-          <div className="flex items-center bg-surface-container-low rounded-2xl px-6 py-6 group-focus-within:ring-2 ring-primary/10 transition-all">
-            <span className="text-2xl font-headline font-bold text-primary mr-3">R$</span>
+          <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider transition-colors group-focus-within:text-md-primary">
+            Valor do Lançamento
+          </label>
+          <div className="flex items-center bg-md-surface-container-low rounded-2xl px-6 py-4 md:py-6 group-focus-within:ring-2 ring-md-primary/10 transition-all border border-transparent group-focus-within:border-md-primary/20 shadow-sm">
+            <span className="text-2xl font-headline font-bold text-md-primary mr-3">R$</span>
             <input 
-              className="bg-transparent border-none focus:ring-0 text-5xl font-headline font-extrabold text-on-surface placeholder:text-surface-variant w-full p-0 shadow-none outline-none" 
+              className="bg-transparent border-none focus:ring-0 text-3xl md:text-5xl font-headline font-extrabold text-md-on-surface placeholder:text-md-outline-variant/30 w-full p-0 shadow-none outline-none" 
               placeholder="0,00" 
               type="number"
               step="0.01"
@@ -453,10 +165,10 @@ export function FinanceForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
           <div className="md:col-span-2">
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
+            <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">Descrição</label>
             <input 
-              className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-              placeholder="Ex: Salário Mensal" 
+              className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm dark:text-md-on-surface outline-none placeholder:text-md-outline-variant/40" 
+              placeholder={isCartao ? "O que você comprou?" : isReceita ? "Ex: Salário, Freelance..." : "Ex: Assinatura Mensal, Internet..."} 
               type="text"
               required
               value={formData.descricao}
@@ -465,20 +177,61 @@ export function FinanceForm({
           </div>
 
           <div className="space-y-2">
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Titular</label>
+            <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">
+              {isCartao ? 'Cartão' : 'Responsável'}
+            </label>
+            {isCartao ? (
+              <select 
+                required
+                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm appearance-none dark:text-md-on-surface outline-none"
+                value={formData.cartao_vencimento_id}
+                onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
+              >
+                <option value="">Escolha um cartão</option>
+                {cartoes.map(c => <option key={c.id} value={c.id}>{c.nome_cartao}</option>)}
+              </select>
+            ) : (
+              <select 
+                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm appearance-none dark:text-md-on-surface outline-none"
+                value={formData.titular_id}
+                onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+              >
+                {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </select>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">Categoria</label>
             <select 
-              className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm appearance-none outline-none"
-              value={formData.titular_id}
-              onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+              className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm appearance-none dark:text-md-on-surface outline-none uppercase"
+              value={formData.categoria}
+              onChange={e => setFormData({...formData, categoria: e.target.value})}
             >
-              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              <option value="ALIMENTAÇÃO">ALIMENTAÇÃO</option>
+              <option value="CARTÃO">CARTÃO</option>
+              <option value="ESTUDO">ESTUDO</option>
+              <option value="INVESTIMENTO">INVESTIMENTO</option>
+              <option value="LAZER">LAZER</option>
+              <option value="MERCADO">MERCADO</option>
+              <option value="OUTROS">OUTROS</option>
+              <option value="SAÚDE">SAÚDE</option>
+              <option value="SERVIÇOS">SERVIÇOS</option>
+              <option value="TRANSPORTE">TRANSPORTE</option>
+              <option value="VIAGEM">VIAGEM</option>
+              <option value="MORADIA">MORADIA</option>
+              <option value="PET">PET</option>
+              {isReceita && <option value="SALÁRIO">SALÁRIO</option>}
+              {isReceita && <option value="FREELANCE">FREELANCE</option>}
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Recebimento</label>
+            <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">
+              {isReceita ? 'Data Prevista' : 'Data de Vencimento'}
+            </label>
             <input 
-              className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
+              className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm dark:text-md-on-surface outline-none" 
               type="date"
               required
               value={formData.vencimento}
@@ -487,36 +240,107 @@ export function FinanceForm({
           </div>
 
           <div className="space-y-2">
-             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Recorrência (Meses)</label>
-             <input 
-              type="number" 
-              min="1"
-              className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-primary/40 focus:ring-2 transition-all font-body text-sm outline-none" 
-              value={formData.parcela_total}
-              onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-            />
+            <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">Tipo de Lançamento</label>
+            <div className="flex bg-md-surface-container-low p-1 rounded-lg">
+              <button 
+                className={cn(
+                  "flex-1 py-[11px] text-xs font-label-md font-semibold rounded-md transition-all duration-300",
+                  paymentType === 'A vista' ? "bg-white text-md-primary shadow-sm" : "text-md-on-surface-variant hover:text-md-on-surface"
+                )}
+                type="button"
+                onClick={() => { setPaymentType('A vista'); setFormData({...formData, parcela_total: 1}); }}
+              >
+                À Vista
+              </button>
+              <button 
+                className={cn(
+                  "flex-1 py-[11px] text-xs font-label-md font-semibold rounded-md transition-all duration-300",
+                  paymentType === 'Parcelado' ? "bg-white text-md-primary shadow-sm" : "text-md-on-surface-variant hover:text-md-on-surface"
+                )}
+                type="button"
+                onClick={() => setPaymentType('Parcelado')}
+              >
+                Parcelado
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="pt-4 grid grid-cols-2 gap-x-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 border-t border-md-outline-variant/10 pt-6">
+          {(paymentType === 'Parcelado' || formData.simulada) && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+              <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">Quantidade de Parcelas</label>
+              <div className="flex items-center gap-2 bg-md-surface-container-low p-1 rounded-lg ring-1 ring-md-outline-variant/20 shadow-inner">
+                <button 
+                  type="button" 
+                  className="w-10 h-10 flex items-center justify-center text-md-on-surface-variant hover:bg-white rounded-md transition-all shadow-sm group active:scale-90"
+                  onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                >
+                  <span className="material-symbols-outlined text-lg">chevron_left</span>
+                </button>
+                <input 
+                  type="number" 
+                  className="bg-transparent border-none p-0 text-center font-bold text-md-on-surface w-full focus:ring-0 shadow-none outline-none font-headline"
+                  value={formData.parcela_total}
+                  onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
+                />
+                <button 
+                  type="button" 
+                  className="w-10 h-10 flex items-center justify-center text-md-on-surface-variant hover:bg-white rounded-md transition-all shadow-sm group active:scale-90"
+                  onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
+                >
+                  <span className="material-symbols-outlined text-lg">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2 flex flex-col justify-end">
+             <button 
+              type="button"
+              className={cn(
+                "w-full h-[46px] flex items-center justify-center gap-2 font-bold text-xs rounded-lg transition-all border shadow-sm",
+                formData.simulada 
+                  ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/10 dark:border-amber-900 dark:text-amber-400" 
+                  : "border-md-outline-variant/30 text-md-on-surface-variant hover:bg-md-surface-container-low active:scale-[0.98]"
+              )}
+              onClick={() => setFormData({...formData, simulada: !formData.simulada})}
+            >
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: formData.simulada ? "'FILL' 1" : "" }}>
+                {formData.simulada ? 'vial_circle_check' : 'vial'}
+              </span>
+              {formData.simulada ? 'SIMULAÇÃO ATIVA' : 'ATIVAR SIMULAÇÃO'}
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-6 grid grid-cols-2 gap-x-8 items-center border-t border-md-outline-variant/5">
           <button 
-            className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left" 
+            className="text-sm font-label-md font-semibold text-md-on-surface-variant hover:text-md-on-surface transition-colors text-left" 
             type="button"
             onClick={onCancel}
           >
             Cancelar
           </button>
           <button 
-            className="bg-gradient-to-br from-primary to-primary-container text-white py-4 rounded-full font-label font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all w-full" 
+            className={cn(
+              "py-4 rounded-full font-label-md font-semibold text-sm shadow-lg transition-all active:scale-95 w-full",
+              isReceita 
+                ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-500/20 hover:shadow-emerald-500/30"
+                : "bg-gradient-to-br from-md-primary to-md-primary-container text-white shadow-md-primary/20 hover:shadow-md-primary/30"
+            )}
             type="submit"
           >
-            Salvar Receita
+            Confirmar {isReceita ? 'Entrada' : 'Lançamento'}
           </button>
         </div>
       </form>
+
+      {/* Background Decorative Gradient matches the premium look of the template */}
+      <div className="absolute -z-10 top-0 right-0 w-[50%] h-[50%] bg-md-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute -z-10 bottom-0 left-0 w-[40%] h-[40%] bg-md-secondary/5 rounded-full blur-[80px] pointer-events-none"></div>
     </div>
   );
-
 }
 
 export function TitularForm({ 
