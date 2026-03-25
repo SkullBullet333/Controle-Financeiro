@@ -1,0 +1,81 @@
+import { Despesa, Receita, ConfigApp } from './types';
+
+export const MOCK_CONFIG: ConfigApp = {
+  titulares: [
+    { id: 1, nome: "Noádia", foto: "https://i.ibb.co/9khpdR2J/Titular-2.webp" },
+    { id: 2, nome: "Pablo", foto: "https://i.ibb.co/zWWnfSv6/Titular-1.webp" },
+    { id: 3, nome: "Casa", foto: "https://i.ibb.co/C5bZR01S/Titular-3.webp" }
+  ],
+  cartoes: [
+    { id: 1, nome_cartao: "Nubank", titular_id: 2, dia_vencimento: 10, dia_fechamento: 7 },
+    { id: 2, nome_cartao: "Inter", titular_id: 1, dia_vencimento: 15, dia_fechamento: 5 },
+    { id: 3, nome_cartao: "Mercado Pago", titular_id: 2, dia_vencimento: 20, dia_fechamento: 10 }
+  ]
+};
+
+const currentMonth = new Date().getMonth() + 1;
+const currentYear = new Date().getFullYear();
+const comp = `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
+
+export const MOCK_DESPESAS: Despesa[] = [
+  {
+    id: 1,
+    descricao: "Aluguel",
+    categoria: "Moradia",
+    valor: 1500,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-10`,
+    competencia: comp,
+    status: "Pago",
+    titular_id: 3,
+    simulada: false
+  },
+  {
+    id: 2,
+    descricao: "Supermercado",
+    categoria: "Mercado",
+    valor: 850.50,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`,
+    competencia: comp,
+    status: "Em aberto",
+    titular_id: 3,
+    simulada: false
+  },
+  {
+    id: 3,
+    descricao: "Internet",
+    categoria: "Moradia",
+    valor: 120,
+    parcela_atual: 1,
+    parcela_total: 1,
+    vencimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
+    competencia: comp,
+    status: "Pago",
+    titular_id: 2,
+    simulada: false
+  }
+];
+
+export const MOCK_RECEITAS: Receita[] = [
+  {
+    id: 1,
+    descricao: "Salário Pablo",
+    valor: 5000,
+    data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
+    competencia: comp,
+    titular_id: 2,
+    simulada: false
+  },
+  {
+    id: 2,
+    descricao: "Freelance",
+    valor: 1200,
+    data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-20`,
+    competencia: comp,
+    titular_id: 1,
+    simulada: false
+  }
+];
