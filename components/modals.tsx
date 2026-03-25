@@ -310,14 +310,14 @@ export function FinanceForm({
       {/* Pop-up de Seleção de Pagamento - REDESIGN PREMIUM */}
       {step === 'confirm' && (
         <div className="absolute inset-0 bg-navy/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
-          <div className="bg-white w-full max-w-[400px] rounded-[3rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-10 border border-slate-100 flex flex-col items-center">
+          <div className="bg-white w-full max-w-[400px] rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-8 border border-slate-100 flex flex-col items-center">
             
             <div className="w-12 h-1 bg-slate-100 rounded-full mb-8 opacity-50" />
             
-            <h3 className="text-2xl font-headline font-black text-navy mb-2 text-center tracking-tight">Finalizar Lançamento</h3>
-            <p className="text-slate-400 text-xs font-label uppercase tracking-[0.2em] mb-10 text-center">Escolha o fluxo de pagamento</p>
+            <h3 className="text-xl font-headline font-black text-navy mb-1 text-center tracking-tight">Finalizar Lançamento</h3>
+            <p className="text-slate-400 text-[10px] font-label uppercase tracking-[0.2em] mb-6 text-center">Escolha o fluxo de pagamento</p>
             
-            <div className="w-full space-y-6 mb-8">
+            <div className="w-full flex flex-col gap-10 mb-6">
               {/* Opção À Vista */}
               <button 
                 type="button"
@@ -420,29 +420,29 @@ export function FinanceForm({
             </div>
 
             {/* Ação Final de Salvamento */}
-            <div className="w-full pt-8 mt-4 border-t border-slate-50">
+            <div className="w-full space-y-3">
               <button 
                 type="button"
                 style={{ border: 'none', borderRadius: '9999px' }}
                 onClick={() => handleSubmit(new Event('submit') as any)}
-                className="w-full bg-[#1E40AF] text-white h-[52px] font-black shadow-xl hover:bg-navy/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
+                className="w-full bg-[#1E40AF] text-white h-[48px] font-black shadow-xl hover:bg-navy/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
               >
-                <span className="material-symbols-outlined text-xl">check_circle</span>
+                <span className="material-symbols-outlined text-lg">check_circle</span>
                 <span>Confirmar e Salvar</span>
               </button>
-            </div>
 
-            <button 
-              type="button"
-              style={{ display: 'flex', margin: '80px auto 0', borderRadius: '9999px' }}
-              className="w-full bg-white border border-red-100 text-red-500 h-[52px] font-black hover:bg-red-50 hover:border-red-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
-              onClick={() => setStep('fill')}
-            >
+              <button 
+                type="button"
+                style={{ display: 'flex', margin: '0 auto', borderRadius: '9999px' }}
+                className="w-full bg-white border border-red-100 text-red-500 h-[48px] font-black hover:bg-red-50 hover:border-red-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
+                onClick={() => setStep('fill')}
+              >
               <span className="material-symbols-outlined text-xl">arrow_back</span>
               <span>Voltar ao Formulário</span>
             </button>
           </div>
         </div>
+      </div>
       )}
     </>
   );
