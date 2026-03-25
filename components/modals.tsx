@@ -118,25 +118,25 @@ export function FinanceForm({
   const isReceita = type === 'receita';
 
   return (
-    <div className="w-full max-w-[640px] bg-md-surface-container-lowest rounded-[2rem] shadow-premium p-6 md:p-10 relative overflow-hidden transition-all duration-500">
-      <header className="mb-8 md:mb-12">
+    <div className="w-full max-w-3xl bg-md-surface-container-lowest rounded-[2rem] shadow-premium p-8 md:p-12 relative overflow-hidden transition-all duration-500">
+      <header className="mb-8 md:mb-10">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
-            <span className="font-label-md text-md-on-surface-variant uppercase tracking-widest text-[10px]">
+            <span className="font-label-md text-md-on-surface-variant uppercase tracking-widest text-[10px] font-bold">
               {isReceita ? 'Lançamento de Entrada' : isCartao ? 'Lançamento Cartão' : 'Lançamento Fixo'}
               {(formData.parcela_total > 1 || formData.simulada) && ` • Parcela ${formData.parcela_atual}/${formData.parcela_total}`}
             </span>
-            <h1 className="text-2xl md:text-3xl font-headline font-bold text-md-on-surface tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-headline font-bold text-md-on-surface tracking-tight">
               {isReceita ? 'Registro de Receita' : isCartao ? 'Fatura do Cartão' : 'Registro de Gasto'}
             </h1>
           </div>
           <div className={cn(
-            "p-3 rounded-2xl transition-colors",
-            isReceita ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-md-secondary-container"
+            "p-4 rounded-2xl transition-colors",
+            isReceita ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-md-primary-container"
           )}>
             <span className={cn(
-              "material-symbols-outlined",
-              isReceita ? "text-emerald-600" : "text-md-on-secondary-container"
+              "material-symbols-outlined text-2xl",
+              isReceita ? "text-emerald-700" : "text-md-on-primary-container"
             )} style={{ fontVariationSettings: "'FILL' 1" }}>
               {isReceita ? 'add_box' : isCartao ? 'credit_card' : 'payments'}
             </span>
@@ -149,10 +149,10 @@ export function FinanceForm({
           <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider transition-colors group-focus-within:text-md-primary">
             Valor do Lançamento
           </label>
-          <div className="flex items-center bg-md-surface-container-low rounded-2xl px-6 py-4 md:py-6 group-focus-within:ring-2 ring-md-primary/10 transition-all border border-transparent group-focus-within:border-md-primary/20 shadow-sm">
-            <span className="text-2xl font-headline font-bold text-md-primary mr-3">R$</span>
+          <div className="flex items-center bg-md-surface-container-low rounded-2xl px-8 py-6 md:py-8 group-focus-within:ring-2 ring-md-primary/10 transition-all border border-transparent group-focus-within:border-md-primary/20 shadow-sm">
+            <span className="text-3xl font-headline font-bold text-md-primary mr-4">R$</span>
             <input 
-              className="bg-transparent border-none focus:ring-0 text-3xl md:text-5xl font-headline font-extrabold text-md-on-surface placeholder:text-md-outline-variant/30 w-full p-0 shadow-none outline-none" 
+              className="bg-transparent border-none focus:ring-0 text-4xl md:text-6xl font-headline font-extrabold text-md-on-surface placeholder:text-md-outline-variant/30 w-full p-0 shadow-none outline-none" 
               placeholder="0,00" 
               type="number"
               step="0.01"
@@ -167,7 +167,7 @@ export function FinanceForm({
           <div className="md:col-span-2">
             <label className="font-label-md text-md-on-surface-variant mb-2 block ml-1 text-xs font-semibold uppercase tracking-wider">Descrição</label>
             <input 
-              className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm dark:text-md-on-surface outline-none placeholder:text-md-outline-variant/40" 
+              className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-xl px-5 py-4 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-base dark:text-md-on-surface outline-none placeholder:text-md-outline-variant/40" 
               placeholder={isCartao ? "O que você comprou?" : isReceita ? "Ex: Salário, Freelance..." : "Ex: Assinatura Mensal, Internet..."} 
               type="text"
               required
@@ -183,7 +183,7 @@ export function FinanceForm({
             {isCartao ? (
               <select 
                 required
-                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm appearance-none dark:text-md-on-surface outline-none"
+                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-xl px-5 py-4 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-base appearance-none dark:text-md-on-surface outline-none"
                 value={formData.cartao_vencimento_id}
                 onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
               >
@@ -192,7 +192,7 @@ export function FinanceForm({
               </select>
             ) : (
               <select 
-                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-lg px-4 py-3 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-sm appearance-none dark:text-md-on-surface outline-none"
+                className="w-full bg-md-surface-container-lowest border-none ring-1 ring-md-outline-variant/30 rounded-xl px-5 py-4 focus:ring-md-primary/40 focus:ring-2 transition-all font-body-md text-base appearance-none dark:text-md-on-surface outline-none"
                 value={formData.titular_id}
                 onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
               >
