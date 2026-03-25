@@ -528,10 +528,6 @@ export default function Home() {
               cartoes={config.cartoes}
               competencia={competencia}
               initialData={editingItem as Despesa | Receita}
-              onCancel={() => {
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
               onSubmit={(data) => {
                 if (editingItem) {
                   if (modalType === 'despesa') updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
