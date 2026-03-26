@@ -303,31 +303,60 @@ export function FinanceForm({
                     onChange={e => setFormData({...formData, vencimento: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Recorrência (Meses)</label>
-                  <div className="flex bg-[#F8FAFC] p-1 rounded-lg w-full h-[44px] border border-outline-variant/30">
+                <div className="flex flex-col">
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Recebimento</label>
+                  <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
+                    <button 
+                      type="button"
+                      className={cn(
+                        "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                        paymentType === 'A vista' 
+                          ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
+                          : "text-slate-500 hover:text-navy/60"
+                      )}
+                      onClick={() => {
+                        setPaymentType('A vista');
+                        setFormData({...formData, parcela_total: 1});
+                      }}
+                    >
+                      À VISTA
+                    </button>
+                    <button 
+                      type="button"
+                      className={cn(
+                        "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                        paymentType === 'Parcelado' 
+                          ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
+                          : "text-slate-500 hover:text-navy/60"
+                      )}
+                      onClick={() => {
+                        setPaymentType('Parcelado');
+                        setFormData({...formData, parcela_total: 2});
+                      }}
+                    >
+                      PARCELADO
+                    </button>
+                  </div>
+                  
                   <button 
-                    type="button" 
-                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                    onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
+                    type="button"
+                    className="flex items-center justify-center gap-2 mt-4 group self-center"
+                    onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                   >
-                    <span className="material-symbols-outlined text-sm">chevron_left</span>
-                  </button>
-                  <input 
-                    className="flex-1 bg-transparent border-none text-center font-bold text-on-surface focus:ring-0 focus:outline-none"
-                    type="number"
-                    value={formData.parcela_total}
-                    onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 1})}
-                  />
-                  <button 
-                    type="button" 
-                    className="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-white rounded-md transition-all"
-                    onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
-                  >
-                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                    <span className={cn(
+                      "material-symbols-outlined text-lg transition-colors",
+                      formData.simulada ? "text-navy" : "text-slate-300 group-hover:text-navy/40"
+                    )} style={{ fontVariationSettings: "'FILL' 1" }}>
+                      analytics
+                    </span>
+                    <span className={cn(
+                      "text-[11px] font-headline font-black transition-colors uppercase tracking-wider",
+                      formData.simulada ? "text-navy" : "text-navy/40 group-hover:text-navy/60"
+                    )}>
+                      {formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}
+                    </span>
                   </button>
                 </div>
-              </div>
             </div>
           )}
         </div>
