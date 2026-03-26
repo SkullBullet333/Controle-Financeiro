@@ -151,7 +151,7 @@ export function FinanceForm({
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="relative group">
           <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Lançamento</label>
-          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-6 py-4 group-focus-within:bg-surface-container transition-all shadow-sm border border-outline-variant/30">
+          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-6 py-4 focus-within:ring-2 focus-within:ring-slate-200 group-focus-within:bg-white transition-all shadow-sm border border-outline-variant/30">
             <span className={cn(
               "text-2xl font-headline font-bold transition-all mr-4 mt-1",
               formData.valor ? "text-navy" : "text-navy/20"
@@ -159,7 +159,7 @@ export function FinanceForm({
             <input 
               required
               className={cn(
-                "bg-transparent border-none focus:ring-1 focus:ring-slate-200 focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-2",
+                "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-2",
                 formData.valor ? "text-slate-900" : "text-slate-900/20"
               )}
               style={{ fontSize: '30px', lineHeight: '1', height: 'auto' }}
@@ -177,7 +177,7 @@ export function FinanceForm({
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição</label>
             <input 
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Assinatura Mensal Software"
               type="text"
               value={formData.descricao}
@@ -188,7 +188,7 @@ export function FinanceForm({
           <div>
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Responsável</label>
             <select 
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.titular_id}
               onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
             >
@@ -199,7 +199,7 @@ export function FinanceForm({
           <div>
             <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Categoria</label>
             <input 
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Mercado, Saúde..."
               type="text"
               value={formData.categoria}
@@ -213,7 +213,7 @@ export function FinanceForm({
                 <div>
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
                   <select 
-                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-3 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
                     value={formData.cartao_vencimento_id}
                     onChange={e => setFormData({...formData, cartao_vencimento_id: e.target.value})}
                   >
@@ -229,7 +229,7 @@ export function FinanceForm({
                     <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Data de Vencimento</label>
                     <input 
                       type="date"
-                      className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[48px] focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+                      className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[48px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
                       value={formData.vencimento}
                       onChange={e => setFormData({...formData, vencimento: e.target.value})}
                     />
@@ -262,7 +262,7 @@ export function FinanceForm({
                   <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Data de Receber</label>
                   <input 
                     type="date"
-                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[48px] focus:ring-1 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+                    className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[48px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
                     value={formData.vencimento}
                     onChange={e => setFormData({...formData, vencimento: e.target.value})}
                   />

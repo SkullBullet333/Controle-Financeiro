@@ -75,7 +75,7 @@ body:not(.dark-mode) .glass-panel {
 /* Remove default focus rings that look like black underlines */
 input:focus, select:focus, textarea:focus, button:focus {
   outline: none !important;
-  box-shadow: none !important;
+  /* box-shadow: none !important; <-- Removido para permitir o ring do Tailwind */
 }
 
 /* Esconder spinners de input number */
