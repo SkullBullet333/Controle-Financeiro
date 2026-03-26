@@ -121,12 +121,7 @@ export function FinanceForm({
   return (
     <>
       <header className="mb-12 pe-10">
-        <div className="flex items-center gap-5">
-          <div className="bg-secondary-container p-3 rounded-2xl">
-            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
-            </span>
-          </div>
+        <div className="flex justify-between items-start">
           <div className="space-y-1">
             <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">
               {subType === 'cartao' ? 'Cartão de Crédito' : type === 'despesa' ? 'Nova Despesa' : 'Nova Receita'}
@@ -134,6 +129,11 @@ export function FinanceForm({
             <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">
               {type === 'despesa' ? 'Registro de Gasto' : 'Registro de Ganho'}
             </h1>
+          </div>
+          <div className="bg-secondary-container p-3 rounded-2xl">
+            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
+            </span>
           </div>
         </div>
       </header>
