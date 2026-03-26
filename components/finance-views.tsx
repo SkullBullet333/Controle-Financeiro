@@ -62,6 +62,7 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                     <>
                       <td className="px-4 py-3">
                         {(() => {
+                          if (item.simulada) return <span className="status-simulado">Simulado</span>;
                           if (item.status === 'Pago') return <span className="status-pago">Pago</span>;
 
                           const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -148,13 +149,19 @@ export function FilterBar({
   searchTerm,
   onSearchChange,
   activeFilterId,
-  onClearFilter
+  onClearFilter,
+  onClearSimuladas,
+  showClearSimuladas,
+  type
 }: {
   onAdd: () => void,
   searchTerm: string,
   onSearchChange: (value: string) => void,
   activeFilterId?: number | null,
-  onClearFilter?: () => void
+  onClearFilter?: () => void,
+  onClearSimuladas?: () => void,
+  showClearSimuladas?: boolean,
+  type?: 'geral' | 'cartoes' | 'receitas'
 }) {
   return (
     <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
@@ -191,12 +198,22 @@ export function FilterBar({
         )}
       </div>
 
-      <button
-        onClick={onAdd}
-        className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
-      >
-        <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
-      </button>
+      <div className="d-flex align-items-center gap-2">
+        {type === 'geral' && onClearSimuladas && showClearSimuladas && (
+          <button
+            onClick={onClearSimuladas}
+            className="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 border-2"
+          >
+            <i className="fa-solid fa-eraser"></i> <span className="d-none d-md-inline">Limpar Simulação</span>
+          </button>
+        )}
+        <button
+          onClick={onAdd}
+          className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
+        >
+          <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -294,7 +311,6 @@ export function SummaryCards({
 
       {(type === 'geral' || type === 'receitas') && titulares.map((t) => {
         const value = type === 'geral' ? totalsByTitular[t.id]?.despesas : totalsByTitular[t.id]?.receitas;
-        if (!value || value === 0) return null;
 
         return (
           <div key={t.id} className="col-12 col-sm-6 col-md">
@@ -318,7 +334,11 @@ export function SummaryCards({
                 </div>
                 <div>
                   <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>{t.nome}</small>
-                  <strong className={cn("h5 fw-bold m-0", type === 'receitas' && "text-success")}>{formatCurrency(value)}</strong>
+                  <strong className={cn(
+                    "h5 fw-bold m-0", 
+                    type === 'receitas' && "text-success",
+                    type === 'geral' && value > 0 && "text-primary"
+                  )}>{formatCurrency(value || 0)}</strong>
                 </div>
               </div>
             </div>

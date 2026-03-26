@@ -602,6 +602,22 @@ body.dark-mode .status-hoje {
   color: #4361ee !important;
 }
 
+.status-simulado {
+  color: #64748b;
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  border: 1px dashed #cbd5e1;
+}
+
+body.dark-mode .status-simulado {
+  background: rgba(148, 163, 184, 0.1) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
 .row-vencido {
   background-color: rgba(231, 29, 54, 0.05) !important;
 }

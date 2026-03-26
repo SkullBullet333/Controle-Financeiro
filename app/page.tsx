@@ -25,6 +25,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isConfirmClearSimuladasOpen, setIsConfirmClearSimuladasOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
@@ -39,6 +40,7 @@ export default function Home() {
   const {
     user: authUser,
     userProfile,
+    despesas,
     currentMonth,
     currentYear,
     competencia,
@@ -63,6 +65,7 @@ export default function Home() {
     addDespesa,
     updateDespesa,
     deleteDespesa,
+    deleteSimuladas,
     deleteCartaoTransacao,
     updateCartaoTransacao,
     addReceita,
@@ -328,16 +331,19 @@ export default function Home() {
               activeFilterId={activeFilterId}
               onFilterChange={setActiveFilterId}
             />
-            <FilterBar 
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              activeFilterId={activeFilterId}
-              onClearFilter={() => setActiveFilterId(null)}
+            <FilterBar
               onAdd={() => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
                 setEditingItem(null);
                 setIsModalOpen(true);
-              }} 
+              }}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              activeFilterId={activeFilterId}
+              onClearFilter={() => setActiveFilterId(null)}
+              onClearSimuladas={() => setIsConfirmClearSimuladasOpen(true)}
+              showClearSimuladas={despesas.some(d => d.simulada)}
+              type={activeView as 'geral' | 'cartoes' | 'receitas'}
             />
             <FinanceTable
               data={tableData}
@@ -599,6 +605,18 @@ export default function Home() {
           title="Confirmar Exclusão"
           message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
           confirmLabel="Excluir"
+        />
+
+        <ConfirmModal
+          isOpen={isConfirmClearSimuladasOpen}
+          onClose={() => setIsConfirmClearSimuladasOpen(false)}
+          onConfirm={() => {
+            deleteSimuladas();
+            setIsConfirmClearSimuladasOpen(false);
+          }}
+          title="Limpar Simulações"
+          message="Tem certeza que deseja excluir todas as despesas simuladas? Esta ação removerá os dados de todos os meses."
+          confirmLabel="Limpar Tudo"
         />
 
         <SettingsModal 

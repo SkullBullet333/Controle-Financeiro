@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular } from './types';
+import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status } from './types';
 import { 
   addMonths, 
   endOfMonth, 
@@ -129,8 +129,8 @@ export function projetarProximoVencimento(
 // ==================== PERSISTÊNCIA SUPABASE ====================
 
 export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
-  if (dados.id) {
-    const { id, ...camposParaAtualizar } = dados;
+  if (dados.id && dados.id > 0) {
+    const { id, isSummary, ...camposParaAtualizar } = dados as any;
     
     // Se houver vencimento, recalculamos a competência e ajustamos a data
     let updatePayload: any = { 
@@ -268,7 +268,7 @@ export async function lancarParcelas(
         parcela_atual: i,
         parcela_total: totalParcelas,
         vencimento: format(dataVenc, 'yyyy-MM-dd'),
-        status: 'Em aberto',
+        status: (dados.status as Status) || 'Em aberto',
         titular_id: dados.titular_id
       });
     } else if (tipo === 'receita') {
@@ -355,73 +355,15 @@ export async function consolidarFaturas(competencia: string, userId: string) {
     }
   });
 
-  // 4. Buscar faturas já consolidadas para esta competência para comparar e remover se necessário
-  const { data: faturasExistentes } = await supabase
+  // 4. Buscar faturas "Em aberto" para limpar (migração para virtual)
+  const { data: faturasEmAberto } = await supabase
     .from('despesas')
-    .select('id, descricao, titular_id, status, cartao_vencimento_id, user_id')
+    .select('id')
     .eq('competencia', competencia)
-    .like('descricao', 'Fatura %');
+    .like('descricao', 'Fatura %')
+    .eq('status', 'Em aberto');
 
-  // 5. Preparar payloads para upsert (batch)
-  const upserts = [];
-  const idsProcessados = new Set<number>();
-
-  for (const key in totais) {
-    const item = totais[key];
-    const config = configs?.find(c => c.id === item.cartao_id);
-    if (!config) continue;
-
-    const diaVenc = config.dia_vencimento;
-    const [mes, ano] = competencia.split('/').map(Number);
-    const dataBase = new Date(ano, mes - 1, 1);
-    const isUltimoDia = diaVenc === 31;
-    
-    const dataVenc = projetarProximoVencimento(dataBase, 0, isUltimoDia, diaVenc);
-    
-    const desc = `Fatura ${item.nome_cartao} - ${item.nome_titular}`;
-
-    // Tentar encontrar fatura existente pelo ID do cartão ou pela descrição (se ID não estiver setado)
-    // Garantimos que não pegamos uma fatura já processada por outro cartão
-    const existente = faturasExistentes?.find(f => 
-      !idsProcessados.has(f.id) && (
-        (f.cartao_vencimento_id === item.cartao_id && f.titular_id === item.titular_id) ||
-        (f.descricao === desc && f.titular_id === item.titular_id && !f.cartao_vencimento_id)
-      )
-    );
-
-    if (existente) {
-      idsProcessados.add(existente.id);
-    }
-
-    upserts.push({
-      ...(existente ? { id: existente.id } : {}),
-      user_id: userId,
-      descricao: desc,
-      valor: item.valor,
-      parcela_atual: 1,
-      parcela_total: 1,
-      vencimento: format(dataVenc, 'yyyy-MM-dd'),
-      status: existente ? (existente as any).status : 'Em aberto',
-      titular_id: item.titular_id,
-      competencia: competencia,
-      cartao_vencimento_id: item.cartao_id,
-      simulada: false,
-      updated_at: new Date().toISOString()
-    });
-  }
-
-  if (upserts.length > 0) {
-    const { data: upsertedData, error: upsertError } = await supabase.from('despesas').upsert(upserts).select('id');
-    if (upsertError) throw upsertError;
-    
-    // Adicionar IDs recém-criados aos processados para não serem deletados
-    upsertedData?.forEach(d => idsProcessados.add(d.id));
-  }
-
-  // 6. Remover faturas que não existem mais (batch)
-  const idsParaRemover = faturasExistentes
-    ?.filter(f => !idsProcessados.has(f.id))
-    .map(f => f.id);
+  const idsParaRemover = faturasEmAberto?.map(f => f.id);
 
   if (idsParaRemover && idsParaRemover.length > 0) {
     const { error: deleteError } = await supabase.from('despesas').delete().in('id', idsParaRemover);

@@ -239,7 +239,7 @@ export function useFinance(activeView: string) {
         await salvarDespesa({ ...updates, id }, user.id);
       }
       await fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating despesa:', error);
     }
   };
@@ -254,6 +254,21 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Error deleting despesa:', error);
+    }
+  };
+
+  const deleteSimuladas = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from('despesas').delete().eq('simulada', true).eq('user_id', user.id);
+      if (error) throw error;
+      
+      // Update local state immediately for responsiveness
+      setDespesas(prev => prev.filter(d => !d.simulada));
+      
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting simulated despesas:', error);
     }
   };
 
@@ -468,7 +483,7 @@ export function useFinance(activeView: string) {
       return {
         id: existingInDB?.id || (card.id * -1000), // Use unique negative ID for virtual entries
         descricao: `Fatura ${card.nome_cartao}`,
-        valor: total,
+        valor: existingInDB?.status === 'Pago' ? existingInDB.valor : total,
         status: existingInDB?.status || 'Em aberto',
         titular_id: card.titular_id,
         vencimento: existingInDB?.vencimento || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(card.dia_vencimento).padStart(2, '0')}`,
@@ -614,6 +629,7 @@ export function useFinance(activeView: string) {
     addDespesa,
     updateDespesa,
     deleteDespesa,
+    deleteSimuladas,
     deleteCartaoTransacao,
     updateCartaoTransacao,
     addReceita,
