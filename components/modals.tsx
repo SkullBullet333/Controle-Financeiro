@@ -264,7 +264,7 @@ export function FinanceForm({
                     
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
+                      className="flex items-center justify-center gap-2 mt-4 group self-center"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -333,7 +333,7 @@ export function FinanceForm({
                     
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
+                      className="flex items-center justify-center gap-2 mt-4 group self-center"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -403,7 +403,7 @@ export function FinanceForm({
                   
                   <button 
                     type="button"
-                    className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
+                    className="flex items-center justify-center gap-2 mt-4 group self-center"
                     onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                   >
                     <span className={cn(
