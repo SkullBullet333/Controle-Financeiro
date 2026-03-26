@@ -130,8 +130,8 @@ export function FinanceForm({
     <>
       <header className="mb-12 pe-10">
         <div className="flex items-center gap-4">
-          <div className="bg-secondary-container p-3 rounded-2xl">
-            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-outline-variant/30 shadow-sm">
+            <span className="material-symbols-outlined text-navy" style={{ fontVariationSettings: "'FILL' 1" }}>
               {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
             </span>
           </div>
