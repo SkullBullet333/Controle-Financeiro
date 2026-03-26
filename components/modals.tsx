@@ -47,6 +47,7 @@ export function FinanceForm({
   titulares, 
   cartoes,
   competencia,
+  onClose,
   initialData
 }: { 
   type: 'despesa' | 'receita', 
@@ -55,6 +56,7 @@ export function FinanceForm({
   titulares: Titular[],
   cartoes: CartaoConfig[],
   competencia: string,
+  onClose: () => void,
   initialData?: Despesa | Receita
 }) {
   const [formData, setFormData] = useState({
@@ -299,7 +301,7 @@ export function FinanceForm({
           <button 
             type="button"
             className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left"
-            onClick={() => window.dispatchEvent(new CustomEvent('closeModal'))}
+            onClick={onClose}
           >
             Cancelar
           </button>
