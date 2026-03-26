@@ -72,7 +72,6 @@ export function FinanceForm({
     simulada: (initialData as any)?.simulada || false
   });
 
-  const [step, setStep] = useState<'fill' | 'confirm'>('fill');
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -524,11 +523,7 @@ export function FinanceForm({
                 setValidationError('Por favor, informe um valor válido para o lançamento.');
                 return;
               }
-              if (paymentType === 'A vista') {
-                handleSubmit(e as any);
-              } else {
-                setStep('confirm');
-              }
+              handleSubmit(e as any);
             }}
             style={{ borderRadius: '9999px' }}
             className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white h-[48px] font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
@@ -539,93 +534,6 @@ export function FinanceForm({
         </div>
       </form>
 
-      {/* Pop-up de Seleção de Pagamento - REDESIGN PREMIUM */}
-      {step === 'confirm' && (
-        <div className="absolute inset-0 bg-navy/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
-          <div className="bg-white w-full max-w-[400px] rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-8 border border-slate-100 flex flex-col items-center">
-            
-            <div className="w-12 h-1 bg-slate-100 rounded-full mb-8 opacity-50" />
-            
-            <h3 className="text-xl font-headline font-black text-navy mb-1 text-center tracking-tight">Finalizar Lançamento</h3>
-            <p className="text-slate-400 text-[10px] font-label uppercase tracking-[0.2em] mb-6 text-center">Configurar Parcelamento</p>
-            
-            <div className="w-full flex flex-col gap-6 mb-6">
-              {/* Opção Parcelado (Sempre ativa aqui já que A Vista salva direto) */}
-              <div className="w-full space-y-4">
-                <div 
-                  className="w-full p-6 bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100 flex items-center gap-6 group relative overflow-hidden rounded-[1.5rem]"
-                >
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 transition-colors">
-                    <span className="material-symbols-outlined text-3xl">event_repeat</span>
-                  </div>
-                  <div className="flex flex-col text-left">
-                    <span className="font-black text-lg leading-tight">Parcelado</span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 text-blue-100">Dividido em meses</span>
-                  </div>
-                </div>
-
-                {/* Seletor de Parcelas Premium */}
-                {paymentType === 'Parcelado' && (
-                  <div className="px-6 py-4 animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex items-center justify-between bg-white rounded-[2rem] p-2 border border-[#1E40AF]/10 shadow-inner">
-                      <button 
-                        type="button" 
-                        style={{ border: 'none', borderRadius: '9999px' }}
-                        className="w-10 h-10 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] transition-all"
-                        onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
-                      >
-                        <span className="material-symbols-outlined">remove</span>
-                      </button>
-                      
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="number"
-                          className="w-12 bg-transparent border-none text-center text-xl font-black text-[#1E40AF] focus:ring-0 p-0"
-                          value={formData.parcela_total}
-                          onChange={(e) => setFormData({...formData, parcela_total: Math.max(1, parseInt(e.target.value) || 1)})}
-                        />
-                        <span className="text-[10px] uppercase font-black text-[#1E40AF]/30 tracking-tighter">Vezes</span>
-                      </div>
-
-                      <button 
-                        type="button" 
-                        style={{ border: 'none', borderRadius: '9999px' }}
-                        className="w-10 h-10 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] transition-all"
-                        onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
-                      >
-                        <span className="material-symbols-outlined">add</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Ação Final de Salvamento */}
-            <div className="w-full space-y-3">
-              <button 
-                type="button"
-                style={{ border: 'none', borderRadius: '9999px' }}
-                onClick={() => handleSubmit(new Event('submit') as any)}
-                className="w-full bg-[#1E40AF] text-white h-[48px] font-black shadow-xl hover:bg-navy/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
-              >
-                <span className="material-symbols-outlined text-lg">check_circle</span>
-                <span>Confirmar e Salvar</span>
-              </button>
-
-              <button 
-                type="button"
-                style={{ display: 'flex', margin: '0 auto', borderRadius: '9999px' }}
-                className="w-full bg-white border border-red-100 text-red-500 h-[48px] font-black hover:bg-red-50 hover:border-red-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 tracking-tight"
-                onClick={() => setStep('fill')}
-              >
-              <span className="material-symbols-outlined text-xl">arrow_back</span>
-              <span>Voltar ao Formulário</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
 
       {/* Alerta de Validação Centralizado */}
       {validationError && (
