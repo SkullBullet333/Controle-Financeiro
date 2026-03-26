@@ -263,18 +263,18 @@ export function FinanceForm({
                     </div>
 
                     {paymentType === 'Parcelado' && (
-                      <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                      <div className="mt-2 animate-in fade-in slide-in-from-right-2 duration-300 w-1/2 self-end">
                         <div className="relative">
                           <input 
                             type="number"
                             min="2"
                             max="99"
-                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                            style={{ borderRadius: '9999px' }}
+                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 px-4 h-[44px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy pr-10 text-center"
                             value={formData.parcela_total}
                             onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400">x</span>
                         </div>
                       </div>
                     )}
@@ -354,18 +354,18 @@ export function FinanceForm({
                     </div>
 
                     {paymentType === 'Parcelado' && (
-                      <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                      <div className="mt-2 animate-in fade-in slide-in-from-right-2 duration-300 w-1/2 self-end">
                         <div className="relative">
                           <input 
                             type="number"
                             min="2"
                             max="99"
-                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                            style={{ borderRadius: '9999px' }}
+                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 px-4 h-[44px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy pr-10 text-center"
                             value={formData.parcela_total}
                             onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400">x</span>
                         </div>
                       </div>
                     )}
@@ -446,18 +446,18 @@ export function FinanceForm({
                   </div>
 
                   {paymentType === 'Parcelado' && (
-                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                    <div className="mt-2 animate-in fade-in slide-in-from-right-2 duration-300 w-1/2 self-end">
                       <div className="relative">
                         <input 
                           type="number"
                           min="2"
                           max="99"
-                          className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                          style={{ borderRadius: '9999px' }}
+                          className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 px-4 h-[44px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy pr-10 text-center"
                           value={formData.parcela_total}
                           onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400">x</span>
                       </div>
                     </div>
                   )}
