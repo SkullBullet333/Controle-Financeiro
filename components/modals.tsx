@@ -259,17 +259,29 @@ export function FinanceForm({
                         }}
                       >
                         {paymentType === 'Parcelado' ? (
-                          <div className="flex items-center justify-center w-full h-full -mt-[1px]" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between w-full h-full px-1.5" onClick={e => e.stopPropagation()}>
+                            <button 
+                              type="button"
+                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                              onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                            </button>
                             <input 
                               type="number"
                               min="2"
                               max="99"
-                              className="w-8 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
+                              className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
                               value={formData.parcela_total}
                               onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
-                              autoFocus
                             />
-                            <span className="text-[10px] font-headline font-bold text-slate-400 ml-0.5">x</span>
+                            <button 
+                              type="button"
+                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                              onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                            </button>
                           </div>
                         ) : (
                           "PARCELADO"
@@ -348,17 +360,29 @@ export function FinanceForm({
                         }}
                       >
                         {paymentType === 'Parcelado' ? (
-                          <div className="flex items-center justify-center w-full h-full -mt-[1px]" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between w-full h-full px-1.5" onClick={e => e.stopPropagation()}>
+                            <button 
+                              type="button"
+                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                              onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                            </button>
                             <input 
                               type="number"
                               min="2"
                               max="99"
-                              className="w-8 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
+                              className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
                               value={formData.parcela_total}
                               onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
-                              autoFocus
                             />
-                            <span className="text-[10px] font-headline font-bold text-slate-400 ml-0.5">x</span>
+                            <button 
+                              type="button"
+                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                              onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                            </button>
                           </div>
                         ) : (
                           "PARCELADO"
