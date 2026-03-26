@@ -230,6 +230,7 @@ export function FinanceForm({
                     <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                       <button 
                         type="button"
+                        style={{ borderRadius: '9999px' }}
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                           paymentType === 'A vista' 
@@ -245,6 +246,7 @@ export function FinanceForm({
                       </button>
                       <button 
                         type="button"
+                        style={{ borderRadius: '9999px' }}
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                           paymentType === 'Parcelado' 
@@ -297,6 +299,7 @@ export function FinanceForm({
                     <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                       <button 
                         type="button"
+                        style={{ borderRadius: '9999px' }}
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                           paymentType === 'A vista' 
@@ -312,6 +315,7 @@ export function FinanceForm({
                       </button>
                       <button 
                         type="button"
+                        style={{ borderRadius: '9999px' }}
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                           paymentType === 'Parcelado' 
@@ -365,6 +369,7 @@ export function FinanceForm({
                   <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                     <button 
                       type="button"
+                      style={{ borderRadius: '9999px' }}
                       className={cn(
                         "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                         paymentType === 'A vista' 
@@ -380,6 +385,7 @@ export function FinanceForm({
                     </button>
                     <button 
                       type="button"
+                      style={{ borderRadius: '9999px' }}
                       className={cn(
                         "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
                         paymentType === 'Parcelado' 
