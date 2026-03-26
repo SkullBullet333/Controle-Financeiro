@@ -212,7 +212,7 @@ export function FinanceForm({
               {subType === 'cartao' ? (
                 <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                   <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Cartão / Vencimento</label>
                     <select 
                       className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
                       value={formData.cartao_vencimento_id}
@@ -264,7 +264,7 @@ export function FinanceForm({
                     
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-center"
+                      className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -285,7 +285,7 @@ export function FinanceForm({
               ) : (
                 <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                   <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Data de Vencimento</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Data de Vencimento</label>
                     <input 
                       type="date"
                       className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
@@ -333,7 +333,7 @@ export function FinanceForm({
                     
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-center"
+                      className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -356,7 +356,7 @@ export function FinanceForm({
           ) : (
               <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                 <div>
-                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Data de Receber</label>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Data de Receber</label>
                   <input 
                     type="date"
                     className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
@@ -403,7 +403,7 @@ export function FinanceForm({
                   
                   <button 
                     type="button"
-                    className="flex items-center justify-center gap-2 mt-4 group self-center"
+                    className="flex items-center justify-center gap-2 mt-4 group self-start ml-1"
                     onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                   >
                     <span className={cn(
