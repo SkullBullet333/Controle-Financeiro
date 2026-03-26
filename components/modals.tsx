@@ -232,7 +232,7 @@ export function FinanceForm({
                         type="button"
                         style={{ borderRadius: '9999px' }}
                         className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
                           paymentType === 'A vista' 
                             ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
                             : "text-slate-500 hover:text-navy/60"
@@ -248,7 +248,7 @@ export function FinanceForm({
                         type="button"
                         style={{ borderRadius: '9999px' }}
                         className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
                           paymentType === 'Parcelado' 
                             ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
                             : "text-slate-500 hover:text-navy/60"
@@ -306,7 +306,7 @@ export function FinanceForm({
                         type="button"
                         style={{ borderRadius: '9999px' }}
                         className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
                           paymentType === 'A vista' 
                             ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
                             : "text-slate-500 hover:text-navy/60"
@@ -322,7 +322,7 @@ export function FinanceForm({
                         type="button"
                         style={{ borderRadius: '9999px' }}
                         className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
                           paymentType === 'Parcelado' 
                             ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
                             : "text-slate-500 hover:text-navy/60"
