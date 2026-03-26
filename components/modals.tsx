@@ -42,30 +42,30 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
 export function FinanceForm({ 
   type, 
-  subType,
+  subType, 
   onSubmit, 
+  initialData, 
   titulares, 
-  cartoes,
+  cartoes, 
   competencia,
-  onClose,
-  initialData
+  onClose
 }: { 
   type: 'despesa' | 'receita', 
-  subType?: 'fixa' | 'cartao',
+  subType?: 'cartao' | 'boleto' | 'fixa',
   onSubmit: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => void,
+  initialData?: Despesa | Receita,
   titulares: Titular[],
   cartoes: CartaoConfig[],
   competencia: string,
-  onClose: () => void,
-  initialData?: Despesa | Receita
+  onClose: () => void
 }) {
   const [formData, setFormData] = useState({
-    descricao: (initialData as any)?.descricao || '',
-    valor: (initialData as any)?.valor?.toString() || '',
-    titular_id: (initialData as any)?.titular_id || titulares[0]?.id || 0,
+    descricao: initialData?.descricao || '',
+    valor: initialData?.valor?.toString() || '',
+    titular_id: initialData?.titular_id || titulares[0]?.id,
     categoria: (initialData as any)?.categoria || '',
-    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || new Date().toISOString().split('T')[0],
-    status: (initialData as any)?.status || ('Em aberto' as Status),
+    vencimento: (initialData as any)?.vencimento || (initialData as any)?.data_recebimento || format(new Date(), 'yyyy-MM-dd'),
+    status: (initialData as any)?.status || 'Pendente',
     parcela_atual: (initialData as any)?.parcela_atual || 1,
     parcela_total: (initialData as any)?.parcela_total || 1,
     cartao_vencimento_id: (initialData as any)?.cartao_vencimento_id || '',
@@ -283,11 +283,6 @@ export function FinanceForm({
                           PARCELADO
                         </button>
                       )}
-                          </div>
-                        ) : (
-                          "PARCELADO"
-                        )}
-                      </button>
                     </div>
                   </div>
 
@@ -386,11 +381,6 @@ export function FinanceForm({
                           PARCELADO
                         </button>
                       )}
-                          </div>
-                        ) : (
-                          "PARCELADO"
-                        )}
-                      </button>
                     </div>
                   </div>
 
@@ -476,20 +466,6 @@ export function FinanceForm({
                       >
                         <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                       </button>
-                    </div>
-                  ) : (
-                    <button 
-                      type="button"
-                      style={{ borderRadius: '9999px' }}
-                      className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
-                      onClick={() => {
-                        setPaymentType('Parcelado');
-                        setFormData({...formData, parcela_total: 2});
-                      }}
-                    >
-                      PARCELADO
-                    </button>
-                  )}
                     </div>
                   ) : (
                     <button 
@@ -592,7 +568,6 @@ export function FinanceForm({
     </>
   );
 }
-
 
 export function TitularForm({ 
   onSubmit, 
