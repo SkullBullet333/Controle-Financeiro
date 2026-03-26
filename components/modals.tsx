@@ -261,6 +261,23 @@ export function FinanceForm({
                         PARCELADO
                       </button>
                     </div>
+
+                    {paymentType === 'Parcelado' && (
+                      <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                        <div className="relative">
+                          <input 
+                            type="number"
+                            min="2"
+                            max="99"
+                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                            value={formData.parcela_total}
+                            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="md:col-span-2 flex justify-center mt-[-8px]">
@@ -335,6 +352,23 @@ export function FinanceForm({
                         PARCELADO
                       </button>
                     </div>
+
+                    {paymentType === 'Parcelado' && (
+                      <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                        <div className="relative">
+                          <input 
+                            type="number"
+                            min="2"
+                            max="99"
+                            className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                            value={formData.parcela_total}
+                            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                          />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="md:col-span-2 flex justify-center mt-[-8px]">
@@ -410,6 +444,23 @@ export function FinanceForm({
                       PARCELADO
                     </button>
                   </div>
+
+                  {paymentType === 'Parcelado' && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="label-md font-label text-on-surface-variant mb-1.5 block ml-1 text-[11px] text-navy/60 uppercase tracking-wider">Número de parcelas</label>
+                      <div className="relative">
+                        <input 
+                          type="number"
+                          min="2"
+                          max="99"
+                          className="w-full bg-[#F8FAFC] border-none ring-1 ring-slate-200 rounded-xl px-4 h-[40px] focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all font-headline font-bold text-sm text-navy"
+                          value={formData.parcela_total}
+                          onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-headline font-bold text-slate-400 uppercase tracking-wider">vezes</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 flex justify-center mt-[-8px]">
