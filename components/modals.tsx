@@ -121,7 +121,12 @@ export function FinanceForm({
   return (
     <>
       <header className="mb-12 pe-10">
-        <div className="flex justify-between items-start">
+        <div className="flex items-center gap-5">
+          <div className="bg-secondary-container p-3 rounded-2xl">
+            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
+            </span>
+          </div>
           <div className="space-y-1">
             <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">
               {subType === 'cartao' ? 'Cartão de Crédito' : type === 'despesa' ? 'Nova Despesa' : 'Nova Receita'}
@@ -129,11 +134,6 @@ export function FinanceForm({
             <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">
               {type === 'despesa' ? 'Registro de Gasto' : 'Registro de Ganho'}
             </h1>
-          </div>
-          <div className="bg-secondary-container p-3 rounded-2xl">
-            <span className="material-symbols-outlined text-on-secondary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {type === 'despesa' ? 'payments' : 'account_balance_wallet'}
-            </span>
           </div>
         </div>
       </header>
@@ -312,18 +312,18 @@ export function FinanceForm({
         <div className="absolute inset-0 bg-navy/60 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="bg-white w-full max-w-[400px] rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-8 border border-slate-100 flex flex-col items-center">
             
-            <div className="w-12 h-1 bg-slate-100 rounded-full mb-8 opacity-50" />
+            <div className="w-12 h-1 bg-slate-100 rounded-full mb-6 opacity-40" />
             
             <h3 className="text-xl font-headline font-black text-navy mb-1 text-center tracking-tight">Finalizar Lançamento</h3>
             <p className="text-slate-400 text-[10px] font-label uppercase tracking-[0.2em] mb-6 text-center">Escolha o fluxo de pagamento</p>
             
-            <div className="w-full flex flex-col gap-10 mb-6">
+            <div className="w-full flex flex-col gap-4 mb-6">
               {/* Opção À Vista */}
               <button 
                 type="button"
                 style={{ border: 'none', borderRadius: '1.5rem' }}
                 className={cn(
-                  "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
+                  "w-full p-3.5 transition-all duration-300 flex items-center gap-5 group relative overflow-hidden",
                   paymentType === 'A vista' 
                     ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
                     : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
@@ -334,13 +334,13 @@ export function FinanceForm({
                 }}
               >
                 <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
+                  "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
                   paymentType === 'A vista' ? "bg-white/20" : "bg-white shadow-sm text-[#1E40AF]"
                 )}>
-                  <span className="material-symbols-outlined text-3xl">payments</span>
+                  <span className="material-symbols-outlined text-2xl">payments</span>
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="font-black text-lg leading-tight">À Vista</span>
+                  <span className="font-black text-sm leading-tight">À Vista</span>
                   <span className={cn(
                     "text-[10px] uppercase font-bold tracking-widest opacity-60",
                     paymentType === 'A vista' ? "text-blue-100" : "text-slate-400"
@@ -355,9 +355,9 @@ export function FinanceForm({
               <div className="w-full space-y-4">
                 <button 
                   type="button"
-                  style={{ border: 'none', borderRadius: '1.5rem' }}
+                  style={{ border: 'none', borderRadius: '1.25rem' }}
                   className={cn(
-                    "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
+                    "w-full p-3.5 transition-all duration-300 flex items-center gap-5 group relative overflow-hidden",
                     paymentType === 'Parcelado' 
                       ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
                       : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
@@ -365,13 +365,13 @@ export function FinanceForm({
                   onClick={() => setPaymentType('Parcelado')}
                 >
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
+                    "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
                     paymentType === 'Parcelado' ? "bg-white/20" : "bg-white shadow-sm text-[#1E40AF]"
                   )}>
-                    <span className="material-symbols-outlined text-3xl">event_repeat</span>
+                    <span className="material-symbols-outlined text-2xl">event_repeat</span>
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="font-black text-lg leading-tight">Parcelado</span>
+                    <span className="font-black text-sm leading-tight">Parcelado</span>
                     <span className={cn(
                       "text-[10px] uppercase font-bold tracking-widest opacity-60",
                       paymentType === 'Parcelado' ? "text-blue-100" : "text-slate-400"
@@ -381,34 +381,36 @@ export function FinanceForm({
                     <span className="material-symbols-outlined absolute right-6 text-white/40">check_circle</span>
                   )}
                 </button>
-
-                {/* Seletor de Parcelas Premium */}
+                   {/* Seletor de Parcelas Premium */}
                 {paymentType === 'Parcelado' && (
-                  <div className="px-6 py-4 animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex items-center justify-between bg-white rounded-[2rem] p-2 border border-[#1E40AF]/10 shadow-inner">
+                  <div className="px-2 py-2 animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between bg-[#F8FAFC] rounded-[1.5rem] p-2 border border-slate-200 shadow-inner">
                       <button 
                         type="button" 
                         style={{ border: 'none', borderRadius: '9999px' }}
-                        className="w-10 h-10 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] transition-all"
+                        className="w-10 h-10 flex items-center justify-center bg-[#1E40AF] text-white shadow-lg hover:bg-navy/90 transition-all"
                         onClick={() => setFormData({...formData, parcela_total: Math.max(1, formData.parcela_total - 1)})}
                       >
                         <span className="material-symbols-outlined">remove</span>
                       </button>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <input 
                           type="number"
-                          className="w-12 bg-transparent border-none text-center text-xl font-black text-[#1E40AF] focus:ring-0 p-0"
+                          className="w-16 bg-transparent border-none text-center text-4xl font-black text-[#1E40AF] focus:ring-0 p-0"
                           value={formData.parcela_total}
                           onChange={(e) => setFormData({...formData, parcela_total: Math.max(1, parseInt(e.target.value) || 1)})}
                         />
-                        <span className="text-[10px] uppercase font-black text-[#1E40AF]/30 tracking-tighter">Vezes</span>
+                        <div className="flex flex-col -ml-1">
+                          <span className="text-[10px] uppercase font-black text-[#1E40AF] leading-none">Vezes</span>
+                          <span className="text-[8px] uppercase font-bold text-slate-300 tracking-tighter">no total</span>
+                        </div>
                       </div>
-
+ 
                       <button 
                         type="button" 
                         style={{ border: 'none', borderRadius: '9999px' }}
-                        className="w-10 h-10 flex items-center justify-center text-[#1E40AF] hover:bg-[#F8FAFC] transition-all"
+                        className="w-10 h-10 flex items-center justify-center bg-[#1E40AF] text-white shadow-lg hover:bg-navy/90 transition-all"
                         onClick={() => setFormData({...formData, parcela_total: formData.parcela_total + 1})}
                       >
                         <span className="material-symbols-outlined">add</span>
