@@ -237,12 +237,14 @@ export function FinanceForm({
 
                   <div className="flex flex-col">
                     <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Pagamento</label>
-                    <div className="bg-slate-100 p-1 rounded-full flex w-full h-[44px] relative">
+                    <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                       <button 
                         type="button"
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
-                          paymentType === 'A vista' ? "bg-white text-navy shadow-sm" : "text-slate-500 hover:text-navy/60"
+                          paymentType === 'A vista' 
+                            ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
+                            : "text-slate-500 hover:text-navy/60"
                         )}
                         onClick={() => {
                           setPaymentType('A vista');
@@ -255,7 +257,9 @@ export function FinanceForm({
                         type="button"
                         className={cn(
                           "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
-                          paymentType === 'Parcelado' ? "bg-white text-navy shadow-sm" : "text-slate-500 hover:text-navy/60"
+                          paymentType === 'Parcelado' 
+                            ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
+                            : "text-slate-500 hover:text-navy/60"
                         )}
                         onClick={() => {
                           setPaymentType('Parcelado');
