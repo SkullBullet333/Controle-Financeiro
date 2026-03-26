@@ -235,21 +235,53 @@ export function FinanceForm({
                     />
                   </div>
 
-                  <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap">Simulação</label>
+                  <div className="flex flex-col">
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Pagamento</label>
+                    <div className="bg-slate-100 p-1 rounded-full flex w-full h-[44px] relative">
+                      <button 
+                        type="button"
+                        className={cn(
+                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          paymentType === 'A vista' ? "bg-white text-navy shadow-sm" : "text-slate-500 hover:text-navy/60"
+                        )}
+                        onClick={() => {
+                          setPaymentType('A vista');
+                          setFormData({...formData, parcela_total: 1});
+                        }}
+                      >
+                        À VISTA
+                      </button>
+                      <button 
+                        type="button"
+                        className={cn(
+                          "flex-1 rounded-full text-[11px] font-headline font-black transition-all duration-300",
+                          paymentType === 'Parcelado' ? "bg-white text-navy shadow-sm" : "text-slate-500 hover:text-navy/60"
+                        )}
+                        onClick={() => {
+                          setPaymentType('Parcelado');
+                          setFormData({...formData, parcela_total: 2}); // Padrão 2 parcelas
+                        }}
+                      >
+                        PARCELADO
+                      </button>
+                    </div>
+                    
                     <button 
                       type="button"
-                      style={{ border: 'none', borderRadius: '8px' }}
-                      className={cn(
-                        "flex items-center justify-center gap-2 px-6 h-[44px] font-semibold transition-all w-full",
-                        formData.simulada 
-                          ? "bg-yellow-400 text-black border border-yellow-500/20" 
-                          : "bg-[#F8FAFC] text-navy border border-outline-variant/30 hover:bg-navy/5"
-                      )}
+                      className="flex items-center justify-center gap-2 mt-4 group self-center"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
-                      <span className="text-xs font-label tracking-wide uppercase">
-                        {formData.simulada ? 'Ativo' : 'Ativar'}
+                      <span className={cn(
+                        "material-symbols-outlined text-lg transition-colors",
+                        formData.simulada ? "text-navy" : "text-slate-300 group-hover:text-navy/40"
+                      )} style={{ fontVariationSettings: "'FILL' 1" }}>
+                        analytics
+                      </span>
+                      <span className={cn(
+                        "text-[11px] font-headline font-black transition-colors uppercase tracking-wider",
+                        formData.simulada ? "text-navy" : "text-navy/40 group-hover:text-navy/60"
+                      )}>
+                        {formData.simulada ? 'Simulação Ativa' : 'Ativar Simulação'}
                       </span>
                     </button>
                   </div>
@@ -307,12 +339,16 @@ export function FinanceForm({
           </button>
           <button 
             type="button"
-            onClick={() => {
+            onClick={(e) => {
               if (!formData.valor || parseFloat(formData.valor) <= 0) {
                 setValidationError('Por favor, informe um valor válido para o lançamento.');
                 return;
               }
-              setStep('confirm');
+              if (paymentType === 'A vista') {
+                handleSubmit(e as any);
+              } else {
+                setStep('confirm');
+              }
             }}
             style={{ borderRadius: '9999px' }}
             className="bg-[#1E40AF] hover:bg-[#1E40AF]/90 text-white h-[48px] font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2"
@@ -331,72 +367,22 @@ export function FinanceForm({
             <div className="w-12 h-1 bg-slate-100 rounded-full mb-8 opacity-50" />
             
             <h3 className="text-xl font-headline font-black text-navy mb-1 text-center tracking-tight">Finalizar Lançamento</h3>
-            <p className="text-slate-400 text-[10px] font-label uppercase tracking-[0.2em] mb-6 text-center">Escolha o fluxo de pagamento</p>
+            <p className="text-slate-400 text-[10px] font-label uppercase tracking-[0.2em] mb-6 text-center">Configurar Parcelamento</p>
             
-            <div className="w-full flex flex-col gap-10 mb-6">
-              {/* Opção À Vista */}
-              <button 
-                type="button"
-                style={{ border: 'none', borderRadius: '1.5rem' }}
-                className={cn(
-                  "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
-                  paymentType === 'A vista' 
-                    ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
-                    : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
-                )}
-                onClick={() => {
-                  setPaymentType('A vista');
-                  setFormData({...formData, parcela_total: 1});
-                }}
-              >
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
-                  paymentType === 'A vista' ? "bg-white/20" : "bg-white shadow-sm text-[#1E40AF]"
-                )}>
-                  <span className="material-symbols-outlined text-3xl">payments</span>
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-black text-lg leading-tight">À Vista</span>
-                  <span className={cn(
-                    "text-[10px] uppercase font-bold tracking-widest opacity-60",
-                    paymentType === 'A vista' ? "text-blue-100" : "text-slate-400"
-                  )}>Lançamento único</span>
-                </div>
-                {paymentType === 'A vista' && (
-                  <span className="material-symbols-outlined absolute right-6 text-white/40">check_circle</span>
-                )}
-              </button>
-
-              {/* Opção Parcelado */}
+            <div className="w-full flex flex-col gap-6 mb-6">
+              {/* Opção Parcelado (Sempre ativa aqui já que A Vista salva direto) */}
               <div className="w-full space-y-4">
-                <button 
-                  type="button"
-                  style={{ border: 'none', borderRadius: '1.5rem' }}
-                  className={cn(
-                    "w-full p-6 transition-all duration-300 flex items-center gap-6 group relative overflow-hidden",
-                    paymentType === 'Parcelado' 
-                      ? "bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100" 
-                      : "bg-white text-navy hover:bg-slate-50 border border-slate-200"
-                  )}
-                  onClick={() => setPaymentType('Parcelado')}
+                <div 
+                  className="w-full p-6 bg-[#1E40AF] text-white shadow-2xl scale-[1.02] ring-4 ring-blue-100 flex items-center gap-6 group relative overflow-hidden rounded-[1.5rem]"
                 >
-                  <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
-                    paymentType === 'Parcelado' ? "bg-white/20" : "bg-white shadow-sm text-[#1E40AF]"
-                  )}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 transition-colors">
                     <span className="material-symbols-outlined text-3xl">event_repeat</span>
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="font-black text-lg leading-tight">Parcelado</span>
-                    <span className={cn(
-                      "text-[10px] uppercase font-bold tracking-widest opacity-60",
-                      paymentType === 'Parcelado' ? "text-blue-100" : "text-slate-400"
-                    )}>Dividido em meses</span>
+                    <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 text-blue-100">Dividido em meses</span>
                   </div>
-                  {paymentType === 'Parcelado' && (
-                    <span className="material-symbols-outlined absolute right-6 text-white/40">check_circle</span>
-                  )}
-                </button>
+                </div>
 
                 {/* Seletor de Parcelas Premium */}
                 {paymentType === 'Parcelado' && (
