@@ -212,7 +212,7 @@ export function FinanceForm({
               {subType === 'cartao' ? (
                 <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                   <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Cartão / Vencimento</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
                     <select 
                       className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
                       value={formData.cartao_vencimento_id}
@@ -226,7 +226,7 @@ export function FinanceForm({
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Gasto</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Gasto</label>
                     <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                       <button 
                         type="button"
@@ -285,7 +285,7 @@ export function FinanceForm({
               ) : (
                 <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                   <div>
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Data de Vencimento</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
                     <input 
                       type="date"
                       className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
@@ -295,7 +295,7 @@ export function FinanceForm({
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Pagamento</label>
+                    <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Pagamento</label>
                     <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                       <button 
                         type="button"
@@ -356,7 +356,7 @@ export function FinanceForm({
           ) : (
               <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
                 <div>
-                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Data de Receber</label>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Receber</label>
                   <input 
                     type="date"
                     className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
@@ -365,7 +365,7 @@ export function FinanceForm({
                   />
                 </div>
                 <div className="flex flex-col">
-                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1 whitespace-nowrap uppercase tracking-widest text-[10px]">Tipo de Recebimento</label>
+                  <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Tipo de Recebimento</label>
                   <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                     <button 
                       type="button"
