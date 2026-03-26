@@ -14,7 +14,7 @@ Este documento serve como guia de contexto para assistentes de IA (como Antigrav
 O modal de "Nova Despesa" foi redesenhado para ser ultra-clean e eficiente:
 - **Passo 1:** Preenchimento de dados básicos (valor, descrição, data, responsável, categoria).
 - **Passo 2:** Escolha de pagamento (À Vista ou Parcelado) com cards interativos.
-- **Estilo:** Bordas arredondadas de `1.5rem` nos cards internos e `2.5rem` no modal externo. Uso intenso de `gap-10` (40px) para separar escolhas críticas e evitar erros de clique.
+- **Estilo:** Bordas arredondadas de `1.5rem` nos cards internos e `2.5rem` no modal externo. O valor principal usa `30px` de tamanho de fonte e `text-slate-900` para legibilidade.
 - **Cores:** Paleta de azuis profundos (`#1E40AF`) para ações positivas e vermelho suave para ações neutras/voltar.
 
 ### 2. Sincronização de Dados

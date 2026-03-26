@@ -160,7 +160,7 @@ export function FinanceForm({
                 "bg-transparent border-none focus:ring-1 focus:ring-slate-200 rounded-lg font-headline font-extrabold w-full p-0 transition-all px-2",
                 formData.valor ? "text-slate-900" : "text-slate-900/20"
               )}
-              style={{ fontSize: '45px', lineHeight: '1', height: 'auto' }}
+              style={{ fontSize: '30px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
               step="0.01"
