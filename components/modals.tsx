@@ -72,6 +72,14 @@ export function FinanceForm({
 
   const [step, setStep] = useState<'fill' | 'confirm'>('fill');
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (validationError) {
+      const timer = setTimeout(() => setValidationError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [validationError]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,10 +150,16 @@ export function FinanceForm({
         <div className="relative group">
           <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor do Lançamento</label>
           <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-6 py-4 group-focus-within:bg-surface-container transition-all shadow-sm border border-outline-variant/30">
-            <span className="text-sm font-headline font-bold text-navy mr-3 mt-1">R$</span>
+            <span className={cn(
+              "text-2xl font-headline font-bold transition-all mr-4 mt-1",
+              formData.valor ? "text-navy" : "text-navy/20"
+            )}>R$</span>
             <input 
               required
-              className="bg-transparent border-none focus:ring-1 focus:ring-slate-200 rounded-lg font-headline font-extrabold text-on-surface placeholder:text-on-surface-variant/30 w-full p-0 transition-all px-2"
+              className={cn(
+                "bg-transparent border-none focus:ring-1 focus:ring-slate-200 rounded-lg font-headline font-extrabold w-full p-0 transition-all px-2",
+                formData.valor ? "text-slate-900" : "text-slate-900/20"
+              )}
               style={{ fontSize: '45px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
@@ -293,7 +307,7 @@ export function FinanceForm({
             type="button"
             onClick={() => {
               if (!formData.valor || parseFloat(formData.valor) <= 0) {
-                alert('Por favor, informe um valor válido para o lançamento.');
+                setValidationError('Por favor, informe um valor válido para o lançamento.');
                 return;
               }
               setStep('confirm');
@@ -443,6 +457,34 @@ export function FinanceForm({
           </div>
         </div>
       </div>
+      )}
+
+      {/* Alerta de Validação Centralizado */}
+      {validationError && (
+        <div 
+          className="fixed inset-0 z-[1100] flex items-center justify-center animate-in fade-in duration-300"
+          onClick={() => setValidationError(null)}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+          <div 
+            className="relative bg-white border-l-4 border-red-500 p-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-[90%] animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+              <span className="material-symbols-outlined text-3xl">error</span>
+            </div>
+            <div className="flex-grow">
+              <h4 className="font-bold text-navy mb-0.5">Atenção</h4>
+              <p className="text-slate-500 text-sm mb-0">{validationError}</p>
+            </div>
+            <button 
+              onClick={() => setValidationError(null)}
+              className="text-slate-300 hover:text-slate-500 transition-colors ml-4"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
       )}
     </>
   );
