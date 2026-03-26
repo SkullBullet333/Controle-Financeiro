@@ -138,10 +138,10 @@ export function FinanceForm({
             </span>
           </div>
           <div className="space-y-1">
-            <span className="label-md font-label text-on-surface-variant uppercase tracking-widest text-[10px]">
+            <span className="font-headline font-bold text-navy/50 uppercase tracking-[0.2em] text-[11px]">
               {subType === 'cartao' ? 'Cartão de Crédito' : type === 'despesa' ? 'Nova Despesa' : 'Nova Receita'}
             </span>
-            <h1 className="text-3xl font-headline font-bold text-on-surface tracking-tight">
+            <h1 className="text-4xl font-headline font-black text-slate-900 tracking-tight leading-tight">
               {type === 'despesa' ? 'Registro de Gasto' : 'Registro de Ganho'}
             </h1>
           </div>
