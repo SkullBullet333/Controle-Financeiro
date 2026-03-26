@@ -1,4 +1,4 @@
-export type Status = 'Pago' | 'Em aberto' | 'Vencida' | 'Hoje' | 'Simulada';
+export type Status = 'Pago' | 'Em aberto' | 'Vencida' | 'Hoje';
 
 export interface Titular {
   id: number;

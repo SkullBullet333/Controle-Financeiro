@@ -104,7 +104,7 @@ export function FinanceForm({
     if (type === 'despesa') {
       data.categoria = formData.categoria || categorizar(formData.descricao);
       data.vencimento = finalDate;
-      data.status = formData.simulada ? 'Simulada' : formData.status;
+      data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
       data.parcela_total = (paymentType === 'A vista' && !formData.simulada) ? 1 : formData.parcela_total;
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
@@ -243,44 +243,46 @@ export function FinanceForm({
                       >
                         À VISTA
                       </button>
-                      <button 
-                        type="button"
-                        style={{ borderRadius: '9999px' }}
-                        className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
-                          paymentType === 'Parcelado' 
-                            ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
-                            : "text-slate-500 hover:text-navy/60"
-                        )}
-                        onClick={() => {
-                          setPaymentType('Parcelado');
-                          setFormData({...formData, parcela_total: 2});
-                        }}
-                      >
-                        {paymentType === 'Parcelado' ? (
-                          <div className="flex items-center justify-between w-full h-full px-1.5" onClick={e => e.stopPropagation()}>
-                            <button 
-                              type="button"
-                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
-                              onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-                            </button>
-                            <input 
-                              type="number"
-                              min="2"
-                              max="99"
-                              className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
-                              value={formData.parcela_total}
-                              onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
-                            />
-                            <button 
-                              type="button"
-                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
-                              onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                            </button>
+                      {paymentType === 'Parcelado' ? (
+                        <div 
+                          className="flex-1 rounded-full bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                        >
+                          <button 
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                            onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                          </button>
+                          <input 
+                            type="number"
+                            min="2"
+                            max="99"
+                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
+                            value={formData.parcela_total}
+                            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                          />
+                          <button 
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                            onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          type="button"
+                          style={{ borderRadius: '9999px' }}
+                          className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
+                          onClick={() => {
+                            setPaymentType('Parcelado');
+                            setFormData({...formData, parcela_total: 2});
+                          }}
+                        >
+                          PARCELADO
+                        </button>
+                      )}
                           </div>
                         ) : (
                           "PARCELADO"
@@ -344,44 +346,46 @@ export function FinanceForm({
                       >
                         À VISTA
                       </button>
-                      <button 
-                        type="button"
-                        style={{ borderRadius: '9999px' }}
-                        className={cn(
-                          "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
-                          paymentType === 'Parcelado' 
-                            ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
-                            : "text-slate-500 hover:text-navy/60"
-                        )}
-                        onClick={() => {
-                          setPaymentType('Parcelado');
-                          setFormData({...formData, parcela_total: 2});
-                        }}
-                      >
-                        {paymentType === 'Parcelado' ? (
-                          <div className="flex items-center justify-between w-full h-full px-1.5" onClick={e => e.stopPropagation()}>
-                            <button 
-                              type="button"
-                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
-                              onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-                            </button>
-                            <input 
-                              type="number"
-                              min="2"
-                              max="99"
-                              className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
-                              value={formData.parcela_total}
-                              onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
-                            />
-                            <button 
-                              type="button"
-                              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
-                              onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                            </button>
+                      {paymentType === 'Parcelado' ? (
+                        <div 
+                          className="flex-1 rounded-full bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                        >
+                          <button 
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                            onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                          </button>
+                          <input 
+                            type="number"
+                            min="2"
+                            max="99"
+                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
+                            value={formData.parcela_total}
+                            onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                          />
+                          <button 
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                            onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          type="button"
+                          style={{ borderRadius: '9999px' }}
+                          className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
+                          onClick={() => {
+                            setPaymentType('Parcelado');
+                            setFormData({...formData, parcela_total: 2});
+                          }}
+                        >
+                          PARCELADO
+                        </button>
+                      )}
                           </div>
                         ) : (
                           "PARCELADO"
@@ -446,37 +450,60 @@ export function FinanceForm({
                   >
                     À VISTA
                   </button>
-                  <button 
-                    type="button"
-                    style={{ borderRadius: '9999px' }}
-                    className={cn(
-                      "flex-1 rounded-full text-[11px] font-headline font-medium transition-all duration-300",
-                      paymentType === 'Parcelado' 
-                        ? "bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50" 
-                        : "text-slate-500 hover:text-navy/60"
-                    )}
-                    onClick={() => {
-                      setPaymentType('Parcelado');
-                      setFormData({...formData, parcela_total: 2});
-                    }}
-                  >
-                    {paymentType === 'Parcelado' ? (
-                      <div className="flex items-center justify-center w-full h-full -mt-[1px]" onClick={e => e.stopPropagation()}>
-                        <input 
-                          type="number"
-                          min="2"
-                          max="99"
-                          className="w-8 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
-                          value={formData.parcela_total}
-                          onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
-                          autoFocus
-                        />
-                        <span className="text-[10px] font-headline font-bold text-slate-400 ml-0.5">x</span>
-                      </div>
-                    ) : (
-                      "PARCELADO"
-                    )}
-                  </button>
+                  {paymentType === 'Parcelado' ? (
+                    <div 
+                      className="flex-1 rounded-full bg-white text-navy shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-200/50 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                    >
+                      <button 
+                        type="button"
+                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                        onClick={() => setFormData({...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1)})}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      </button>
+                      <input 
+                        type="number"
+                        min="2"
+                        max="99"
+                        className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-navy p-0"
+                        value={formData.parcela_total}
+                        onChange={e => setFormData({...formData, parcela_total: parseInt(e.target.value) || 2})}
+                      />
+                      <button 
+                        type="button"
+                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-navy transition-colors shrink-0"
+                        onClick={() => setFormData({...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1)})}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      type="button"
+                      style={{ borderRadius: '9999px' }}
+                      className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
+                      onClick={() => {
+                        setPaymentType('Parcelado');
+                        setFormData({...formData, parcela_total: 2});
+                      }}
+                    >
+                      PARCELADO
+                    </button>
+                  )}
+                    </div>
+                  ) : (
+                    <button 
+                      type="button"
+                      style={{ borderRadius: '9999px' }}
+                      className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
+                      onClick={() => {
+                        setPaymentType('Parcelado');
+                        setFormData({...formData, parcela_total: 2});
+                      }}
+                    >
+                      PARCELADO
+                    </button>
+                  )}
                 </div>
               </div>
 
