@@ -210,7 +210,7 @@ export function FinanceForm({
           {type === 'despesa' ? (
             <>
               {subType === 'cartao' ? (
-                <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
+                <div className="md:col-span-2 grid grid-cols-2 gap-x-8 gap-y-6 items-start">
                   <div>
                     <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Cartão / Vencimento</label>
                     <select 
@@ -261,10 +261,12 @@ export function FinanceForm({
                         PARCELADO
                       </button>
                     </div>
-                    
+                  </div>
+
+                  <div className="md:col-span-2 flex justify-center mt-[-8px]">
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-center"
+                      className="flex items-center justify-center gap-2 group"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -283,7 +285,7 @@ export function FinanceForm({
                   </div>
                 </div>
               ) : (
-                <div className="md:col-span-2 grid grid-cols-2 gap-8 items-start">
+                <div className="md:col-span-2 grid grid-cols-2 gap-x-8 gap-y-6 items-start">
                   <div>
                     <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data de Vencimento</label>
                     <input 
@@ -330,10 +332,12 @@ export function FinanceForm({
                         PARCELADO
                       </button>
                     </div>
-                    
+                  </div>
+
+                  <div className="md:col-span-2 flex justify-center mt-[-8px]">
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 mt-4 group self-center"
+                      className="flex items-center justify-center gap-2 group"
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -400,10 +404,12 @@ export function FinanceForm({
                       PARCELADO
                     </button>
                   </div>
-                  
+                </div>
+
+                <div className="md:col-span-2 flex justify-center mt-[-8px]">
                   <button 
                     type="button"
-                    className="flex items-center justify-center gap-2 mt-4 group self-center"
+                    className="flex items-center justify-center gap-2 group"
                     onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                   >
                     <span className={cn(
@@ -420,7 +426,7 @@ export function FinanceForm({
                     </span>
                   </button>
                 </div>
-            </div>
+              </div>
           )}
         </div>
 
