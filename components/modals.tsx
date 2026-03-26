@@ -266,7 +266,10 @@ export function FinanceForm({
                   <div className="md:col-span-2 flex justify-center mt-[-8px]">
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 group"
+                      className={cn(
+                        "flex items-center justify-center gap-2 group transition-all duration-300",
+                        !formData.simulada && "opacity-30 hover:opacity-70"
+                      )}
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -337,7 +340,10 @@ export function FinanceForm({
                   <div className="md:col-span-2 flex justify-center mt-[-8px]">
                     <button 
                       type="button"
-                      className="flex items-center justify-center gap-2 group"
+                      className={cn(
+                        "flex items-center justify-center gap-2 group transition-all duration-300",
+                        !formData.simulada && "opacity-30 hover:opacity-70"
+                      )}
                       onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                     >
                       <span className={cn(
@@ -409,7 +415,10 @@ export function FinanceForm({
                 <div className="md:col-span-2 flex justify-center mt-[-8px]">
                   <button 
                     type="button"
-                    className="flex items-center justify-center gap-2 group"
+                    className={cn(
+                      "flex items-center justify-center gap-2 group transition-all duration-300",
+                      !formData.simulada && "opacity-30 hover:opacity-70"
+                    )}
                     onClick={() => setFormData({...formData, simulada: !formData.simulada})}
                   >
                     <span className={cn(
