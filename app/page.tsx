@@ -5,7 +5,7 @@ import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal, EmprestimoForm, PayoffModal } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -21,15 +21,29 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings'>('despesa');
+  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings' | 'emprestimo' | 'payoff'>('despesa');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
+  const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isConfirmClearSimuladasOpen, setIsConfirmClearSimuladasOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
+  const [selectedRadarIds, setSelectedRadarIds] = useState<number[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchRef = React.useRef<HTMLDivElement>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -41,6 +55,8 @@ export default function Home() {
     user: authUser,
     userProfile,
     despesas,
+    receitas,
+    cartaoTransacoes,
     currentMonth,
     currentYear,
     competencia,
@@ -50,6 +66,7 @@ export default function Home() {
     despesasGerais,
     config,
     stats,
+    radarStats,
     totalsByCard,
     totalsByTitular,
     projecaoSemestral,
@@ -82,7 +99,10 @@ export default function Home() {
     inviteMember,
     userName,
     userType,
-    updateProfile
+    updateProfile,
+    emprestimos,
+    addEmprestimo,
+    deleteEmprestimo
   } = useFinance(activeView);
 
 
@@ -344,6 +364,9 @@ export default function Home() {
               onClearSimuladas={() => setIsConfirmClearSimuladasOpen(true)}
               showClearSimuladas={despesas.some(d => d.simulada)}
               type={activeView as 'geral' | 'cartoes' | 'receitas'}
+              onAction={activeView === 'geral' ? () => { setModalType('emprestimo'); setIsModalOpen(true); } : undefined}
+              actionLabel={activeView === 'geral' ? 'Novo Empréstimo' : undefined}
+              actionIcon="account_balance"
             />
             <FinanceTable
               data={tableData}
@@ -363,17 +386,236 @@ export default function Home() {
               }}
               titulares={config.titulares}
               cartoes={config.cartoes}
+              onPayoff={(loanId) => {
+                const loan = emprestimos.find(e => e.id === loanId);
+                if (loan) {
+                  setSelectedLoan(loan);
+                  setModalType('payoff');
+                  setIsModalOpen(true);
+                }
+              }}
             />
           </div>
         );
 
       case 'radar':
-        const healthScore = Math.round(stats.totalReceitas > 0 ? (1 - (stats.totalDespesas / stats.totalReceitas)) * 100 : 0);
+        // 1. Filtragem Base: Despesas e Receitas (Apenas do Mês Selecionado para Frente)
+        const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+        const baseRadarDespesas = despesas.filter(d => {
+          const matchTitular = activeFilterId ? d.titular_id === activeFilterId : true;
+          if (d.simulada) return false;
+          
+          // Comparação de competência: MM/YYYY para YYYY-MM
+          const dCompSortable = d.competencia.split('/').reverse().join('-');
+          return matchTitular && dCompSortable >= currentCompSortable;
+        });
+
+        const baseRadarReceitas = receitas.filter(r => {
+          const matchTitular = activeFilterId ? r.titular_id === activeFilterId : true;
+          if (r.simulada) return false;
+          
+          const rCompSortable = r.competencia.split('/').reverse().join('-');
+          return matchTitular && rCompSortable >= currentCompSortable;
+        });
+
+        // 2. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
+        const radarBuscaResultados = searchTerm ? Array.from(new Set(baseRadarDespesas
+          .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map(d => `${d.descricao}|${d.titular_id}`)
+        )).map(key => {
+          const [desc, tid] = key.split('|');
+          return baseRadarDespesas.find(d => d.descricao === desc && d.titular_id === Number(tid));
+        }).slice(0, 50) : [];
+
+        const radarDespesasSelecionadas = selectedRadarIds.length > 0 
+          ? baseRadarDespesas.filter(d => selectedRadarIds.includes(d.id))
+          : baseRadarDespesas;
+
+        // 3. Estatísticas de Dívida Total em Aberto (Open only)
+        const openDespesas = radarDespesasSelecionadas.filter(d => d.status === 'Em aberto');
+        const rStats = {
+          totalDividaAberto: openDespesas.reduce((acc, d) => acc + d.valor, 0),
+          qtdParcelasRestante: openDespesas.length,
+        };
+
+        // 4. Estatísticas do Mês Atual (para Saúde Financeira)
+        const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0);
+        const totalReceitasMes = baseRadarReceitas.filter(r => r.competencia === competencia).reduce((acc, r) => acc + r.valor, 0);
+
+        // 5. Projeção Semestral
+        const filteredProjecao: any[] = [];
+        let tempMonth = currentMonth;
+        let tempYear = currentYear;
+        for (let i = 0; i < 8; i++) {
+          const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
+          const rec = baseRadarReceitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
+          
+          // Soma despesas selecionadas (ou todas se nada selecionado)
+          const standardDesp = radarDespesasSelecionadas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
+          
+          // Soma transações de cartões (faturas futuras)
+          const fats = cartaoTransacoes.filter((c: CartaoTransacao) => {
+            const matchTitular = activeFilterId ? c.titular_id === activeFilterId : true;
+            return matchTitular && c.competencia === comp && !c.simulada;
+          }).reduce((acc: number, c: CartaoTransacao) => acc + c.valor, 0);
+
+          filteredProjecao.push({
+            competencia: comp,
+            receitas: rec,
+            despesas: standardDesp,
+            faturas: fats,
+            saldo: rec - (standardDesp + fats)
+          });
+          tempMonth++;
+          if (tempMonth > 12) { tempMonth = 1; tempYear++; }
+        }
+
+        const healthScore = Math.round(totalReceitasMes > 0 ? (1 - (totalDespesasMes / totalReceitasMes)) * 100 : 0);
+        
+        // 6. Cálculo dos cartões de titular especializados para o Radar
+        const radarTotalsByTitular = config.titulares.reduce((acc, t) => {
+          const tDespesas = despesasGerais.filter(d => d.titular_id === t.id && d.competencia === competencia && !d.simulada);
+          const cards = tDespesas.filter(d => d.isSummary || d.descricao.startsWith('Fatura ')).reduce((sum, d) => sum + d.valor, 0);
+          const total = tDespesas.reduce((sum, d) => sum + d.valor, 0);
+          acc[t.id] = { cards, others: total - cards, total };
+          return acc;
+        }, {} as Record<number, { cards: number, others: number, total: number }>);
+
         return (
           <div className="space-y-4">
-            <AnalysisPlan projecao={projecaoSemestral} />
+            <SummaryCards
+              type="radar"
+              cartoes={config.cartoes}
+              titulares={config.titulares}
+              totalsByCard={totalsByCard}
+              totalsByTitular={totalsByTitular}
+              radarTotalsByTitular={radarTotalsByTitular}
+              totalVencido={0}
+              activeFilterId={activeFilterId}
+              onFilterChange={(id) => { setActiveFilterId(id); setSelectedRadarIds([]); }}
+            />
+
+            {/* KPIs Principais de Dívida - Agora no TOPO */}
+            <div className="row g-4 mb-2">
+              <div className="col-md-6">
+                <div className="kpi-card kpi-card-red flex flex-col items-center justify-center text-center h-100 py-4">
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🔴 Dívida Total em Aberto</span>
+                  <div className="text-3xl font-black text-danger mb-1">{formatCurrency(rStats.totalDividaAberto)}</div>
+                  <span className="text-[10px] text-gray mt-1">Soma de todas as parcelas futuras</span>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100 py-4">
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📅 Parcelas Restantes</span>
+                  <div className="text-3xl font-black text-faturas mb-1">{rStats.qtdParcelasRestante}</div>
+                  <span className="text-[10px] text-gray mt-1">Quantidade total de lançamentos</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="position-relative" ref={searchRef}>
+              <FilterBar 
+                type="geral"
+                onAdd={() => {}} 
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                activeFilterId={activeFilterId}
+                onClearFilter={() => { setActiveFilterId(null); setSelectedRadarIds([]); }}
+                hideAdd={true}
+                hideSearch={false}
+                onFocus={() => setIsSearchFocused(true)}
+              />
+              
+              {/* Sugestões da Busca */}
+              {isSearchFocused && radarBuscaResultados.length > 0 && (
+                <div className="position-absolute bg-card border border-border rounded-4 shadow-lg w-100 z-50 mt-[-15px] overflow-x-hidden overflow-y-auto" style={{ maxWidth: '400px', maxHeight: '400px' }}>
+                  {radarBuscaResultados.map(d => {
+                    if (!d) return null;
+                    const isSelected = selectedRadarIds.includes(d.id);
+                    const titularNome = config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A';
+                    
+                    return (
+                      <div 
+                        key={d.id} 
+                        className="p-3 cursor-pointer transition-all d-flex justify-content-between align-items-center border-b border-border last:border-0 hover:bg-primary hover:bg-opacity-5"
+                        onClick={() => {
+                          const matchingIds = baseRadarDespesas
+                            .filter(item => item.descricao === d.descricao && item.titular_id === d.titular_id)
+                            .map(item => item.id);
+                            
+                          if (isSelected) {
+                            setSelectedRadarIds(prev => prev.filter(id => !matchingIds.includes(id)));
+                          } else {
+                            setSelectedRadarIds(prev => Array.from(new Set([...prev, ...matchingIds])));
+                          }
+                        }}
+                      >
+                        <div className="fw-bold">
+                          {d.descricao} 
+                          <span className="ms-1 text-muted fw-normal opacity-75 small italic">"{titularNome}"</span>
+                        </div>
+                        <i className={cn(
+                          "fa-solid transition-all",
+                          isSelected ? "fa-circle-minus text-danger" : "fa-circle-plus text-primary"
+                        )}></i>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+
+            {/* Lista de Despesas Selecionadas */}
+            {selectedRadarIds.length > 0 && (
+              <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden mb-4">
+                <div className="p-3 border-b border-border d-flex justify-content-between align-items-center bg-light bg-opacity-30">
+                  <h6 className="fw-bold m-0 d-flex align-items-center gap-2">
+                    <i className="fa-solid fa-list-check text-primary"></i> Analisando ({selectedRadarIds.length}) itens específicos
+                  </h6>
+                  <button 
+                    onClick={() => setSelectedRadarIds([])}
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold"
+                  >
+                    <i className="fa-solid fa-rotate-left me-1"></i> Limpar Seleção
+                  </button>
+                </div>
+                <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase">Titular</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase">Descrição</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Parcela</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Competência</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Vencimento</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-end">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {radarDespesasSelecionadas.map(d => (
+                        <tr key={d.id}>
+                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A'}</td>
+                          <td className="px-3 py-2 fw-bold">{d.descricao}</td>
+                          <td className="px-3 py-2 small text-muted text-center">{d.parcela_atual}/{d.parcela_total}</td>
+                          <td className="px-3 py-2 small text-muted text-center">{d.competencia}</td>
+                          <td className="px-3 py-2 small text-muted text-center">
+                            {d.vencimento && d.vencimento !== '-' ? d.vencimento.split('-').reverse().join('/') : '-'}
+                          </td>
+                          <td className="px-3 py-2 fw-bold text-end">{formatCurrency(d.valor)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <AnalysisPlan projecao={filteredProjecao} />
             
             <div className="row g-4">
+              {/* Saúde Financeira - Agora nesta linha detalhada */}
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🛡️ Saúde Financeira</span>
@@ -386,18 +628,19 @@ export default function Home() {
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-green flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💡 Potencial de Economia</span>
-                  <div className="text-3xl font-black text-success">{formatCurrency(stats.totalDespesas * 0.15)}</div>
+                  <div className="text-3xl font-black text-success">{formatCurrency(totalDespesasMes * 0.15)}</div>
                   <span className="text-[10px] text-gray mt-1">Baseado em gastos não essenciais</span>
                 </div>
               </div>
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100">
                   <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📉 Limite de Gastos</span>
-                  <div className="text-3xl font-black text-faturas">{Math.round((stats.totalDespesas / (stats.totalReceitas * 0.8 || 1)) * 100)}%</div>
+                  <div className="text-3xl font-black text-faturas">{Math.round((totalDespesasMes / (totalReceitasMes * 0.8 || 1)) * 100)}%</div>
                   <span className="text-[10px] text-gray mt-1">Do orçamento utilizado</span>
                 </div>
               </div>
             </div>
+
 
             <div className="row g-4 mt-4">
               <div className="col-lg-6">
@@ -428,8 +671,8 @@ export default function Home() {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Essencial', value: stats.totalDespesas * 0.6 },
-                            { name: 'Lifestyle', value: stats.totalDespesas * 0.4 }
+                            { name: 'Essencial', value: totalDespesasMes * 0.6 },
+                            { name: 'Lifestyle', value: totalDespesasMes * 0.4 }
                           ]}
                           cx="50%"
                           cy="50%"
@@ -471,6 +714,11 @@ export default function Home() {
         onUpdateProfile={updateProfile}
         onOpenModal={(type) => {
           if (type === 'settings') setIsSettingsOpen(true);
+          else if (type === 'emprestimo') {
+            setModalType('emprestimo');
+            setEditingItem(null);
+            setIsModalOpen(true);
+          }
           else {
             setModalType(type as any);
             setEditingItem(null);
@@ -515,7 +763,7 @@ export default function Home() {
           title={
             editingItem
               ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : 'Editar Cartão')
-              : (modalType === 'profile' ? 'Editar Meu Perfil' : modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : 'Novo Cartão')
+              : (modalType === 'profile' ? 'Editar Meu Perfil' : modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'emprestimo' ? 'Novo Empréstimo' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Cartão')
           }
         >
           {modalType === 'profile' ? (
@@ -572,6 +820,21 @@ export default function Home() {
                 setIsModalOpen(false);
                 setEditingItem(null);
               }}
+            />
+          ) : modalType === 'emprestimo' ? (
+            <EmprestimoForm 
+              titulares={config.titulares}
+              onClose={() => setIsModalOpen(false)}
+              onSubmit={(data) => {
+                addEmprestimo(data);
+                setIsModalOpen(false);
+              }}
+            />
+          ) : modalType === 'payoff' && selectedLoan ? (
+            <PayoffModal 
+              loan={selectedLoan}
+              installments={despesas.filter(d => d.emprestimo_id === selectedLoan.id)}
+              onClose={() => setIsModalOpen(false)}
             />
           ) : null}
         </Modal>
@@ -642,6 +905,8 @@ export default function Home() {
             setItemToDelete({ id, type: 'cartao' }); 
             setIsConfirmDeleteOpen(true); 
           }}
+          emprestimos={emprestimos}
+          onDeleteEmprestimo={deleteEmprestimo}
         />
       </div>
     </div>

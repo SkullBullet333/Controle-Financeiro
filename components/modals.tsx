@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
-import { Titular, Status, Despesa, Receita, CartaoConfig, Profile } from '@/lib/types';
+import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
-import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao } from '@/lib/finance-service';
+import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue } from '@/lib/finance-service';
 import { parseISO, format, getDate } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
 import { useEffect } from 'react';
@@ -1070,7 +1070,9 @@ export function SettingsModal({
   onDeleteTitular,
   onAddCartao,
   onUpdateCartao,
-  onDeleteCartao
+  onDeleteCartao,
+  emprestimos,
+  onDeleteEmprestimo
 }: { 
   isOpen: boolean, 
   onClose: () => void,
@@ -1087,7 +1089,9 @@ export function SettingsModal({
   onDeleteTitular: (id: number) => void,
   onAddCartao: (c: Omit<CartaoConfig, 'id'>) => void,
   onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => void,
-  onDeleteCartao: (id: number) => void
+  onDeleteCartao: (id: number) => void,
+  emprestimos: Emprestimo[],
+  onDeleteEmprestimo: (id: number) => void
 }) {
   const [activeTab, setActiveTab] = useState('geral');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -1119,6 +1123,7 @@ export function SettingsModal({
     { id: 'geral', label: 'Geral', icon: 'settings' },
     { id: 'titulares', label: 'Titulares', icon: 'person_add' },
     { id: 'cartoes', label: 'Cartões', icon: 'credit_card' },
+    { id: 'emprestimos', label: 'Empréstimos', icon: 'account_balance' },
     { id: 'familia', label: 'Controle de Dados', icon: 'database' },
     { id: 'notificacoes', label: 'Notificações', icon: 'notifications' },
     { id: 'personalizacao', label: 'Personalização', icon: 'palette' },
@@ -1508,6 +1513,63 @@ export function SettingsModal({
             </div>
           </div>
         );
+      case 'emprestimos':
+        return (
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-10">
+              <div className="d-flex align-items-center gap-3 mb-2">
+                <div className="w-2 h-8 bg-amber-500 rounded-full"></div>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Empréstimos</h1>
+              </div>
+              <p className="text-muted-foreground">Gerencie seus contratos de crédito e financiamentos ativos.</p>
+            </header>
+
+            <div className="grid gap-4">
+              {emprestimos.length === 0 ? (
+                <div className="text-center py-12 bg-muted/10 rounded-3xl border border-dashed border-border">
+                  <span className="material-symbols-outlined text-muted-foreground opacity-20 text-[60px] mb-4">account_balance</span>
+                  <p className="text-muted-foreground">Nenhum empréstimo cadastrado.</p>
+                </div>
+              ) : (
+                emprestimos.map((e) => (
+                  <div key={e.id} className="group bg-card hover:bg-muted/30 p-5 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all duration-300">
+                    <div className="d-flex align-items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-amber-50 d-flex align-items-center justify-content-center text-amber-600 border border-amber-100/50">
+                        <span className="material-symbols-outlined text-2xl">account_balance</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-foreground m-0">{e.descricao}</h4>
+                        <div className="d-flex align-items-center gap-3 mt-1">
+                          <span className="text-muted-foreground text-[10px] font-black uppercase tracking-widest leading-none">
+                            {e.total_parcelas} Parcelas • {e.taxa_mensal_percentual}% a.m.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-4">
+                      <div className="text-end d-none d-md-block">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-0 opacity-50">Próxima Parcela</p>
+                        <p className="text-xs font-bold text-foreground m-0">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.valor_parcela)}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este empréstimo? Todas as parcelas em aberto também serão removidas.')) {
+                            onDeleteEmprestimo(e.id);
+                          }
+                        }}
+                        className="btn-icon rounded-xl hover:bg-danger/10 text-danger transition-colors p-2"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-30 text-foreground">
@@ -1588,5 +1650,260 @@ export function SettingsModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// ==================== NOVOS: EMPRÉSTIMOS E QUITAÇÃO ====================
+
+export function EmprestimoForm({ 
+  onSubmit, 
+  titulares, 
+  onClose 
+}: { 
+  onSubmit: (data: Partial<Emprestimo>) => void, 
+  titulares: Titular[],
+  onClose: () => void
+}) {
+  const [formData, setFormData] = useState({
+    descricao: '',
+    valor_parcela: '',
+    taxa_mensal_percentual: '1.79', // Sugestão padrão do usuário
+    total_parcelas: '12',
+    data_primeiro_vencimento: format(new Date(), 'yyyy-MM-01'),
+    titular_id: titulares[0]?.id || 0
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      descricao: formData.descricao,
+      valor_parcela: parseFloat(formData.valor_parcela),
+      taxa_mensal_percentual: parseFloat(formData.taxa_mensal_percentual),
+      total_parcelas: parseInt(formData.total_parcelas),
+      data_primeiro_vencimento: formData.data_primeiro_vencimento,
+      titular_id: formData.titular_id,
+      parcela_atual: 1
+    });
+  };
+
+  return (
+    <>
+      <header className="mb-8 pe-10">
+        <div className="flex items-center gap-4">
+          <div className="bg-[#FEF3C7] p-3 rounded-2xl border border-amber-200/30 shadow-sm">
+            <span className="material-symbols-outlined text-amber-700" style={{ fontVariationSettings: "'FILL' 1" }}>
+              account_balance
+            </span>
+          </div>
+          <div className="space-y-1">
+            <span className="font-headline font-bold text-amber-700/50 uppercase tracking-[0.2em] text-[11px]">
+              Empréstimos e Financiamentos
+            </span>
+            <h1 className="text-4xl font-headline font-black text-slate-900 tracking-tight leading-tight">
+              Novo Crédito
+            </h1>
+          </div>
+        </div>
+      </header>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+          <div className="md:col-span-2">
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Descrição do Contrato</label>
+            <input 
+              required
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              placeholder="Ex: Financiamento Imobiliário Inter"
+              type="text"
+              value={formData.descricao}
+              onChange={e => setFormData({...formData, descricao: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor da Parcela (VF)</label>
+            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+              <span className="text-navy/40 font-bold mr-2">R$</span>
+              <input 
+                required
+                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                type="number" step="0.01"
+                value={formData.valor_parcela}
+                onChange={e => setFormData({...formData, valor_parcela: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Taxa Mensal (%)</label>
+            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+              <input 
+                required
+                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                type="number" step="0.0001"
+                value={formData.taxa_mensal_percentual}
+                onChange={e => setFormData({...formData, taxa_mensal_percentual: e.target.value})}
+              />
+              <span className="text-navy/40 font-bold ml-2">%</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Total de Parcelas</label>
+            <input 
+              required
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
+              type="number"
+              value={formData.total_parcelas}
+              onChange={e => setFormData({...formData, total_parcelas: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data 1º Vencimento</label>
+            <input 
+              required
+              type="date"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
+              value={formData.data_primeiro_vencimento}
+              onChange={e => setFormData({...formData, data_primeiro_vencimento: e.target.value})}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Responsável</label>
+            <select 
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+              value={formData.titular_id}
+              onChange={e => setFormData({...formData, titular_id: parseInt(e.target.value)})}
+            >
+              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="pt-6 grid grid-cols-2 gap-x-8 items-center">
+          <button type="button" className="text-sm font-label font-semibold text-slate-500 hover:text-navy transition-colors text-left" onClick={onClose}>
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            style={{ borderRadius: '9999px' }}
+            className="bg-navy hover:bg-navy/90 text-white h-[48px] font-label font-semibold text-sm shadow-md transition-all w-full"
+          >
+            Cadastrar Empréstimo
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+export function PayoffModal({ 
+  loan, 
+  installments,
+  onClose 
+}: { 
+  loan: Emprestimo, 
+  installments: Despesa[],
+  onClose: () => void 
+}) {
+  const [refDate, setRefDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  const futureInstallments = installments
+    .filter(i => i.status === 'Em aberto' && i.vencimento > refDate)
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+
+  const simulation = futureInstallments.map(i => {
+    const { vp, discount } = calculatePresentValue(
+      i.valor, 
+      loan.taxa_mensal_percentual, 
+      i.vencimento, 
+      parseISO(refDate)
+    );
+    return { ...i, vp, discount };
+  });
+
+  const totalNominal = simulation.reduce((acc, i) => acc + i.valor, 0);
+  const totalVP = simulation.reduce((acc, i) => acc + i.vp, 0);
+  const totalDiscount = totalNominal - totalVP;
+
+  return (
+    <>
+      <header className="mb-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-success/10 p-2 rounded-xl text-success">
+            <span className="material-symbols-outlined">calculate</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted">Antecipação de Parcelas</span>
+            <h1 className="text-2xl font-black text-navy">{loan.descricao}</h1>
+          </div>
+        </div>
+      </header>
+
+      <div className="space-y-6">
+        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+          <label className="text-[11px] font-bold uppercase text-primary mb-2 block">Data de Referência para o Cálculo</label>
+          <input 
+            type="date"
+            className="w-full bg-white border-none ring-1 ring-primary/20 rounded-xl px-4 py-2 font-bold text-navy focus:ring-primary focus:outline-none"
+            value={refDate}
+            onChange={e => setRefDate(e.target.value)}
+          />
+          <p className="text-[10px] text-muted mt-2 leading-relaxed">
+            * O cálculo utiliza a taxa mensal de <strong>{loan.taxa_mensal_percentual}%</strong> com capitalização composta baseada em dias corridos (base 30).
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-xl p-3 text-center">
+            <div className="text-[10px] font-bold text-muted uppercase">Valor Nominal Total</div>
+            <div className="text-lg font-black text-navy">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
+            <div className="text-[9px] text-muted">{simulation.length} parcelas futuras</div>
+          </div>
+          <div className="bg-navy rounded-xl p-3 text-center text-white shadow-lg">
+            <div className="text-[10px] font-bold text-white/60 uppercase">Valor para Quitação Hoje</div>
+            <div className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
+            <div className="text-[9px] text-success font-bold">Economia de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>
+          </div>
+        </div>
+
+        <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          <table className="table table-borderless align-middle">
+            <thead className="sticky top-0 bg-white z-10">
+              <tr className="border-b">
+                <th className="text-[9px] font-black uppercase text-muted">Parc.</th>
+                <th className="text-[9px] font-black uppercase text-muted">Venc.</th>
+                <th className="text-[9px] font-black uppercase text-muted text-end">V. Presente</th>
+                <th className="text-[9px] font-black uppercase text-muted text-end">Desconto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {simulation.map(i => (
+                <tr key={i.id} className="border-b last:border-0 border-light">
+                  <td className="py-2 text-[11px] font-bold text-navy">{i.parcela_atual}/{i.parcela_total}</td>
+                  <td className="py-2 text-[11px] text-muted">{i.vencimento.split('-').reverse().join('/')}</td>
+                  <td className="py-2 text-[11px] font-black text-navy text-end">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</td>
+                  <td className="py-2 text-[10px] font-bold text-success text-end">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {simulation.length === 0 && (
+            <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada para este contrato.</div>
+          )}
+        </div>
+
+        <div className="pt-2">
+          <button 
+            onClick={onClose}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors text-sm"
+          >
+            Fechar Simulação
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

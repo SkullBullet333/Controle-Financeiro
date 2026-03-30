@@ -60,6 +60,7 @@ export interface Despesa {
   simulada: boolean;
   isSummary?: boolean;
   cartao_vencimento_id?: number;
+  emprestimo_id?: number;
 }
 
 export interface Receita {
@@ -81,4 +82,19 @@ export interface Nota {
 export interface ConfigApp {
   titulares: Titular[];
   cartoes: CartaoConfig[];
+}
+
+export interface Emprestimo {
+  id: number;
+  user_id: string;
+  family_id: string;
+  descricao: string;
+  valor_total?: number;
+  valor_parcela: number;
+  taxa_mensal_percentual: number;
+  total_parcelas: number;
+  parcela_atual: number;
+  data_primeiro_vencimento: string;
+  titular_id: number;
+  created_at?: string;
 }

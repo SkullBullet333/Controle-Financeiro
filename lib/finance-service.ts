@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status } from './types';
+import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Emprestimo } from './types';
 import { 
   addMonths, 
   endOfMonth, 
@@ -16,7 +16,8 @@ import {
   getMonth,
   addDays,
   isBefore,
-  startOfDay
+  startOfDay,
+  differenceInDays
 } from 'date-fns';
 import { categorizar } from './categories-utils';
 
@@ -195,8 +196,8 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
 }
 
 export async function lancarParcelas(
-  tipo: 'despesa' | 'receita' | 'cartao', 
-  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number }), 
+  tipo: 'despesa' | 'receita' | 'cartao' | 'emprestimo', 
+  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number; emprestimo_id?: number }), 
   userId: string
 ) {
   const totalParcelas = Number(dados.parcela_total || 1);
@@ -291,10 +292,20 @@ export async function lancarParcelas(
         parcela_total: totalParcelas,
         data_compra: format(dataInicial, 'yyyy-MM-dd'),
       });
+    } else if (tipo === 'emprestimo') {
+      inserts.push({
+        ...common,
+        parcela_atual: i,
+        parcela_total: totalParcelas,
+        vencimento: format(dataVenc, 'yyyy-MM-dd'),
+        status: 'Em aberto',
+        titular_id: dados.titular_id,
+        emprestimo_id: dados.emprestimo_id
+      });
     }
   }
 
-  const table = tipo === 'despesa' ? 'despesas' : tipo === 'receita' ? 'receitas' : 'cartoes';
+  const table = tipo === 'despesa' || tipo === 'emprestimo' ? 'despesas' : tipo === 'receita' ? 'receitas' : 'cartoes';
   const { data, error } = await supabase.from(table).insert(inserts).select();
   
   if (error) throw error;
@@ -369,4 +380,67 @@ export async function consolidarFaturas(competencia: string, userId: string) {
     const { error: deleteError } = await supabase.from('despesas').delete().in('id', idsParaRemover);
     if (deleteError) throw deleteError;
   }
+}
+
+// ==================== NOVOS: EMPRÉSTIMOS ====================
+
+export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: string, familyId: string) {
+  if (dados.id) {
+    const { error } = await supabase.from('emprestimos').update(dados).eq('id', dados.id);
+    if (error) throw error;
+    return { success: true };
+  } else {
+    // 1. Salvar mestre do empréstimo
+    const { data: emprestimo, error } = await supabase
+      .from('emprestimos')
+      .insert([{ ...dados, user_id: userId, family_id: familyId }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+
+    // 2. Gerar as parcelas na tabela de despesas
+    await lancarParcelas('emprestimo', {
+      descricao: dados.descricao,
+      valor: dados.valor_parcela,
+      parcela_total: dados.total_parcelas,
+      vencimento: dados.data_primeiro_vencimento,
+      titular_id: dados.titular_id,
+      emprestimo_id: emprestimo.id,
+      simulada: false,
+      categoria: 'Empréstimos e Financiamentos'
+    }, userId);
+
+    return emprestimo;
+  }
+}
+
+export async function deletarEmprestimo(id: number) {
+  // 1. Deletar as despesas associadas primeiro (evita erro de FK se não houver cascade)
+  const { error: despesasError } = await supabase
+    .from('despesas')
+    .delete()
+    .eq('emprestimo_id', id);
+  
+  if (despesasError) throw despesasError;
+
+  // 2. Deletar o mestre do empréstimo
+  const { error } = await supabase.from('emprestimos').delete().eq('id', id);
+  if (error) throw error;
+  
+  return { success: true };
+}
+
+export function calculatePresentValue(vf: number, monthlyRatePercent: number, dueDate: string, refDate: Date): { vp: number, discount: number } {
+  const i = monthlyRatePercent / 100;
+  const targetDate = parseISO(dueDate);
+  const now = startOfDay(refDate);
+  
+  const days = Math.max(0, differenceInDays(targetDate, now));
+  const nMonths = days / 30;
+  
+  const vp = vf / Math.pow(1 + i, nMonths);
+  const discount = vf - vp;
+  
+  return { vp, discount };
 }

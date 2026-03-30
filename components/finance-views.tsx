@@ -15,9 +15,10 @@ interface TableViewProps {
   onEdit?: (item: any) => void;
   titulares: Titular[];
   cartoes: CartaoConfig[];
+  onPayoff?: (loanId: number) => void;
 }
 
-export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, cartoes }: TableViewProps) {
+export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, cartoes, onPayoff }: TableViewProps) {
   const headers = {
     geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Parc.', 'Valor', 'Ações'],
     cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
@@ -109,19 +110,34 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                   <td className="px-4 py-3">
                     <div className="d-flex align-items-center gap-1">
                       {type === 'geral' && (
-                        <button
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            onToggleStatus?.((item as any).id, (item as any).status);
-                          }}
-                          className={cn(
-                            "btn btn-sm border-0",
-                            (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                        <>
+                          <button
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              onToggleStatus?.((item as any).id, (item as any).status);
+                            }}
+                            className={cn(
+                              "btn btn-sm border-0",
+                              (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                            )}
+                            title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
+                          >
+                            <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
+                          </button>
+                          
+                          {(item as any).emprestimo_id && (item as any).status !== 'Pago' && (
+                            <button
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                onPayoff?.((item as any).emprestimo_id);
+                              }}
+                              className="btn btn-sm text-amber-600 hover:text-amber-700 border-0"
+                              title="Simular Quitação / Antecipação"
+                            >
+                              <i className="fa-solid fa-hand-holding-dollar"></i>
+                            </button>
                           )}
-                          title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
-                        >
-                          <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
-                        </button>
+                        </>
                       )}
                       {!(item as any).isSummary && (
                         <button
@@ -152,7 +168,14 @@ export function FilterBar({
   onClearFilter,
   onClearSimuladas,
   showClearSimuladas,
-  type
+  type,
+  hideAdd,
+  hideSearch,
+  onFocus,
+  onBlur,
+  onAction,
+  actionLabel,
+  actionIcon
 }: {
   onAdd: () => void,
   searchTerm: string,
@@ -161,39 +184,50 @@ export function FilterBar({
   onClearFilter?: () => void,
   onClearSimuladas?: () => void,
   showClearSimuladas?: boolean,
-  type?: 'geral' | 'cartoes' | 'receitas'
+  type?: 'geral' | 'cartoes' | 'receitas',
+  hideAdd?: boolean,
+  hideSearch?: boolean,
+  onFocus?: () => void,
+  onBlur?: () => void,
+  onAction?: () => void,
+  actionLabel?: string,
+  actionIcon?: string
 }) {
   return (
     <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
       <div className="d-flex align-items-center gap-3 flex-1">
-        <div className="input-group" style={{ maxWidth: '400px' }}>
-          <span className="input-group-text bg-white border-end-0 text-muted">
-            <i className="fa-solid fa-magnifying-glass"></i>
-          </span>
-          <input
-            type="text"
-            className="form-control border-start-0 ps-0 shadow-none border-end-0"
-            placeholder="O que você procura?"
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          {searchTerm && (
-            <button
-              className="btn bg-white border-start-0 text-muted border-end-0"
-              onClick={() => onSearchChange('')}
-            >
-              <i className="fa-solid fa-xmark"></i>
-            </button>
-          )}
-          <span className="input-group-text bg-white border-start-0"></span>
-        </div>
+        {!hideSearch && (
+          <div className="input-group" style={{ maxWidth: '400px' }}>
+            <span className="input-group-text bg-white border-end-0 text-muted">
+              <i className="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0 ps-0 shadow-none border-end-0"
+              placeholder="O que você procura?"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+            {searchTerm && (
+              <button
+                className="btn bg-white border-start-0 text-muted border-end-0"
+                onClick={() => onSearchChange('')}
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            )}
+            <span className="input-group-text bg-white border-start-0"></span>
+          </div>
+        )}
 
         {activeFilterId !== null && onClearFilter && (
           <button
             onClick={onClearFilter}
             className="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2 border-2"
           >
-            <i className="fa-solid fa-filter-circle-xmark"></i> Limpar Filtro
+            <i className="fa-solid fa-filter-circle-xmark"></i> {hideSearch ? 'Filtrado por Titular' : 'Limpar Filtro'}
           </button>
         )}
       </div>
@@ -207,12 +241,23 @@ export function FilterBar({
             <i className="fa-solid fa-eraser"></i> <span className="d-none d-md-inline">Limpar Simulação</span>
           </button>
         )}
-        <button
-          onClick={onAdd}
-          className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
-        >
-          <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
-        </button>
+        {onAction && actionLabel && (
+          <button
+            onClick={onAction}
+            className="btn btn-amber rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 text-amber-900 border-0"
+            style={{ backgroundColor: '#FEF3C7' }}
+          >
+            <i className={`fa-solid fa-${actionIcon || 'plus'}`}></i> <span className="d-none d-md-inline">{actionLabel}</span>
+          </button>
+        )}
+        {!hideAdd && (
+          <button
+            onClick={onAdd}
+            className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
+          >
+            <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -224,15 +269,17 @@ export function SummaryCards({
   titulares,
   totalsByCard,
   totalsByTitular,
+  radarTotalsByTitular,
   totalVencido,
   activeFilterId,
   onFilterChange
 }: {
-  type: 'geral' | 'cartoes' | 'receitas',
+  type: 'geral' | 'cartoes' | 'receitas' | 'radar',
   cartoes: any[],
   titulares: any[],
   totalsByCard: Record<number, number>,
   totalsByTitular: Record<number, { despesas: number, receitas: number }>,
+  radarTotalsByTitular?: Record<number, { cards: number, others: number, total: number }>,
   totalVencido?: number,
   activeFilterId: number | null,
   onFilterChange: (id: number | null) => void
@@ -377,6 +424,51 @@ export function SummaryCards({
           </div>
         </div>
       ))}
+
+      {type === 'radar' && titulares.map((t) => {
+        const stats = radarTotalsByTitular?.[t.id] || { cards: 0, others: 0, total: 0 };
+        
+        return (
+          <div key={t.id} className="col-12 col-sm-6 col-md">
+            <div
+              onClick={() => onFilterChange(t.id)}
+              className={cn(
+                "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
+                isSelected(t.id) ? "border-primary border-2 shadow-md" : "border-border"
+              )}
+            >
+              <div className="d-flex align-items-center gap-3 mb-2">
+                <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '40px', height: '40px' }}>
+                  <Image
+                    src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
+                    alt={t.nome}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <strong className="h6 fw-bold m-0">{t.nome}</strong>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-muted small">Fatura dos cartões:</span>
+                  <span className="small fw-bold">{formatCurrency(stats.cards)}</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-muted small">Demais despesas:</span>
+                  <span className="small fw-bold">{formatCurrency(stats.others)}</span>
+                </div>
+                <div className="border-top mt-1 pt-1 d-flex justify-content-between align-items-center">
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Total de despesas:</span>
+                  <span className="fw-bold text-primary">{formatCurrency(stats.total)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

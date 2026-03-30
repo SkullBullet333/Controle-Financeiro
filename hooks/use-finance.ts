@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile } from '@/lib/types';
+import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue } from '@/lib/finance-service';
 import { format, addMonths } from 'date-fns';
 
 export function useFinance(activeView: string) {
@@ -11,6 +11,7 @@ export function useFinance(activeView: string) {
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [cartaoTransacoes, setCartaoTransacoes] = useState<CartaoTransacao[]>([]);
   const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [] });
+  const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -37,14 +38,16 @@ export function useFinance(activeView: string) {
         { data: cartaoTransacoesData },
         { data: titularesData },
         { data: cartoesConfigData },
-        { data: notaData }
+        { data: notaData },
+        { data: emprestimosData }
       ] = await Promise.all([
         supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('titulares').select('*'),
         supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
-        supabase.from('notas').select('conteudo').maybeSingle()
+        supabase.from('notas').select('conteudo').maybeSingle(),
+        supabase.from('emprestimos').select('*').order('id', { ascending: true })
       ]);
 
       if (despesasData) {
@@ -56,6 +59,7 @@ export function useFinance(activeView: string) {
       if (receitasData) setReceitas(receitasData);
       if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
       if (notaData) setNota(notaData.conteudo || '');
+      if (emprestimosData) setEmprestimos(emprestimosData);
 
       setConfig({
         titulares: titularesData || [],
@@ -236,6 +240,23 @@ export function useFinance(activeView: string) {
           await salvarDespesa(dadosParaSalvar, user.id);
         }
       } else {
+        // Lógica de cálculo automático de desconto para empréstimos ao marcar como Pago
+        if (updates.status === 'Pago') {
+          const original = despesas.find(d => d.id === id);
+          if (original?.emprestimo_id) {
+            const loan = emprestimos.find(e => e.id === original.emprestimo_id);
+            if (loan) {
+              const { vp } = calculatePresentValue(
+                original.valor,
+                loan.taxa_mensal_percentual,
+                original.vencimento,
+                new Date()
+              );
+              // Atualiza o valor para o valor pago real com desconto
+              updates.valor = Number(vp.toFixed(2));
+            }
+          }
+        }
         await salvarDespesa({ ...updates, id }, user.id);
       }
       await fetchData();
@@ -423,6 +444,23 @@ export function useFinance(activeView: string) {
     }
   };
 
+  const addEmprestimo = async (dados: Partial<Emprestimo>) => {
+    if (!user?.id || !familyId) return;
+    await salvarEmprestimo(dados, user.id, familyId);
+    await fetchData();
+  };
+
+  const updateEmprestimo = async (dados: Partial<Emprestimo>) => {
+    if (!user?.id || !familyId) return;
+    await salvarEmprestimo(dados, user.id, familyId);
+    await fetchData();
+  };
+
+  const deleteEmprestimo = async (id: number) => {
+    await deletarEmprestimo(id);
+    await fetchData();
+  };
+
   const updateNota = async (conteudo: string) => {
     if (!user) return;
     // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
@@ -571,6 +609,26 @@ export function useFinance(activeView: string) {
     return totals;
   }, [consolidatedDespesas, filteredReceitas, config.titulares]);
 
+  const radarStats = useMemo(() => {
+    // Calculamos para TODOS os dados carregados (futuros e passados em aberto)
+    const openDespesas = despesas.filter(d => d.status === 'Em aberto' && !d.simulada);
+    
+    return {
+      totalDividaAberto: openDespesas.reduce((acc, d) => acc + d.valor, 0),
+      qtdParcelasRestante: openDespesas.length,
+      // Adicionando uma função para filtrar sob demanda ou retornar os dados brutos
+      getFiltered: (titularId: number | null) => {
+        const filtered = titularId 
+          ? openDespesas.filter(d => d.titular_id === titularId)
+          : openDespesas;
+        return {
+          totalDividaAberto: filtered.reduce((acc, d) => acc + d.valor, 0),
+          qtdParcelasRestante: filtered.length,
+        };
+      }
+    };
+  }, [despesas]);
+
   const projecaoSemestral = useMemo(() => {
     const projecao = [];
     let tempMonth = currentMonth;
@@ -580,12 +638,14 @@ export function useFinance(activeView: string) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
       const rec = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
       const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+      const fats = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + (c.simulada ? 0 : c.valor), 0);
       
       projecao.push({
         competencia: comp,
         receitas: rec,
         despesas: desp,
-        saldo: rec - desp
+        faturas: fats,
+        saldo: rec - (desp + fats)
       });
 
       tempMonth++;
@@ -595,7 +655,7 @@ export function useFinance(activeView: string) {
       }
     }
     return projecao;
-  }, [despesas, receitas, currentMonth, currentYear]);
+  }, [despesas, receitas, currentMonth, currentYear, cartaoTransacoes]);
 
   return {
     user,
@@ -605,6 +665,7 @@ export function useFinance(activeView: string) {
     cartaoTransacoes,
     config,
     nota,
+    emprestimos,
     currentMonth,
     currentYear,
     competencia,
@@ -613,6 +674,7 @@ export function useFinance(activeView: string) {
     filteredCartaoTransacoes,
     despesasGerais,
     stats,
+    radarStats,
     totalsByCard,
     totalsByTitular,
     projecaoSemestral,
@@ -641,6 +703,9 @@ export function useFinance(activeView: string) {
     addCartao,
     updateCartao,
     deleteCartao,
+    addEmprestimo,
+    updateEmprestimo,
+    deleteEmprestimo,
     setDespesas,
     setReceitas,
     setConfig,

@@ -17,7 +17,7 @@ interface SidebarProps {
   toggleDarkMode: () => void;
   onInvite: (email: string) => void;
   onUpdateProfile: (updates: Partial<Profile>) => void;
-  onOpenModal: (type: 'titular' | 'cartao' | 'profile' | 'settings') => void;
+  onOpenModal: (type: 'titular' | 'cartao' | 'profile' | 'settings' | 'emprestimo') => void;
 }
 
 export function Sidebar({ 
