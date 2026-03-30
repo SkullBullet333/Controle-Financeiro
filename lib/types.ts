@@ -96,5 +96,9 @@ export interface Emprestimo {
   parcela_atual: number;
   data_primeiro_vencimento: string;
   titular_id: number;
+  categoria?: 'Veículo' | 'Imóvel';
+  saldo_devedor_atual?: number;
+  taxa_anual_percentual?: number;
+  valor_amortizacao?: number;
   created_at?: string;
 }

@@ -161,6 +161,23 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
     if (error) throw error;
     return data;
   } else {
+    // Se for uma parcela específica de empréstimo (já tem parcela_atual e emprestimo_id), 
+    // salvamos apenas ela ao invés de disparar o gerador de parcelas múltiplas.
+    if (dados.emprestimo_id && dados.parcela_atual) {
+      const { data, error } = await supabase
+        .from('despesas')
+        .insert([{
+          ...dados,
+          user_id: userId,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+
     return lancarParcelas('despesa', dados, userId);
   }
 }
@@ -399,17 +416,7 @@ export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: strin
     
     if (error) throw error;
 
-    // 2. Gerar as parcelas na tabela de despesas
-    await lancarParcelas('emprestimo', {
-      descricao: dados.descricao,
-      valor: dados.valor_parcela,
-      parcela_total: dados.total_parcelas,
-      vencimento: dados.data_primeiro_vencimento,
-      titular_id: dados.titular_id,
-      emprestimo_id: emprestimo.id,
-      simulada: false,
-      categoria: 'Empréstimos e Financiamentos'
-    }, userId);
+    // 2. Não geramos mais as parcelas automaticamente (serão virtuais via hook)
 
     return emprestimo;
   }

@@ -27,8 +27,8 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
 
   const currentHeaders = headers[type];
 
-  const getTitularName = (id: number) => titulares.find(t => t.id === id)?.nome || 'N/A';
-  const getCartaoName = (id: number) => cartoes.find(c => c.id === id)?.nome_cartao || 'N/A';
+  const getTitularName = (id: any) => titulares.find(t => Number(t.id) === Number(id))?.nome || 'N/A';
+  const getCartaoName = (id: any) => cartoes.find(c => Number(c.id) === Number(id))?.nome_cartao || 'N/A';
 
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden">
@@ -416,7 +416,7 @@ export function SummaryCards({
               <div>
                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>{c.nome_cartao}</small>
                 <div className="text-muted small opacity-75" style={{ fontSize: '0.6rem', marginTop: '-2px' }}>
-                  {titulares.find(t => t.id === c.titular_id)?.nome || 'Sem Titular'}
+                  {titulares.find(t => Number(t.id) === Number(c.titular_id))?.nome || 'Sem Titular'}
                 </div>
                 <strong className="h5 fw-bold m-0">{formatCurrency(totalsByCard[c.id] || 0)}</strong>
               </div>

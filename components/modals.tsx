@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
-import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue } from '@/lib/finance-service';
-import { parseISO, format, getDate } from 'date-fns';
+import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
+import { parseISO, format, getDate, isLastDayOfMonth } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -1383,7 +1383,7 @@ export function SettingsModal({
             {internalView === 'list' ? (
               <div className="row g-4 overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: '600px' }}>
                 {cartoes.map((c) => {
-                  const titular = titulares.find(t => t.id === c.titular_id);
+                  const titular = titulares.find(t => Number(t.id) === Number(c.titular_id));
                   return (
                     <div key={c.id} className="col-md-6 mb-2">
                       <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
@@ -1667,10 +1667,14 @@ export function EmprestimoForm({
   const [formData, setFormData] = useState({
     descricao: '',
     valor_parcela: '',
-    taxa_mensal_percentual: '1.79', // Sugestão padrão do usuário
+    taxa_mensal_percentual: '1.79', // Sugestão padrão do usuário (CDC)
+    taxa_anual_percentual: '4.75',   // Sugestão padrão (Habitacional)
     total_parcelas: '12',
     data_primeiro_vencimento: format(new Date(), 'yyyy-MM-01'),
-    titular_id: titulares[0]?.id || 0
+    titular_id: titulares[0]?.id || 0,
+    categoria: 'Veículo' as 'Veículo' | 'Imóvel',
+    saldo_devedor_atual: '',
+    valor_amortizacao: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1678,10 +1682,14 @@ export function EmprestimoForm({
     onSubmit({
       descricao: formData.descricao,
       valor_parcela: parseFloat(formData.valor_parcela),
-      taxa_mensal_percentual: parseFloat(formData.taxa_mensal_percentual),
+      taxa_mensal_percentual: formData.categoria === 'Veículo' ? parseFloat(formData.taxa_mensal_percentual) : (parseFloat(formData.taxa_anual_percentual) / 12),
+      taxa_anual_percentual: parseFloat(formData.taxa_anual_percentual),
       total_parcelas: parseInt(formData.total_parcelas),
       data_primeiro_vencimento: formData.data_primeiro_vencimento,
       titular_id: formData.titular_id,
+      categoria: formData.categoria,
+      saldo_devedor_atual: formData.categoria === 'Imóvel' ? parseFloat(formData.saldo_devedor_atual) : undefined,
+      valor_amortizacao: formData.categoria === 'Imóvel' ? parseFloat(formData.valor_amortizacao) : undefined,
       parcela_atual: 1
     });
   };
@@ -1706,6 +1714,25 @@ export function EmprestimoForm({
         </div>
       </header>
 
+      {/* Seletor de Categoria */}
+      <div className="flex p-1 bg-slate-100 rounded-xl mb-6 max-w-[300px]">
+        {(['Veículo', 'Imóvel'] as const).map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setFormData({ ...formData, categoria: cat })}
+            className={cn(
+              "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+              formData.categoria === cat 
+                ? "bg-white text-navy shadow-sm" 
+                : "text-slate-500 hover:text-navy"
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
           <div className="md:col-span-2">
@@ -1713,7 +1740,7 @@ export function EmprestimoForm({
             <input 
               required
               className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
-              placeholder="Ex: Financiamento Imobiliário Inter"
+              placeholder={formData.categoria === 'Imóvel' ? "Ex: Financiamento Caixa" : "Ex: Empréstimo Pessoal"}
               type="text"
               value={formData.descricao}
               onChange={e => setFormData({...formData, descricao: e.target.value})}
@@ -1721,7 +1748,7 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor da Parcela (VF)</label>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor da Parcela (Mensal)</label>
             <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
               <span className="text-navy/40 font-bold mr-2">R$</span>
               <input 
@@ -1734,22 +1761,69 @@ export function EmprestimoForm({
             </div>
           </div>
 
-          <div>
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Taxa Mensal (%)</label>
-            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
-              <input 
-                required
-                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
-                type="number" step="0.0001"
-                value={formData.taxa_mensal_percentual}
-                onChange={e => setFormData({...formData, taxa_mensal_percentual: e.target.value})}
-              />
-              <span className="text-navy/40 font-bold ml-2">%</span>
+          {formData.categoria === 'Veículo' ? (
+            <div>
+              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Taxa Mensal (%)</label>
+              <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+                <input 
+                  required
+                  className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                  type="number" step="0.0001"
+                  value={formData.taxa_mensal_percentual}
+                  onChange={e => setFormData({...formData, taxa_mensal_percentual: e.target.value})}
+                />
+                <span className="text-navy/40 font-bold ml-2">%</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Taxa Anual (%)</label>
+              <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+                <input 
+                  required
+                  className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                  type="number" step="0.01"
+                  value={formData.taxa_anual_percentual}
+                  onChange={e => setFormData({...formData, taxa_anual_percentual: e.target.value})}
+                />
+                <span className="text-navy/40 font-bold ml-2">%</span>
+              </div>
+            </div>
+          )}
+
+          {formData.categoria === 'Imóvel' && (
+            <>
+              <div>
+                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Saldo Devedor Atual</label>
+                <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+                  <span className="text-navy/40 font-bold mr-2">R$</span>
+                  <input 
+                    required
+                    className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                    type="number" step="0.01"
+                    value={formData.saldo_devedor_atual}
+                    onChange={e => setFormData({...formData, saldo_devedor_atual: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Valor Amortização (na parcela)</label>
+                <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+                  <span className="text-navy/40 font-bold mr-2">R$</span>
+                  <input 
+                    required
+                    className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                    type="number" step="0.01"
+                    value={formData.valor_amortizacao}
+                    onChange={e => setFormData({...formData, valor_amortizacao: e.target.value})}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Total de Parcelas</label>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Prazo Restante (Parcelas)</label>
             <input 
               required
               className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
@@ -1760,7 +1834,7 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Data 1º Vencimento</label>
+            <label className="label-md font-label text-on-surface-variant mb-2 block ml-1">Próximo Vencimento</label>
             <input 
               required
               type="date"
@@ -1791,7 +1865,7 @@ export function EmprestimoForm({
             style={{ borderRadius: '9999px' }}
             className="bg-navy hover:bg-navy/90 text-white h-[48px] font-label font-semibold text-sm shadow-md transition-all w-full"
           >
-            Cadastrar Empréstimo
+            {formData.categoria === 'Imóvel' ? 'Cadastrar Financiamento' : 'Cadastrar Empréstimo'}
           </button>
         </div>
       </form>
@@ -1802,105 +1876,238 @@ export function EmprestimoForm({
 export function PayoffModal({ 
   loan, 
   installments,
-  onClose 
+  onClose,
+  onConfirmPayoff
 }: { 
   loan: Emprestimo, 
   installments: Despesa[],
-  onClose: () => void 
+  onClose: () => void,
+  onConfirmPayoff: (parcelas: Despesa[], isAmortization?: boolean, amortizationValue?: number) => Promise<void>
 }) {
   const [refDate, setRefDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [amortizationValue, setAmortizationValue] = useState<string>('');
   
-  const futureInstallments = installments
-    .filter(i => i.status === 'Em aberto' && i.vencimento > refDate)
-    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+  const futureInstallments = useMemo(() => {
+    const projected: Despesa[] = [];
+    const dataInicial = parseISO(loan.data_primeiro_vencimento);
+    const diaOriginal = getDate(dataInicial);
+    const isUltimoDia = isLastDayOfMonth(dataInicial);
+
+    for (let i = 1; i <= loan.total_parcelas; i++) {
+       const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+       const vencStr = format(dataVenc, 'yyyy-MM-dd');
+       
+       if (vencStr > refDate) {
+         const jaPaga = installments.find(inst => inst.parcela_atual === i && inst.status === 'Pago');
+         if (!jaPaga) {
+           projected.push({
+             id: -i,
+             descricao: loan.descricao,
+             valor: loan.valor_parcela,
+             status: 'Em aberto',
+             vencimento: vencStr,
+             parcela_atual: i,
+             parcela_total: loan.total_parcelas,
+             emprestimo_id: loan.id,
+             titular_id: loan.titular_id
+           } as Despesa);
+         }
+       }
+    }
+    return projected;
+  }, [loan, installments, refDate]);
 
   const simulation = futureInstallments.map(i => {
     const { vp, discount } = calculatePresentValue(
       i.valor, 
-      loan.taxa_mensal_percentual, 
+      loan.taxa_mensal_percentual || (loan.taxa_anual_percentual! / 12), 
       i.vencimento, 
       parseISO(refDate)
     );
     return { ...i, vp, discount };
   });
 
-  const totalNominal = simulation.reduce((acc, i) => acc + i.valor, 0);
-  const totalVP = simulation.reduce((acc, i) => acc + i.vp, 0);
+  const selectedParcelas = simulation.filter(i => selectedIds.includes(i.id));
+  const totalNominal = selectedParcelas.reduce((acc, i) => acc + i.valor, 0);
+  const totalVP = selectedParcelas.reduce((acc, i) => acc + i.vp, 0);
   const totalDiscount = totalNominal - totalVP;
+
+  const vAmort = parseFloat(amortizationValue || '0');
+  const novoSaldo = Math.max(0, (loan.saldo_devedor_atual || 0) - vAmort);
+  const mesesReduzidos = Math.round(vAmort / (loan.valor_amortizacao || 1));
+  const taxaMensal = (loan.taxa_anual_percentual || 0) / 12 / 100;
+  const economiaEstimada = Math.max(0, (vAmort * taxaMensal * loan.total_parcelas) - vAmort);
+
+  const handleConfirm = async () => {
+    if (loan.categoria === 'Imóvel' && vAmort > 0) {
+      setIsSubmitting(true);
+      try {
+        await onConfirmPayoff([], true, vAmort);
+        onClose();
+      } catch (err) {
+        alert('Erro ao processar amortização.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    if (selectedParcelas.length === 0) return;
+    setIsSubmitting(true);
+    try {
+      await onConfirmPayoff(selectedParcelas.map(p => ({ ...p, valor: p.vp } as any)));
+      onClose();
+    } catch (error) {
+      alert('Erro ao confirmar pagamento.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
       <header className="mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-success/10 p-2 rounded-xl text-success">
-            <span className="material-symbols-outlined">calculate</span>
+          <div className={cn(
+            "p-2 rounded-xl",
+            loan.categoria === 'Imóvel' ? "bg-indigo-100 text-indigo-700" : "bg-success/10 text-success"
+          )}>
+            <span className="material-symbols-outlined">
+              {loan.categoria === 'Imóvel' ? 'home_app_logo' : 'calculate'}
+            </span>
           </div>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted">Antecipação de Parcelas</span>
-            <h1 className="text-2xl font-black text-navy">{loan.descricao}</h1>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+              {loan.categoria === 'Imóvel' ? 'Amortização ou Quitação' : 'Antecipação de Parcelas'}
+            </span>
+            <h1 className="text-2xl font-black text-navy leading-none">{loan.descricao}</h1>
           </div>
         </div>
       </header>
 
       <div className="space-y-6">
-        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-          <label className="text-[11px] font-bold uppercase text-primary mb-2 block">Data de Referência para o Cálculo</label>
-          <input 
-            type="date"
-            className="w-full bg-white border-none ring-1 ring-primary/20 rounded-xl px-4 py-2 font-bold text-navy focus:ring-primary focus:outline-none"
-            value={refDate}
-            onChange={e => setRefDate(e.target.value)}
-          />
-          <p className="text-[10px] text-muted mt-2 leading-relaxed">
-            * O cálculo utiliza a taxa mensal de <strong>{loan.taxa_mensal_percentual}%</strong> com capitalização composta baseada em dias corridos (base 30).
-          </p>
-        </div>
+        {loan.categoria === 'Imóvel' && (
+          <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 space-y-4">
+            <div>
+              <label className="text-[11px] font-black uppercase text-indigo-700 mb-2 block">Amortização Extra (FGTS / Abatimento Saldo)</label>
+              <div className="flex items-center bg-white rounded-xl px-4 py-3 ring-1 ring-indigo-200 shadow-sm">
+                <span className="text-indigo-300 font-bold mr-2 text-xl">R$</span>
+                <input 
+                  placeholder="0,00"
+                  className="bg-transparent border-none focus:outline-none w-full font-black text-navy text-2xl"
+                  type="number" step="0.01"
+                  value={amortizationValue}
+                  onChange={e => {
+                    setAmortizationValue(e.target.value);
+                    if (e.target.value) setSelectedIds([]);
+                  }}
+                />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl p-3 text-center">
-            <div className="text-[10px] font-bold text-muted uppercase">Valor Nominal Total</div>
-            <div className="text-lg font-black text-navy">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
-            <div className="text-[9px] text-muted">{simulation.length} parcelas futuras</div>
+            <div className="grid grid-cols-2 gap-3">
+               <div className="bg-white/60 p-3 rounded-xl border border-indigo-100 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase leading-none mb-1">Tempo Reduzido</span>
+                  <div className="text-xl font-black text-indigo-700">~{mesesReduzidos} <span className="text-[10px] font-bold">meses</span></div>
+               </div>
+               <div className="bg-white/60 p-3 rounded-xl border border-indigo-100 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black text-success/50 uppercase leading-none mb-1">Economia Juros</span>
+                  <div className="text-xl font-black text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(economiaEstimada)}</div>
+               </div>
+            </div>
           </div>
-          <div className="bg-navy rounded-xl p-3 text-center text-white shadow-lg">
-            <div className="text-[10px] font-bold text-white/60 uppercase">Valor para Quitação Hoje</div>
-            <div className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
-            <div className="text-[9px] text-success font-bold">Economia de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>
-          </div>
-        </div>
+        )}
 
-        <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-          <table className="table table-borderless align-middle">
-            <thead className="sticky top-0 bg-white z-10">
-              <tr className="border-b">
-                <th className="text-[9px] font-black uppercase text-muted">Parc.</th>
-                <th className="text-[9px] font-black uppercase text-muted">Venc.</th>
-                <th className="text-[9px] font-black uppercase text-muted text-end">V. Presente</th>
-                <th className="text-[9px] font-black uppercase text-muted text-end">Desconto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {simulation.map(i => (
-                <tr key={i.id} className="border-b last:border-0 border-light">
-                  <td className="py-2 text-[11px] font-bold text-navy">{i.parcela_atual}/{i.parcela_total}</td>
-                  <td className="py-2 text-[11px] text-muted">{i.vencimento.split('-').reverse().join('/')}</td>
-                  <td className="py-2 text-[11px] font-black text-navy text-end">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</td>
-                  <td className="py-2 text-[10px] font-bold text-success text-end">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {simulation.length === 0 && (
-            <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada para este contrato.</div>
-          )}
-        </div>
+        {!vAmort && (
+          <>
+            <div className={cn(
+              "p-4 rounded-2xl border",
+              loan.categoria === 'Imóvel' ? "bg-slate-50 border-slate-200" : "bg-primary/5 border-primary/10"
+            )}>
+              <label className={cn(
+                "text-[11px] font-bold uppercase mb-2 block",
+                loan.categoria === 'Imóvel' ? "text-indigo-700" : "text-primary"
+              )}>
+                Data de Referência para Antecipação
+              </label>
+              <input 
+                type="date"
+                className="w-full bg-white border-none ring-1 ring-black/5 rounded-xl px-4 py-2 font-bold text-navy focus:outline-none"
+                value={refDate}
+                onChange={e => setRefDate(e.target.value)}
+              />
+            </div>
 
-        <div className="pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl p-3 text-center">
+                <div className="text-[10px] font-bold text-muted uppercase">Selecionado</div>
+                <div className="text-lg font-black text-navy">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
+              </div>
+              <div className={cn(
+                "rounded-xl p-3 text-center text-white shadow-lg",
+                loan.categoria === 'Imóvel' ? "bg-indigo-600" : "bg-navy"
+              )}>
+                <div className="text-[10px] font-bold text-white/60 uppercase">Total com Desconto</div>
+                <div className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
+                <div className="text-[9px] text-success font-bold mt-1">Economia de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>
+              </div>
+            </div>
+
+            <div className="max-h-[300px] overflow-y-auto pr-1 custom-scrollbar border rounded-xl">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="sticky top-0 bg-slate-50 z-10 text-[9px] font-black uppercase text-muted">
+                  <tr>
+                    <th style={{ width: '40px' }} className="px-3 py-2">
+                      <input 
+                        type="checkbox" 
+                        checked={simulation.length > 0 && selectedIds.length === simulation.length}
+                        onChange={e => setSelectedIds(e.target.checked ? simulation.map(i => i.id) : [])}
+                        className="form-check-input"
+                      />
+                    </th>
+                    <th className="px-2 py-2">Parcela</th>
+                    <th className="px-2 py-2">Vencimento</th>
+                    <th className="px-2 py-2 text-end">V. Presente</th>
+                    <th className="px-2 py-2 text-end">Desconto</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[11px] font-bold text-navy">
+                  {simulation.map(i => (
+                    <tr key={i.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedIds(prev => prev.includes(i.id) ? prev.filter(x => x !== i.id) : [...prev, i.id])}>
+                      <td className="px-3 py-2">
+                        <input type="checkbox" checked={selectedIds.includes(i.id)} readOnly className="form-check-input" />
+                      </td>
+                      <td className="px-2 py-2">{i.parcela_atual}/{i.parcela_total}</td>
+                      <td className="px-2 py-2 text-muted">{i.vencimento.split('-').reverse().join('/')}</td>
+                      <td className="px-2 py-2 text-end">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</td>
+                      <td className="px-2 py-2 text-end text-success">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        <div className="pt-2 space-y-3">
           <button 
-            onClick={onClose}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors text-sm"
+            type="button"
+            disabled={isSubmitting || (!vAmort && selectedIds.length === 0)}
+            onClick={handleConfirm}
+            style={{ borderRadius: '9999px' }}
+            className={cn(
+              "text-white h-[56px] font-black text-sm shadow-xl transition-all w-full flex items-center justify-center gap-2",
+              loan.categoria === 'Imóvel' ? "bg-indigo-600 hover:bg-indigo-700" : "bg-primary hover:bg-primary-dark",
+              (isSubmitting || (!vAmort && selectedIds.length === 0)) && "opacity-50 cursor-not-allowed"
+            )}
           >
-            Fechar Simulação
+            {isSubmitting ? <span className="animate-spin material-symbols-outlined">sync</span> : 'Confirmar Pagamento'}
+          </button>
+          
+          <button type="button" className="w-full text-center py-4 text-xs font-bold text-muted hover:text-navy transition-colors" onClick={onClose}>
+            Cancelar
           </button>
         </div>
       </div>

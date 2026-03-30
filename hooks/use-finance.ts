@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue } from '@/lib/finance-service';
-import { format, addMonths } from 'date-fns';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia } from '@/lib/finance-service';
+import { format, addMonths, parseISO, isLastDayOfMonth, startOfMonth, startOfDay, getDate } from 'date-fns';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -232,33 +232,46 @@ export function useFinance(activeView: string) {
   const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
     if (!user) return;
     try {
-      if (id < 0) {
-        // Se for uma fatura virtual (ID negativo), precisamos salvá-la no banco
-        const itemVirtual = consolidatedDespesas.find(d => d.id === id);
-        if (itemVirtual) {
-          const { id: _, ...dadosParaSalvar } = { ...itemVirtual, ...updates };
-          await salvarDespesa(dadosParaSalvar, user.id);
-        }
-      } else {
-        // Lógica de cálculo automático de desconto para empréstimos ao marcar como Pago
+      const isVirtual = id < 0;
+      const item = isVirtual 
+        ? consolidatedDespesas.find(d => d.id === id) 
+        : despesas.find(d => d.id === id);
+
+      if (!item) return;
+
+      // REGRAS ESPECIAIS PARA EMPRÉSTIMOS
+      if (item.emprestimo_id) {
+        // 1. Se mudar para PAGO: Aplicar desconto de antecipação (VP)
         if (updates.status === 'Pago') {
-          const original = despesas.find(d => d.id === id);
-          if (original?.emprestimo_id) {
-            const loan = emprestimos.find(e => e.id === original.emprestimo_id);
-            if (loan) {
-              const { vp } = calculatePresentValue(
-                original.valor,
-                loan.taxa_mensal_percentual,
-                original.vencimento,
-                new Date()
-              );
-              // Atualiza o valor para o valor pago real com desconto
-              updates.valor = Number(vp.toFixed(2));
-            }
+          const loan = emprestimos.find(e => e.id === item.emprestimo_id);
+          if (loan) {
+            const { vp } = calculatePresentValue(
+              item.valor,
+              loan.taxa_mensal_percentual,
+              item.vencimento,
+              new Date() // Data do pagamento (agora)
+            );
+            updates.valor = Number(vp.toFixed(2));
           }
         }
+        
+        // 2. Se for uma despesa fÍSICA mudando de Pago para Em aberto -> DELETAR
+        if (!isVirtual && updates.status === 'Em aberto') {
+          const { error } = await supabase.from('despesas').delete().eq('id', id);
+          if (error) throw error;
+          await fetchData();
+          return;
+        }
+      }
+
+      // Persistência normal
+      if (isVirtual) {
+        const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
+        await salvarDespesa(dadosParaSalvar, user.id);
+      } else {
         await salvarDespesa({ ...updates, id }, user.id);
       }
+
       await fetchData();
     } catch (error: any) {
       console.error('Error updating despesa:', error);
@@ -389,7 +402,7 @@ export function useFinance(activeView: string) {
     const { error } = await supabase.from('titulares').update(updated).eq('id', id);
     if (!error) {
        // Sync with profile if name matches
-       const titular = config.titulares.find(t => t.id === id);
+       const titular = config.titulares.find(t => Number(t.id) === Number(id));
        const tName = updated.nome || titular?.nome;
        if (updated.foto && tName === userName && user?.id) {
          await supabase.from('profiles')
@@ -400,7 +413,7 @@ export function useFinance(activeView: string) {
 
       setConfig(prev => ({
         ...prev,
-        titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
+        titulares: prev.titulares.map(t => Number(t.id) === Number(id) ? { ...t, ...updated } : t)
       }));
     } else {
       console.error('Error updating titular:', error);
@@ -461,6 +474,67 @@ export function useFinance(activeView: string) {
     await fetchData();
   };
 
+  const quitarParcelas = async (parcelas: Despesa[], isAmortization?: boolean, amortizationValue?: number, loan?: Emprestimo) => {
+    if (!user?.id) return;
+    
+    if (isAmortization && amortizationValue && loan) {
+      // 1. Registrar a despesa de amortização
+      const { error: errorDespesa } = await supabase.from('despesas').insert([{
+        descricao: `Amortização Extra - ${loan.descricao}`,
+        valor: amortizationValue,
+        status: 'Pago',
+        titular_id: loan.titular_id,
+        vencimento: format(new Date(), 'yyyy-MM-dd'),
+        competencia: competencia,
+        emprestimo_id: loan.id,
+        categoria: 'Empréstimos e Financiamentos',
+        user_id: user.id
+      }]);
+
+      if (errorDespesa) throw errorDespesa;
+
+      // 2. Atualizar o saldo e o prazo no mestre do empréstimo
+      const novoSaldo = Math.max(0, (loan.saldo_devedor_atual || 0) - amortizationValue);
+      const mesesReduzidos = Math.round(amortizationValue / (loan.valor_amortizacao || 1));
+      const novoPrazo = Math.max(1, loan.total_parcelas - mesesReduzidos);
+
+      const { error: errorLoan } = await supabase
+        .from('emprestimos')
+        .update({
+          saldo_devedor_atual: novoSaldo,
+          total_parcelas: novoPrazo
+        })
+        .eq('id', loan.id);
+
+      if (errorLoan) throw errorLoan;
+
+    } else {
+      // Fluxo normal de quitação de parcelas (Veículo)
+      const { error } = await supabase.from('despesas').insert(
+        parcelas.map(p => ({
+          descricao: p.descricao,
+          valor: p.valor,
+          status: 'Pago',
+          titular_id: p.titular_id,
+          vencimento: format(new Date(), 'yyyy-MM-dd'),
+          competencia: competencia,
+          parcela_atual: p.parcela_atual,
+          parcela_total: p.parcela_total,
+          emprestimo_id: p.emprestimo_id,
+          categoria: 'Empréstimos e Financiamentos',
+          user_id: user.id
+        }))
+      );
+
+      if (error) {
+        console.error('Error quitting parcelas:', error);
+        throw error;
+      }
+    }
+
+    await fetchData();
+  };
+
   const updateNota = async (conteudo: string) => {
     if (!user) return;
     // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
@@ -504,22 +578,23 @@ export function useFinance(activeView: string) {
   }, [filteredCartaoTransacoes, config.cartoes]);
 
   const consolidatedDespesas = useMemo(() => {
-    // 1. Filter out stored card invoices to avoid duplication
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+    // 1. Despesas base (físicas), ignorando faturas de cartão consolidadas
     const baseDespesas = filteredDespesas.filter(d => !d.isSummary && !d.descricao.startsWith('Fatura '));
 
-    // 2. Create dynamic invoices from actual card transactions
+    // 2. Faturas de Cartão (Dinâmicas/Virtuais)
     const dynamicInvoices: Despesa[] = config.cartoes.map(card => {
       const total = totalsByCard[card.id] || 0;
       if (total === 0) return null;
 
-      // Find existing invoice in DB for this card to preserve status and exact vencimento
       const existingInDB = filteredDespesas.find(f => 
         (f.isSummary || f.descricao.startsWith('Fatura ')) && 
         (f.cartao_vencimento_id === card.id || f.descricao.includes(card.nome_cartao))
       );
 
       return {
-        id: existingInDB?.id || (card.id * -1000), // Use unique negative ID for virtual entries
+        id: existingInDB?.id || (card.id * -1000),
         descricao: `Fatura ${card.nome_cartao}`,
         valor: existingInDB?.status === 'Pago' ? existingInDB.valor : total,
         status: existingInDB?.status || 'Em aberto',
@@ -534,8 +609,50 @@ export function useFinance(activeView: string) {
       } as Despesa;
     }).filter(Boolean) as Despesa[];
 
-    return [...baseDespesas, ...dynamicInvoices];
-  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia]);
+    // 3. Parcelas de Empréstimo (Virtuais)
+    const virtualLoanInstallments: Despesa[] = [];
+    emprestimos.forEach(loan => {
+      const dataInicial = parseISO(loan.data_primeiro_vencimento);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+
+      for (let i = 1; i <= loan.total_parcelas; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        const comp = calcularCompetencia(dataVenc);
+
+        // Verifica se essa parcela já foi paga (existe no banco)
+        const existeNoBanco = despesas.find(d => 
+          d.emprestimo_id === loan.id && d.parcela_atual === i
+        );
+
+        if (!existeNoBanco) {
+          // Só mostramos de forma virtual se for o mês selecionado OU estiver vencida
+          const compSortable = comp.split('/').reverse().join('-');
+          const competenciaSortable = competencia.split('/').reverse().join('-');
+          const vencStr = format(dataVenc, 'yyyy-MM-dd');
+          
+          if (comp === competencia || (vencStr < todayStr)) {
+            virtualLoanInstallments.push({
+              id: (loan.id * -2000) - i, // ID virtual único
+              descricao: loan.descricao,
+              valor: loan.valor_parcela,
+              status: 'Em aberto',
+              titular_id: loan.titular_id,
+              vencimento: vencStr,
+              competencia: comp,
+              simulada: false,
+              parcela_atual: i,
+              parcela_total: loan.total_parcelas,
+              emprestimo_id: loan.id,
+              categoria: 'Empréstimos e Financiamentos'
+            } as Despesa);
+          }
+        }
+      }
+    });
+
+    return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments];
+  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, despesas]);
 
   const despesasGerais = useMemo(() => {
     return consolidatedDespesas;
@@ -706,6 +823,7 @@ export function useFinance(activeView: string) {
     addEmprestimo,
     updateEmprestimo,
     deleteEmprestimo,
+    quitarParcelas,
     setDespesas,
     setReceitas,
     setConfig,

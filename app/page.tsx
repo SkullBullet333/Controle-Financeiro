@@ -9,8 +9,10 @@ import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearMod
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile } from '@/lib/types';
+import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile, Emprestimo } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { parseISO, format, getDate, isLastDayOfMonth } from 'date-fns';
+import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
 
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -102,7 +104,8 @@ export default function Home() {
     updateProfile,
     emprestimos,
     addEmprestimo,
-    deleteEmprestimo
+    deleteEmprestimo,
+    quitarParcelas
   } = useFinance(activeView);
 
 
@@ -321,8 +324,8 @@ export default function Home() {
 
         if (activeFilterId) {
           tableData = tableData.filter((item: any) => {
-            if (activeView === 'cartoes') return item.cartao_id === activeFilterId;
-            return item.titular_id === activeFilterId;
+            if (activeView === 'cartoes') return Number(item.cartao_id) === Number(activeFilterId);
+            return Number(item.titular_id) === Number(activeFilterId);
           });
         }
 
@@ -401,71 +404,116 @@ export default function Home() {
       case 'radar':
         // 1. Filtragem Base: Despesas e Receitas (Apenas do Mês Selecionado para Frente)
         const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
 
         const baseRadarDespesas = despesas.filter(d => {
-          const matchTitular = activeFilterId ? d.titular_id === activeFilterId : true;
+          const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
           if (d.simulada) return false;
           
-          // Comparação de competência: MM/YYYY para YYYY-MM
           const dCompSortable = d.competencia.split('/').reverse().join('-');
           return matchTitular && dCompSortable >= currentCompSortable;
         });
 
         const baseRadarReceitas = receitas.filter(r => {
-          const matchTitular = activeFilterId ? r.titular_id === activeFilterId : true;
+          const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
           if (r.simulada) return false;
           
           const rCompSortable = r.competencia.split('/').reverse().join('-');
           return matchTitular && rCompSortable >= currentCompSortable;
         });
 
-        // 2. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
-        const radarBuscaResultados = searchTerm ? Array.from(new Set(baseRadarDespesas
+        // 2. Projeção de Empréstimos Virtuais (Toda a história futura)
+        const projectedLoansSummary = emprestimos.reduce((acc, loan) => {
+          const matchTitular = activeFilterId ? Number(loan.titular_id) === Number(activeFilterId) : true;
+          if (!matchTitular) return acc;
+
+          const dataIni = parseISO(loan.data_primeiro_vencimento);
+          const diaOriginal = getDate(dataIni);
+          const isUltimoDia = isLastDayOfMonth(dataIni);
+
+          for (let i = 1; i <= loan.total_parcelas; i++) {
+             const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
+             const vStr = format(dataVenc, 'yyyy-MM-dd');
+             
+             // Só projetamos se ainda não existir no banco (Pago ou Aberto físico)
+             const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && d.parcela_atual === i);
+             
+             if (!exists) {
+               acc.push({
+                 id: (loan.id * -2000) - i,
+                 descricao: loan.descricao,
+                 valor: loan.valor_parcela,
+                 status: 'Em aberto',
+                 vencimento: vStr,
+                 competencia: format(dataVenc, 'MM/yyyy'),
+                 emprestimo_id: loan.id,
+                 titular_id: loan.titular_id
+               } as Despesa);
+             }
+          }
+          return acc;
+        }, [] as Despesa[]);
+
+        // 3. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
+        const allRadarItems = [...baseRadarDespesas, ...projectedLoansSummary];
+
+        const radarBuscaResultados = searchTerm ? Array.from(new Set(allRadarItems
           .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
           .map(d => `${d.descricao}|${d.titular_id}`)
         )).map(key => {
           const [desc, tid] = key.split('|');
-          return baseRadarDespesas.find(d => d.descricao === desc && d.titular_id === Number(tid));
+          return allRadarItems.find(d => d.descricao === desc && Number(d.titular_id) === Number(tid));
         }).slice(0, 50) : [];
 
         const radarDespesasSelecionadas = selectedRadarIds.length > 0 
-          ? baseRadarDespesas.filter(d => selectedRadarIds.includes(d.id))
-          : baseRadarDespesas;
+          ? allRadarItems.filter(d => selectedRadarIds.includes(d.id))
+          : allRadarItems;
 
-        // 3. Estatísticas de Dívida Total em Aberto (Open only)
-        const openDespesas = radarDespesasSelecionadas.filter(d => d.status === 'Em aberto');
+        // 4. Estatísticas de Dívida Total (Física + Virtual)
+        const allOpenDespesas = [
+          ...radarDespesasSelecionadas.filter(d => d.status === 'Em aberto'),
+          ...projectedLoansSummary // Estes são sempre 'Em aberto' (visto que se estivessem pagos estariam no banco)
+        ];
+
         const rStats = {
-          totalDividaAberto: openDespesas.reduce((acc, d) => acc + d.valor, 0),
-          qtdParcelasRestante: openDespesas.length,
+          totalDividaAberto: allOpenDespesas.reduce((acc, d) => acc + d.valor, 0),
+          qtdParcelasRestante: allOpenDespesas.length,
         };
 
-        // 4. Estatísticas do Mês Atual (para Saúde Financeira)
-        const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0);
+        // 5. Estatísticas do Mês Atual (para Saúde Financeira)
+        const currentLoanInstallments = projectedLoansSummary.filter(p => p.competencia === competencia);
+        const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0)
+                               + currentLoanInstallments.reduce((acc, p) => acc + p.valor, 0);
+        
         const totalReceitasMes = baseRadarReceitas.filter(r => r.competencia === competencia).reduce((acc, r) => acc + r.valor, 0);
 
-        // 5. Projeção Semestral
+        // 6. Projeção de 8 Meses
         const filteredProjecao: any[] = [];
         let tempMonth = currentMonth;
         let tempYear = currentYear;
         for (let i = 0; i < 8; i++) {
           const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
+          
           const rec = baseRadarReceitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
           
-          // Soma despesas selecionadas (ou todas se nada selecionado)
+          // Despesas reais do mês
           const standardDesp = radarDespesasSelecionadas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
           
+          // Parcelas projetadas (virtuais) do mês
+          const projectedLoanDesp = projectedLoansSummary.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
+
           // Soma transações de cartões (faturas futuras)
           const fats = cartaoTransacoes.filter((c: CartaoTransacao) => {
-            const matchTitular = activeFilterId ? c.titular_id === activeFilterId : true;
+            const matchTitular = activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true;
             return matchTitular && c.competencia === comp && !c.simulada;
           }).reduce((acc: number, c: CartaoTransacao) => acc + c.valor, 0);
 
           filteredProjecao.push({
             competencia: comp,
             receitas: rec,
-            despesas: standardDesp,
+            despesas: standardDesp + projectedLoanDesp,
             faturas: fats,
-            saldo: rec - (standardDesp + fats)
+            saldo: rec - (standardDesp + projectedLoanDesp + fats)
           });
           tempMonth++;
           if (tempMonth > 12) { tempMonth = 1; tempYear++; }
@@ -473,11 +521,16 @@ export default function Home() {
 
         const healthScore = Math.round(totalReceitasMes > 0 ? (1 - (totalDespesasMes / totalReceitasMes)) * 100 : 0);
         
-        // 6. Cálculo dos cartões de titular especializados para o Radar
+        // 7. Cálculo dos cartões de titular especializados para o Radar (Incluindo parcelas virtuais do Mês)
         const radarTotalsByTitular = config.titulares.reduce((acc, t) => {
-          const tDespesas = despesasGerais.filter(d => d.titular_id === t.id && d.competencia === competencia && !d.simulada);
-          const cards = tDespesas.filter(d => d.isSummary || d.descricao.startsWith('Fatura ')).reduce((sum, d) => sum + d.valor, 0);
-          const total = tDespesas.reduce((sum, d) => sum + d.valor, 0);
+          const tDespesasFisicas = despesasGerais.filter(d => Number(d.titular_id) === Number(t.id) && d.competencia === competencia && !d.simulada);
+          const tDespesasVirtuais = currentLoanInstallments.filter(p => Number(p.titular_id) === Number(t.id));
+          
+          const combined = [...tDespesasFisicas, ...tDespesasVirtuais];
+          
+          const cards = combined.filter(d => d.isSummary || d.descricao.startsWith('Fatura ')).reduce((sum, d) => sum + d.valor, 0);
+          const total = combined.reduce((sum, d) => sum + d.valor, 0);
+          
           acc[t.id] = { cards, others: total - cards, total };
           return acc;
         }, {} as Record<number, { cards: number, others: number, total: number }>);
@@ -533,7 +586,7 @@ export default function Home() {
                   {radarBuscaResultados.map(d => {
                     if (!d) return null;
                     const isSelected = selectedRadarIds.includes(d.id);
-                    const titularNome = config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A';
+                    const titularNome = config.titulares.find(t => Number(t.id) === Number(d.titular_id))?.nome || 'N/A';
                     
                     return (
                       <div 
@@ -596,7 +649,7 @@ export default function Home() {
                     <tbody>
                       {radarDespesasSelecionadas.map(d => (
                         <tr key={d.id}>
-                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A'}</td>
+                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => Number(t.id) === Number(d.titular_id))?.nome || 'N/A'}</td>
                           <td className="px-3 py-2 fw-bold">{d.descricao}</td>
                           <td className="px-3 py-2 small text-muted text-center">{d.parcela_atual}/{d.parcela_total}</td>
                           <td className="px-3 py-2 small text-muted text-center">{d.competencia}</td>
@@ -834,6 +887,7 @@ export default function Home() {
             <PayoffModal 
               loan={selectedLoan}
               installments={despesas.filter(d => d.emprestimo_id === selectedLoan.id)}
+              onConfirmPayoff={(parcelas, isAmort, val) => quitarParcelas(parcelas, isAmort, val, selectedLoan)}
               onClose={() => setIsModalOpen(false)}
             />
           ) : null}

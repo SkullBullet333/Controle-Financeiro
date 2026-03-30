@@ -115,7 +115,7 @@ export function DashboardCharts({ despesas, stats, titulares }: { despesas: Desp
       }
     });
     return Object.entries(data).map(([id, value]) => ({ 
-      name: titulares.find(t => t.id === parseInt(id))?.nome || 'N/A', 
+      name: titulares.find(t => Number(t.id) === Number(id))?.nome || 'N/A', 
       value 
     }));
   }, [despesas, titulares]);
