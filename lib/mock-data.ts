@@ -64,6 +64,7 @@ export const MOCK_RECEITAS: Receita[] = [
     parcela_atual: 1,
     parcela_total: 1,
     data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
+    status: "Recebido",
     competencia: comp,
     titular_id: 2,
   },
@@ -74,6 +75,7 @@ export const MOCK_RECEITAS: Receita[] = [
     parcela_atual: 1,
     parcela_total: 1,
     data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-20`,
+    status: "Recebido",
     competencia: comp,
     titular_id: 1,
   }
