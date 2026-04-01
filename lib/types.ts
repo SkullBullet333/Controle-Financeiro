@@ -1,4 +1,4 @@
-export type Status = 'Pago' | 'Em aberto' | 'Vencida' | 'Hoje';
+export type Status = 'Pago' | 'Em aberto' | 'Vencida' | 'Hoje' | 'Recebido' | 'Pendente';
 
 export interface Titular {
   id: number;
@@ -39,7 +39,6 @@ export interface CartaoTransacao {
   parcela_atual: number;
   parcela_total: number;
   competencia: string;
-  simulada: boolean;
   titular_id: number;
   categoria?: string;
   created_at?: string;
@@ -57,10 +56,10 @@ export interface Despesa {
   status: Status;
   titular_id: number;
   competencia: string;
-  simulada: boolean;
   isSummary?: boolean;
   cartao_vencimento_id?: number;
   emprestimo_id?: number;
+  conta_fixa_id?: number;
 }
 
 export interface Receita {
@@ -68,10 +67,13 @@ export interface Receita {
   descricao: string;
   categoria?: string;
   valor: number;
+  parcela_atual: number;
+  parcela_total: number;
   data_recebimento: string;
+  status: Status;
   titular_id: number;
   competencia: string;
-  simulada: boolean;
+  conta_fixa_id?: number;
 }
 
 export interface Nota {
@@ -95,10 +97,23 @@ export interface Emprestimo {
   total_parcelas: number;
   parcela_atual: number;
   data_primeiro_vencimento: string;
+  competencia_inicial: string;
   titular_id: number;
-  categoria?: 'Veículo' | 'Imóvel';
-  saldo_devedor_atual?: number;
-  taxa_anual_percentual?: number;
-  valor_amortizacao?: number;
+  created_at?: string;
+}
+
+export interface ContaFixaConfig {
+  id: number;
+  user_id: string;
+  family_id: string;
+  descricao: string;
+  valor_mensal: number;
+  total_parcelas: number;
+  parcela_atual: number;
+  data_inicio: string;
+  competencia_inicial: string;
+  titular_id: number;
+  categoria?: string;
+  tipo: 'despesa' | 'receita';
   created_at?: string;
 }

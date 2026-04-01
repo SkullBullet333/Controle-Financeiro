@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Emprestimo } from './types';
+import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Emprestimo, ContaFixaConfig } from './types';
 import { 
   addMonths, 
   endOfMonth, 
@@ -129,7 +129,7 @@ export function projetarProximoVencimento(
 
 // ==================== PERSISTÊNCIA SUPABASE ====================
 
-export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
+export async function salvarDespesa(dados: Partial<Despesa>, userId: string, familyId: string) {
   if (dados.id && dados.id > 0) {
     const { id, isSummary, ...camposParaAtualizar } = dados as any;
     
@@ -161,14 +161,15 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
     if (error) throw error;
     return data;
   } else {
-    // Se for uma parcela específica de empréstimo (já tem parcela_atual e emprestimo_id), 
+    // Se for uma parcela específica (empréstimo ou conta fixa), 
     // salvamos apenas ela ao invés de disparar o gerador de parcelas múltiplas.
-    if (dados.emprestimo_id && dados.parcela_atual) {
+    if ((dados.emprestimo_id || dados.conta_fixa_id) && dados.parcela_atual) {
       const { data, error } = await supabase
         .from('despesas')
         .insert([{
           ...dados,
           user_id: userId,
+          family_id: familyId,
           created_at: new Date().toISOString()
         }])
         .select()
@@ -178,11 +179,11 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string) {
       return data;
     }
 
-    return lancarParcelas('despesa', dados, userId);
+    return lancarParcelas('despesa', dados, userId, familyId);
   }
 }
 
-export async function salvarReceita(dados: Partial<Receita>, userId: string) {
+export async function salvarReceita(dados: Partial<Receita>, userId: string, familyId: string) {
   if (dados.id) {
     const dataPretendida = parseISO(dados.data_recebimento!);
     
@@ -196,10 +197,14 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
         descricao: dados.descricao,
         categoria: dados.categoria,
         valor: dados.valor,
+        parcela_atual: dados.parcela_atual || 1,
+        parcela_total: dados.parcela_total || 1,
         data_recebimento: format(dataAjustada, 'yyyy-MM-dd'),
         titular_id: dados.titular_id,
+        status: dados.status || 'Recebido',
         competencia: comp,
-        simulada: dados.simulada
+        conta_fixa_id: dados.conta_fixa_id,
+        updated_at: new Date().toISOString()
       })
       .eq('id', dados.id)
       .select()
@@ -208,14 +213,16 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string) {
     if (error) throw error;
     return data;
   } else {
-    return lancarParcelas('receita', dados, userId);
+    // Para inserções simples via conta fixa, usamos lancarParcelas
+    return lancarParcelas('receita', dados, userId, familyId);
   }
 }
 
 export async function lancarParcelas(
   tipo: 'despesa' | 'receita' | 'cartao' | 'emprestimo', 
-  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number; emprestimo_id?: number }), 
-  userId: string
+  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number; emprestimo_id?: number; conta_fixa_id?: number }), 
+  userId: string,
+  familyId: string
 ) {
   const totalParcelas = Number(dados.parcela_total || 1);
   const valorParcela = Number(dados.valor || 0);
@@ -273,51 +280,47 @@ export async function lancarParcelas(
 
     const common = {
       user_id: userId,
+      family_id: familyId,
       descricao: dados.descricao,
       valor: valorParcela,
       competencia: comp,
-      simulada: !!dados.simulada,
       categoria: dados.categoria || categorizar(dados.descricao || ''),
     };
 
-    if (tipo === 'despesa') {
+    if (tipo === 'despesa' || tipo === 'emprestimo') {
       inserts.push({
         ...common,
         parcela_atual: i,
         parcela_total: totalParcelas,
         vencimento: format(dataVenc, 'yyyy-MM-dd'),
         status: (dados.status as Status) || 'Em aberto',
-        titular_id: dados.titular_id
+        titular_id: dados.titular_id,
+        emprestimo_id: dados.emprestimo_id,
+        conta_fixa_id: dados.conta_fixa_id
       });
     } else if (tipo === 'receita') {
       inserts.push({
         ...common,
         data_recebimento: format(dataVenc, 'yyyy-MM-dd'),
-        titular_id: dados.titular_id
+        titular_id: dados.titular_id,
+        conta_fixa_id: dados.conta_fixa_id,
+        parcela_atual: i,
+        parcela_total: totalParcelas,
+        status: (dados.status as Status) || (format(dataVenc, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd') ? 'Recebido' : 'Pendente')
       });
     } else if (tipo === 'cartao') {
       inserts.push({
         user_id: userId,
+        family_id: familyId,
         estabelecimento: dados.descricao,
         valor: valorParcela,
         competencia: comp,
-        simulada: !!dados.simulada,
         cartao_id: dados.cartao_id,
         categoria: common.categoria,
         titular_id: dados.titular_id,
         parcela_atual: i,
         parcela_total: totalParcelas,
         data_compra: format(dataInicial, 'yyyy-MM-dd'),
-      });
-    } else if (tipo === 'emprestimo') {
-      inserts.push({
-        ...common,
-        parcela_atual: i,
-        parcela_total: totalParcelas,
-        vencimento: format(dataVenc, 'yyyy-MM-dd'),
-        status: 'Em aberto',
-        titular_id: dados.titular_id,
-        emprestimo_id: dados.emprestimo_id
       });
     }
   }
@@ -348,8 +351,7 @@ export async function consolidarFaturas(competencia: string, userId: string) {
   const { data: lancamentos, error: lancError } = await supabase
     .from('cartoes')
     .select('*, cartoes_config(nome_cartao, titular_id, titulares(nome))')
-    .eq('competencia', competencia)
-    .eq('simulada', false);
+    .eq('competencia', competencia);
   
   if (lancError) throw lancError;
 
@@ -408,9 +410,10 @@ export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: strin
     return { success: true };
   } else {
     // 1. Salvar mestre do empréstimo
+    const { id, ...insertData } = dados;
     const { data: emprestimo, error } = await supabase
       .from('emprestimos')
-      .insert([{ ...dados, user_id: userId, family_id: familyId }])
+      .insert([{ ...insertData, user_id: userId, family_id: familyId }])
       .select()
       .single();
     
@@ -433,6 +436,40 @@ export async function deletarEmprestimo(id: number) {
 
   // 2. Deletar o mestre do empréstimo
   const { error } = await supabase.from('emprestimos').delete().eq('id', id);
+  if (error) throw error;
+  
+  return { success: true };
+}
+
+// ==================== NOVOS: CONTAS FIXAS ====================
+
+export async function salvarContaFixaConfig(dados: Partial<ContaFixaConfig>, userId: string, familyId: string) {
+  if (dados.id) {
+    const { error } = await supabase.from('contas_fixas').update(dados).eq('id', dados.id);
+    if (error) throw error;
+    return { success: true };
+  } else {
+    const { id, ...insertData } = dados;
+    const { data, error } = await supabase
+      .from('contas_fixas')
+      .insert([{ ...insertData, user_id: userId, family_id: familyId }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+}
+
+export async function deletarContaFixaConfig(id: number) {
+  // 1. Deletar as despesas associadas primeiro
+  await supabase.from('despesas').delete().eq('conta_fixa_id', id);
+  
+  // 2. Deletar as receitas associadas
+  await supabase.from('receitas').delete().eq('conta_fixa_id', id);
+
+  // 3. Deletar o mestre
+  const { error } = await supabase.from('contas_fixas').delete().eq('id', id);
   if (error) throw error;
   
   return { success: true };

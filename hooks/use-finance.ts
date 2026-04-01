@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo } from '@/lib/types';
+import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia } from '@/lib/finance-service';
-import { format, addMonths, parseISO, isLastDayOfMonth, startOfMonth, startOfDay, getDate } from 'date-fns';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
+import { format, addMonths, parseISO, isLastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -12,6 +12,7 @@ export function useFinance(activeView: string) {
   const [cartaoTransacoes, setCartaoTransacoes] = useState<CartaoTransacao[]>([]);
   const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [] });
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
+  const [contasFixas, setContasFixas] = useState<ContaFixaConfig[]>([]);
   const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
@@ -32,23 +33,36 @@ export function useFinance(activeView: string) {
     const sixMonthsAgo = format(addMonths(now, -6), 'yyyy-MM-01');
 
     try {
-      const [
-        { data: despesasData },
-        { data: receitasData },
-        { data: cartaoTransacoesData },
-        { data: titularesData },
-        { data: cartoesConfigData },
-        { data: notaData },
-        { data: emprestimosData }
-      ] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
+        supabase.from('despesas').select('*').not('emprestimo_id', 'is', null).order('id', { ascending: true }),
         supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('titulares').select('*'),
         supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
-        supabase.from('notas').select('conteudo').maybeSingle(),
-        supabase.from('emprestimos').select('*').order('id', { ascending: true })
+        supabase.from('table_notas').select('conteudo').maybeSingle(),
+        supabase.from('emprestimos').select('*').order('id', { ascending: true }),
+        supabase.from('contas_fixas').select('*').order('id', { ascending: true })
       ]);
+
+      const errors = results.filter(r => r.error).map(r => r.error?.message);
+      if (errors.length > 0) {
+        throw new Error(errors.join(' | '));
+      }
+
+      // Merge and deduplicate despesas
+      const rawDespesas = [...(results[0].data || []), ...(results[1].data || [])];
+      const uniqueDespesasMap = new Map();
+      rawDespesas.forEach(d => uniqueDespesasMap.set(d.id, d));
+      const despesasData = Array.from(uniqueDespesasMap.values());
+
+      const receitasData = results[2].data;
+      const cartaoTransacoesData = results[3].data;
+      const titularesData = results[4].data;
+      const cartoesConfigData = results[5].data;
+      const notaData = results[6].data as any;
+      const emprestimosData = results[7].data;
+      const contasFixasData = results[8].data;
 
       if (despesasData) {
         setDespesas(despesasData.map(d => ({
@@ -58,16 +72,19 @@ export function useFinance(activeView: string) {
       }
       if (receitasData) setReceitas(receitasData);
       if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
-      if (notaData) setNota(notaData.conteudo || '');
+      if (notaData) setNota(notaData?.conteudo || '');
       if (emprestimosData) setEmprestimos(emprestimosData);
+      if (contasFixasData) setContasFixas(contasFixasData);
 
       setConfig({
         titulares: titularesData || [],
         cartoes: cartoesConfigData || []
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching data from Supabase:', error);
+      const msg = typeof error === 'object' ? (error.message || JSON.stringify(error)) : String(error);
+      alert(`Erro ao carregar dados: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +92,8 @@ export function useFinance(activeView: string) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
-    const { data: myProfile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    const { data: myProfile, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    
     if (myProfile) {
       setUserProfile(myProfile);
       setFamilyId(myProfile.family_id);
@@ -87,6 +105,22 @@ export function useFinance(activeView: string) {
         .eq('family_id', myProfile.family_id)
         .order('nome', { ascending: true });
       if (members) setFamilyMembers(members);
+    } else {
+      // Se não houver perfil mas o usuário estiver logado, cria um registro padrão
+      // Isso resolve o problema de usuários existentes que perdem o perfil após reset de base
+      const { data: createdProfile } = await supabase.from('profiles').insert({
+        id: user.id,
+        email: user.email,
+        nome: user.user_metadata?.nome || user.email?.split('@')[0] || 'Usuário',
+        tipo: 'titular'
+      }).select().single();
+
+      if (createdProfile) {
+        setUserProfile(createdProfile);
+        setFamilyId(createdProfile.family_id);
+        setUserName(createdProfile.nome);
+        setUserType('titular');
+      }
     }
   }, [user?.id]);
 
@@ -218,10 +252,10 @@ export function useFinance(activeView: string) {
           ...d,
           cartao_id: d.cartao_vencimento_id,
           cartao_config: cartaoConfig
-        }, user.id);
+        }, user.id, familyId!);
       } else {
         // Despesa fixa/variável normal
-        await salvarDespesa(d, user.id);
+        await salvarDespesa(d, user.id, familyId!);
       }
       await fetchData();
     } catch (error) {
@@ -229,8 +263,36 @@ export function useFinance(activeView: string) {
     }
   };
 
+  const addContaFixa = async (c: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
+    if (!user || !familyId) return;
+    try {
+      await salvarContaFixaConfig(c, user.id, familyId);
+      await fetchData();
+    } catch (error) {
+      console.error('Error adding conta fixa:', error);
+    }
+  };
+
+  const updateContaFixa = async (id: number, updates: Partial<ContaFixaConfig>) => {
+    try {
+      await salvarContaFixaConfig({ id, ...updates }, user?.id!, familyId!);
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating conta fixa:', error);
+    }
+  };
+
+  const deleteContaFixa = async (id: number) => {
+    try {
+      await deletarContaFixaConfig(id);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting conta fixa:', error);
+    }
+  };
+
   const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
-    if (!user) return;
+    if (!user || !familyId) return;
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
@@ -241,21 +303,6 @@ export function useFinance(activeView: string) {
 
       // REGRAS ESPECIAIS PARA EMPRÉSTIMOS
       if (item.emprestimo_id) {
-        // 1. Se mudar para PAGO: Aplicar desconto de antecipação (VP)
-        if (updates.status === 'Pago') {
-          const loan = emprestimos.find(e => e.id === item.emprestimo_id);
-          if (loan) {
-            const { vp } = calculatePresentValue(
-              item.valor,
-              loan.taxa_mensal_percentual,
-              item.vencimento,
-              new Date() // Data do pagamento (agora)
-            );
-            updates.valor = Number(vp.toFixed(2));
-          }
-        }
-        
-        // 2. Se for uma despesa fÍSICA mudando de Pago para Em aberto -> DELETAR
         if (!isVirtual && updates.status === 'Em aberto') {
           const { error } = await supabase.from('despesas').delete().eq('id', id);
           if (error) throw error;
@@ -264,12 +311,11 @@ export function useFinance(activeView: string) {
         }
       }
 
-      // Persistência normal
       if (isVirtual) {
         const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
-        await salvarDespesa(dadosParaSalvar, user.id);
+        await salvarDespesa(dadosParaSalvar, user.id, familyId);
       } else {
-        await salvarDespesa({ ...updates, id }, user.id);
+        await salvarDespesa({ ...updates, id }, user.id, familyId);
       }
 
       await fetchData();
@@ -288,21 +334,6 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Error deleting despesa:', error);
-    }
-  };
-
-  const deleteSimuladas = async () => {
-    if (!user) return;
-    try {
-      const { error } = await supabase.from('despesas').delete().eq('simulada', true).eq('user_id', user.id);
-      if (error) throw error;
-      
-      // Update local state immediately for responsiveness
-      setDespesas(prev => prev.filter(d => !d.simulada));
-      
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting simulated despesas:', error);
     }
   };
 
@@ -341,9 +372,9 @@ export function useFinance(activeView: string) {
   };
 
   const addReceita = async (r: Omit<Receita, 'id'>) => {
-    if (!user) return;
+    if (!user || !familyId) return;
     try {
-      await salvarReceita(r, user.id);
+      await salvarReceita(r, user.id, familyId);
       await fetchData();
     } catch (error) {
       console.error('Error adding receita:', error);
@@ -351,9 +382,22 @@ export function useFinance(activeView: string) {
   };
 
   const updateReceita = async (id: number, updates: Partial<Receita>) => {
-    if (!user) return;
+    if (!user || !familyId) return;
     try {
-      await salvarReceita({ ...updates, id }, user.id);
+      const isVirtual = id < 0;
+      const item = isVirtual 
+        ? consolidatedReceitas.find(r => r.id === id) 
+        : receitas.find(r => r.id === id);
+
+      if (!item) return;
+
+      if (isVirtual) {
+        const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
+        await salvarReceita(dadosParaSalvar, user.id, familyId);
+      } else {
+        await salvarReceita({ ...updates, id }, user.id, familyId);
+      }
+      
       await fetchData();
     } catch (error) {
       console.error('Error updating receita:', error);
@@ -372,11 +416,12 @@ export function useFinance(activeView: string) {
   };
 
   const addTitular = async (t: Omit<Titular, 'id'>) => {
-    if (!user) return;
+    if (!user || !familyId) return;
     const { data, error } = await supabase.from('titulares').insert([{
       nome: t.nome,
       foto: t.foto,
-      user_id: user.id
+      user_id: user.id,
+      family_id: familyId
     }]).select();
     
     if (error) {
@@ -399,10 +444,11 @@ export function useFinance(activeView: string) {
   };
 
   const updateTitular = async (id: number, updated: Partial<Titular>) => {
+    if (!user) return;
     const { error } = await supabase.from('titulares').update(updated).eq('id', id);
     if (!error) {
        // Sync with profile if name matches
-       const titular = config.titulares.find(t => Number(t.id) === Number(id));
+       const titular = config.titulares.find(t => t.id === id);
        const tName = updated.nome || titular?.nome;
        if (updated.foto && tName === userName && user?.id) {
          await supabase.from('profiles')
@@ -413,7 +459,7 @@ export function useFinance(activeView: string) {
 
       setConfig(prev => ({
         ...prev,
-        titulares: prev.titulares.map(t => Number(t.id) === Number(id) ? { ...t, ...updated } : t)
+        titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
       }));
     } else {
       console.error('Error updating titular:', error);
@@ -421,13 +467,14 @@ export function useFinance(activeView: string) {
   };
 
   const addCartao = async (c: Omit<CartaoConfig, 'id'>) => {
-    if (!user) return;
+    if (!user || !familyId) return;
     const { data, error } = await supabase.from('cartoes_config').insert([{
       user_id: user.id,
+      family_id: familyId,
       nome_cartao: c.nome_cartao,
       titular_id: c.titular_id,
-      dia_vencimento: c.dia_vencimento,
-      dia_fechamento: c.dia_fechamento
+      dia_vencimento: Number(c.dia_vencimento),
+      dia_fechamento: Number(c.dia_fechamento)
     }]).select();
 
     if (error) {
@@ -458,15 +505,33 @@ export function useFinance(activeView: string) {
   };
 
   const addEmprestimo = async (dados: Partial<Emprestimo>) => {
-    if (!user?.id || !familyId) return;
-    await salvarEmprestimo(dados, user.id, familyId);
-    await fetchData();
+    if (!user?.id) {
+      alert('Usuário não autenticado.');
+      return;
+    }
+    if (!familyId) {
+      alert('ID da família não encontrado. Tente recarregar a página.');
+      return;
+    }
+    
+    try {
+      await salvarEmprestimo(dados, user.id, familyId);
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error adding emprestimo:', error);
+      alert(`Erro ao salvar empréstimo: ${error.message || JSON.stringify(error)}`);
+    }
   };
 
   const updateEmprestimo = async (dados: Partial<Emprestimo>) => {
     if (!user?.id || !familyId) return;
-    await salvarEmprestimo(dados, user.id, familyId);
-    await fetchData();
+    try {
+      await salvarEmprestimo(dados, user.id, familyId);
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error updating emprestimo:', error);
+      alert(`Erro ao atualizar empréstimo: ${error.message || JSON.stringify(error)}`);
+    }
   };
 
   const deleteEmprestimo = async (id: number) => {
@@ -474,44 +539,15 @@ export function useFinance(activeView: string) {
     await fetchData();
   };
 
-  const quitarParcelas = async (parcelas: Despesa[], isAmortization?: boolean, amortizationValue?: number, loan?: Emprestimo) => {
+  const quitarParcelas = async (parcelas: Despesa[]) => {
     if (!user?.id) return;
     
-    if (isAmortization && amortizationValue && loan) {
-      // 1. Registrar a despesa de amortização
-      const { error: errorDespesa } = await supabase.from('despesas').insert([{
-        descricao: `Amortização Extra - ${loan.descricao}`,
-        valor: amortizationValue,
-        status: 'Pago',
-        titular_id: loan.titular_id,
-        vencimento: format(new Date(), 'yyyy-MM-dd'),
-        competencia: competencia,
-        emprestimo_id: loan.id,
-        categoria: 'Empréstimos e Financiamentos',
-        user_id: user.id
-      }]);
-
-      if (errorDespesa) throw errorDespesa;
-
-      // 2. Atualizar o saldo e o prazo no mestre do empréstimo
-      const novoSaldo = Math.max(0, (loan.saldo_devedor_atual || 0) - amortizationValue);
-      const mesesReduzidos = Math.round(amortizationValue / (loan.valor_amortizacao || 1));
-      const novoPrazo = Math.max(1, loan.total_parcelas - mesesReduzidos);
-
-      const { error: errorLoan } = await supabase
-        .from('emprestimos')
-        .update({
-          saldo_devedor_atual: novoSaldo,
-          total_parcelas: novoPrazo
-        })
-        .eq('id', loan.id);
-
-      if (errorLoan) throw errorLoan;
-
-    } else {
-      // Fluxo normal de quitação de parcelas (Veículo)
-      const { error } = await supabase.from('despesas').insert(
-        parcelas.map(p => ({
+    const { error } = await supabase.from('despesas').insert(
+      parcelas.map(p => {
+        const isLoan = !!p.emprestimo_id;
+        const isFixed = !!p.conta_fixa_id;
+        
+        return {
           descricao: p.descricao,
           valor: p.valor,
           status: 'Pago',
@@ -520,16 +556,18 @@ export function useFinance(activeView: string) {
           competencia: competencia,
           parcela_atual: p.parcela_atual,
           parcela_total: p.parcela_total,
-          emprestimo_id: p.emprestimo_id,
-          categoria: 'Empréstimos e Financiamentos',
-          user_id: user.id
-        }))
-      );
+          emprestimo_id: p.emprestimo_id || null,
+          conta_fixa_id: p.conta_fixa_id || null,
+          categoria: isLoan ? 'Empréstimos e Financiamentos' : (isFixed ? (p.categoria || 'Contas Fixas') : 'Outros'),
+          user_id: user.id,
+          family_id: familyId
+        };
+      })
+    );
 
-      if (error) {
-        console.error('Error quitting parcelas:', error);
-        throw error;
-      }
+    if (error) {
+      console.error('Error quitting parcelas:', error);
+      throw error;
     }
 
     await fetchData();
@@ -539,7 +577,7 @@ export function useFinance(activeView: string) {
     if (!user) return;
     // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
     // cuidarão para que o upsert caia na linha correta da família.
-    const { error } = await supabase.from('notas').upsert({ conteudo });
+    const { error } = await supabase.from('table_notas').upsert({ conteudo });
     if (!error) setNota(conteudo);
     else console.error('Error updating nota:', error);
   };
@@ -570,9 +608,7 @@ export function useFinance(activeView: string) {
     config.cartoes.forEach(c => totals[c.id] = 0);
     
     filteredCartaoTransacoes.forEach(d => {
-      if (!d.simulada) {
-        totals[d.cartao_id] = (totals[d.cartao_id] || 0) + Number(d.valor);
-      }
+      totals[d.cartao_id] = (totals[d.cartao_id] || 0) + Number(d.valor);
     });
     return totals;
   }, [filteredCartaoTransacoes, config.cartoes]);
@@ -594,14 +630,13 @@ export function useFinance(activeView: string) {
       );
 
       return {
-        id: existingInDB?.id || (card.id * -1000),
+        id: existingInDB?.id || (-10000000 - card.id),
         descricao: `Fatura ${card.nome_cartao}`,
         valor: existingInDB?.status === 'Pago' ? existingInDB.valor : total,
         status: existingInDB?.status || 'Em aberto',
         titular_id: card.titular_id,
         vencimento: existingInDB?.vencimento || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(card.dia_vencimento).padStart(2, '0')}`,
         competencia: competencia,
-        simulada: false,
         isSummary: true,
         parcela_atual: 1,
         parcela_total: 1,
@@ -618,11 +653,20 @@ export function useFinance(activeView: string) {
 
       for (let i = 1; i <= loan.total_parcelas; i++) {
         const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
-        const comp = calcularCompetencia(dataVenc);
+        
+        let comp = '';
+        if (loan.competencia_inicial) {
+          // Calcula a competência incrementando meses a partir da inicial
+          const [m, y] = loan.competencia_inicial.split('/').map(Number);
+          const baseDate = new Date(y, m - 1, 1);
+          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+        } else {
+          comp = calcularCompetencia(dataVenc);
+        }
 
         // Verifica se essa parcela já foi paga (existe no banco)
         const existeNoBanco = despesas.find(d => 
-          d.emprestimo_id === loan.id && d.parcela_atual === i
+          Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i
         );
 
         if (!existeNoBanco) {
@@ -633,14 +677,13 @@ export function useFinance(activeView: string) {
           
           if (comp === competencia || (vencStr < todayStr)) {
             virtualLoanInstallments.push({
-              id: (loan.id * -2000) - i, // ID virtual único
+              id: -20000000 - (loan.id * 1000) - i, // ID virtual único e não sobreposto
               descricao: loan.descricao,
               valor: loan.valor_parcela,
               status: 'Em aberto',
               titular_id: loan.titular_id,
               vencimento: vencStr,
               competencia: comp,
-              simulada: false,
               parcela_atual: i,
               parcela_total: loan.total_parcelas,
               emprestimo_id: loan.id,
@@ -651,24 +694,127 @@ export function useFinance(activeView: string) {
       }
     });
 
-    return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments];
-  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, despesas]);
+    // 4. Parcelas de Contas Fixas (Virtuais)
+    const virtualFixedInstallments: Despesa[] = [];
+    contasFixas.filter(c => !c.tipo || c.tipo === 'despesa').forEach(config => {
+      const dataInicial = parseISO(config.data_inicio);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+      
+      // Se total_parcelas for null, projetamos até o mês atual + 1 para segurança
+      const lastParcelaToProject = config.total_parcelas || 
+        (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
+
+      for (let i = 1; i <= lastParcelaToProject; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        
+        let comp = '';
+        if (config.competencia_inicial) {
+          const [m, y] = config.competencia_inicial.split('/').map(Number);
+          const baseDate = new Date(y, m - 1, 1);
+          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+        } else {
+          comp = calcularCompetencia(dataVenc);
+        }
+
+        // Verifica se essa parcela já foi paga (existe no banco)
+        const existeNoBanco = despesas.find(d => 
+          Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i
+        );
+
+        if (!existeNoBanco) {
+          const vencStr = format(dataVenc, 'yyyy-MM-dd');
+          if (comp === competencia || (vencStr < todayStr)) {
+            virtualFixedInstallments.push({
+              id: -30000000 - (config.id * 1000) - i, // ID virtual único e não sobreposto
+              descricao: config.descricao,
+              valor: config.valor_mensal,
+              status: 'Em aberto',
+              titular_id: config.titular_id,
+              vencimento: vencStr,
+              competencia: comp,
+              parcela_atual: i,
+              parcela_total: config.total_parcelas || 0, // 0 indica sem fim definido na UI
+              conta_fixa_id: config.id,
+              categoria: config.categoria || 'Contas Fixas'
+            } as Despesa);
+          }
+        }
+      }
+    });
+
+    return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments, ...virtualFixedInstallments].filter(Boolean);
+  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, contasFixas, despesas]);
+
+  const consolidatedReceitas = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-01');
+
+    // 1. Receitas base (físicas)
+    const baseReceitas = filteredReceitas;
+
+    // 2. Receitas Fixas (Virtuais)
+    const virtualFixedRevenues: Receita[] = [];
+    contasFixas.filter(c => c.tipo === 'receita').forEach(config => {
+      const dataInicial = parseISO(config.data_inicio);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+      
+      const lastParcelaToProject = config.total_parcelas || 
+        (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
+
+      for (let i = 1; i <= lastParcelaToProject; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        
+        let comp = '';
+        if (config.competencia_inicial) {
+          const [m, y] = config.competencia_inicial.split('/').map(Number);
+          const baseDate = new Date(y, m - 1, 1);
+          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+        } else {
+          comp = calcularCompetencia(dataVenc);
+        }
+
+        const existeNoBanco = receitas.find(r => 
+          Number(r.conta_fixa_id) === Number(config.id) && r.competencia === comp
+        );
+
+        if (!existeNoBanco) {
+          const vencStr = format(dataVenc, 'yyyy-MM-dd');
+          if (comp === competencia || (vencStr < todayStr)) {
+            virtualFixedRevenues.push({
+              id: -40000000 - (config.id * 1000) - i, 
+              descricao: config.descricao,
+              valor: config.valor_mensal,
+              titular_id: config.titular_id,
+              data_recebimento: vencStr,
+              competencia: comp,
+              conta_fixa_id: config.id,
+              categoria: config.categoria || 'Recursos',
+              status: (vencStr <= todayStr) ? 'Recebido' : 'Pendente'
+            } as Receita);
+          }
+        }
+      }
+    });
+
+    return [...baseReceitas, ...virtualFixedRevenues].filter(Boolean);
+  }, [filteredReceitas, contasFixas, currentMonth, currentYear, competencia, receitas]);
 
   const despesasGerais = useMemo(() => {
     return consolidatedDespesas;
   }, [consolidatedDespesas]);
 
   const stats = useMemo(() => {
-    const totalReceitas = filteredReceitas.reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
-    const totalDespesas = consolidatedDespesas.reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalPago = consolidatedDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-    const totalAberto = consolidatedDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+    const totalReceitas = consolidatedReceitas.reduce((acc, r) => acc + r.valor, 0);
+    const totalDespesas = consolidatedDespesas.reduce((acc, d) => acc + d.valor, 0);
+    const totalPago = consolidatedDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + d.valor, 0);
+    const totalAberto = consolidatedDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + d.valor, 0);
     
     // Check for overdue (Vencido)
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const totalVencido = consolidatedDespesas
       .filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
-      .reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
+      .reduce((acc, d) => acc + d.valor, 0);
 
     const margem = totalReceitas - totalDespesas;
 
@@ -680,7 +826,7 @@ export function useFinance(activeView: string) {
       totalVencido,
       margem
     };
-  }, [filteredReceitas, consolidatedDespesas]);
+  }, [consolidatedReceitas, consolidatedDespesas]);
 
   const changeMonth = (delta: number) => {
     let newMonth = currentMonth + delta;
@@ -712,13 +858,20 @@ export function useFinance(activeView: string) {
     config.titulares.forEach(t => totals[t.id] = { despesas: 0, receitas: 0 });
     
     consolidatedDespesas.forEach(d => {
-      if (!d.simulada && totals[d.titular_id]) {
+      if (totals[d.titular_id]) {
         totals[d.titular_id].despesas += d.valor;
       }
     });
 
     filteredReceitas.forEach(r => {
-      if (!r.simulada && totals[r.titular_id]) {
+      if (totals[r.titular_id]) {
+        totals[r.titular_id].receitas += r.valor;
+      }
+    });
+
+    // Incluir receitas virtuais nos totais por titular
+    consolidatedReceitas.filter(r => r.id < 0).forEach(r => {
+      if (totals[r.titular_id]) {
         totals[r.titular_id].receitas += r.valor;
       }
     });
@@ -728,7 +881,7 @@ export function useFinance(activeView: string) {
 
   const radarStats = useMemo(() => {
     // Calculamos para TODOS os dados carregados (futuros e passados em aberto)
-    const openDespesas = despesas.filter(d => d.status === 'Em aberto' && !d.simulada);
+    const openDespesas = despesas.filter(d => d.status === 'Em aberto');
     
     return {
       totalDividaAberto: openDespesas.reduce((acc, d) => acc + d.valor, 0),
@@ -753,9 +906,25 @@ export function useFinance(activeView: string) {
 
     for (let i = 0; i < 8; i++) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
-      const rec = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + (r.simulada ? 0 : r.valor), 0);
-      const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + (d.simulada ? 0 : d.valor), 0);
-      const fats = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + (c.simulada ? 0 : c.valor), 0);
+      const recFisicas = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
+      
+      // Projetar receitas fixas (virtuais) para os meses futuros
+      const recVirtuais = contasFixas.filter(c => c.tipo === 'receita').reduce((acc, config) => {
+          const dataInicial = parseISO(config.data_inicio);
+          const currentProj = parseISO(`${tempYear}-${String(tempMonth).padStart(2, '0')}-01`);
+          
+          if (!isBefore(currentProj, startOfMonth(dataInicial))) {
+            if (!config.total_parcelas || differenceInMonths(currentProj, dataInicial) < config.total_parcelas) {
+                const jaLancada = receitas.find(r => r.conta_fixa_id === config.id && r.competencia === comp);
+                if (!jaLancada) return acc + config.valor_mensal;
+            }
+          }
+          return acc;
+      }, 0);
+
+      const rec = recFisicas + recVirtuais;
+      const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
+      const fats = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + c.valor, 0);
       
       projecao.push({
         competencia: comp,
@@ -772,7 +941,29 @@ export function useFinance(activeView: string) {
       }
     }
     return projecao;
-  }, [despesas, receitas, currentMonth, currentYear, cartaoTransacoes]);
+  }, [despesas, receitas, currentMonth, currentYear, cartaoTransacoes, contasFixas]);
+
+  // Auto-Sync of Virtual Revenues (Recurrent/Fixed) on their due date
+  useEffect(() => {
+    if (!user || isLoading || !familyId) return;
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const toSync = consolidatedReceitas.filter(r => 
+      r.id < 0 && 
+      r.data_recebimento <= todayStr
+    );
+
+    if (toSync.length > 0) {
+      console.log('Antigravity: Auto-syncing virtual revenues:', toSync.length);
+      Promise.all(toSync.map(r => {
+        const { id, ...dados } = r;
+        return salvarReceita({ ...dados, status: 'Recebido' }, user.id, familyId);
+      })).then(() => {
+        console.log('Antigravity: Auto-sync complete.');
+        fetchData(user.id);
+      }).catch(err => console.error('Antigravity: Error auto-syncing revenues:', err));
+    }
+  }, [consolidatedReceitas, user, familyId, isLoading, fetchData]);
 
   return {
     user,
@@ -788,6 +979,8 @@ export function useFinance(activeView: string) {
     competencia,
     filteredDespesas,
     filteredReceitas,
+    consolidatedDespesas,
+    consolidatedReceitas,
     filteredCartaoTransacoes,
     despesasGerais,
     stats,
@@ -808,7 +1001,6 @@ export function useFinance(activeView: string) {
     addDespesa,
     updateDespesa,
     deleteDespesa,
-    deleteSimuladas,
     deleteCartaoTransacao,
     updateCartaoTransacao,
     addReceita,
@@ -823,6 +1015,10 @@ export function useFinance(activeView: string) {
     addEmprestimo,
     updateEmprestimo,
     deleteEmprestimo,
+    contasFixas,
+    addContaFixa,
+    updateContaFixa,
+    deleteContaFixa,
     quitarParcelas,
     setDespesas,
     setReceitas,

@@ -29,7 +29,6 @@ export const MOCK_DESPESAS: Despesa[] = [
     competencia: comp,
     status: "Pago",
     titular_id: 3,
-    simulada: false
   },
   {
     id: 2,
@@ -42,7 +41,6 @@ export const MOCK_DESPESAS: Despesa[] = [
     competencia: comp,
     status: "Em aberto",
     titular_id: 3,
-    simulada: false
   },
   {
     id: 3,
@@ -55,7 +53,6 @@ export const MOCK_DESPESAS: Despesa[] = [
     competencia: comp,
     status: "Pago",
     titular_id: 2,
-    simulada: false
   }
 ];
 
@@ -64,18 +61,20 @@ export const MOCK_RECEITAS: Receita[] = [
     id: 1,
     descricao: "Salário Pablo",
     valor: 5000,
+    parcela_atual: 1,
+    parcela_total: 1,
     data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-05`,
     competencia: comp,
     titular_id: 2,
-    simulada: false
   },
   {
     id: 2,
     descricao: "Freelance",
     valor: 1200,
+    parcela_atual: 1,
+    parcela_total: 1,
     data_recebimento: `${currentYear}-${String(currentMonth).padStart(2, '0')}-20`,
     competencia: comp,
     titular_id: 1,
-    simulada: false
   }
 ];

@@ -5,13 +5,13 @@ import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal, EmprestimoForm, PayoffModal } from '@/components/modals';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal, EmprestimoForm, PayoffModal, ExpenseSettingsModal, UniversalFinanceForm } from '@/components/modals';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile, Emprestimo } from '@/lib/types';
+import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { parseISO, format, getDate, isLastDayOfMonth } from 'date-fns';
+import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths } from 'date-fns';
 import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
 
 export default function Home() {
@@ -23,12 +23,13 @@ export default function Home() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMonthYearModalOpen, setIsMonthYearModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings' | 'emprestimo' | 'payoff'>('despesa');
+  const [modalType, setModalType] = useState<'despesa' | 'receita' | 'titular' | 'cartao' | 'categoria' | 'profile' | 'settings' | 'emprestimo' | 'payoff' | 'despesa_cartao'>('despesa');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | null>(null);
+  const [isExpenseSettingsOpen, setIsExpenseSettingsOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Despesa | Receita | Titular | CartaoConfig | CartaoTransacao | Emprestimo | ContaFixaConfig | null>(null);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const [selectedFixed, setSelectedFixed] = useState<any>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [isConfirmClearSimuladasOpen, setIsConfirmClearSimuladasOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
@@ -64,6 +65,8 @@ export default function Home() {
     competencia,
     filteredDespesas,
     filteredReceitas,
+    consolidatedDespesas,
+    consolidatedReceitas,
     filteredCartaoTransacoes,
     despesasGerais,
     config,
@@ -84,7 +87,6 @@ export default function Home() {
     addDespesa,
     updateDespesa,
     deleteDespesa,
-    deleteSimuladas,
     deleteCartaoTransacao,
     updateCartaoTransacao,
     addReceita,
@@ -104,7 +106,12 @@ export default function Home() {
     updateProfile,
     emprestimos,
     addEmprestimo,
+    updateEmprestimo,
     deleteEmprestimo,
+    contasFixas,
+    addContaFixa,
+    updateContaFixa,
+    deleteContaFixa,
     quitarParcelas
   } = useFinance(activeView);
 
@@ -156,14 +163,13 @@ export default function Home() {
     }
   };
 
-  const handleInvite = async () => {
-    if (!inviteEmail) return;
-    const result = await inviteMember(inviteEmail);
+  const handleInvite = async (email: string) => {
+    if (!email) return;
+    const result = await inviteMember(email);
     if (result?.error) {
       alert(result.error);
     } else {
       alert('Convite enviado com sucesso! O membro entrará na família ao se cadastrar.');
-      setInviteEmail('');
     }
   };
 
@@ -320,7 +326,7 @@ export default function Home() {
           ? sortExpenses(despesasGerais)
           : activeView === 'cartoes'
             ? filteredCartaoTransacoes
-            : filteredReceitas;
+            : consolidatedReceitas;
 
         if (activeFilterId) {
           tableData = tableData.filter((item: any) => {
@@ -356,20 +362,20 @@ export default function Home() {
             />
             <FilterBar
               onAdd={() => {
-                setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
+                let defaultType: any = 'despesa';
+                if (activeView === 'cartoes') defaultType = 'despesa_cartao';
+                else if (activeView === 'receitas') defaultType = 'receita';
+                
+                setModalType(defaultType);
                 setEditingItem(null);
                 setIsModalOpen(true);
               }}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              onOpenExpenseSettings={() => setIsExpenseSettingsOpen(true)}
               activeFilterId={activeFilterId}
               onClearFilter={() => setActiveFilterId(null)}
-              onClearSimuladas={() => setIsConfirmClearSimuladasOpen(true)}
-              showClearSimuladas={despesas.some(d => d.simulada)}
               type={activeView as 'geral' | 'cartoes' | 'receitas'}
-              onAction={activeView === 'geral' ? () => { setModalType('emprestimo'); setIsModalOpen(true); } : undefined}
-              actionLabel={activeView === 'geral' ? 'Novo Empréstimo' : undefined}
-              actionIcon="account_balance"
             />
             <FinanceTable
               data={tableData}
@@ -380,19 +386,45 @@ export default function Home() {
               }}
               onToggleStatus={(id, currentVal) => {
                 if (activeView === 'geral') updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
-                else if (activeView === 'cartoes') updateCartaoTransacao(id, { simulada: !currentVal });
+                if (activeView === 'receitas') updateReceita(id, { status: currentVal === 'Recebido' ? 'Pendente' : 'Recebido' });
               }}
               onEdit={(item) => {
                 setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
+                
+                // Se for uma conta fixa virtual, carregar a configuração mestre para edição/reajuste
+                if ((item as any).conta_fixa_id) {
+                  const masterConfig = contasFixas.find(c => c.id === (item as any).conta_fixa_id);
+                  if (masterConfig) {
+                    setEditingItem(masterConfig as any);
+                    setIsModalOpen(true);
+                    return;
+                  }
+                }
+
                 setEditingItem(item);
                 setIsModalOpen(true);
               }}
               titulares={config.titulares}
               cartoes={config.cartoes}
-              onPayoff={(loanId) => {
-                const loan = emprestimos.find(e => e.id === loanId);
-                if (loan) {
-                  setSelectedLoan(loan);
+              onPayoff={(itemId) => {
+                // Busca a despesa (física ou virtual) no consolidado geral usando o ID
+                const item = despesasGerais.find(d => d.id === itemId);
+                if (!item) return;
+
+                if (item.emprestimo_id) {
+                  const loan = emprestimos.find(e => e.id === item.emprestimo_id);
+                  if (loan) {
+                    setSelectedLoan(loan);
+                    setSelectedFixed(null);
+                    setModalType('payoff');
+                    setIsModalOpen(true);
+                  }
+                  return;
+                }
+                
+                if (item.conta_fixa_id) {
+                  setSelectedFixed(item);
+                  setSelectedLoan(null);
                   setModalType('payoff');
                   setIsModalOpen(true);
                 }
@@ -408,7 +440,6 @@ export default function Home() {
 
         const baseRadarDespesas = despesas.filter(d => {
           const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
-          if (d.simulada) return false;
           
           const dCompSortable = d.competencia.split('/').reverse().join('-');
           return matchTitular && dCompSortable >= currentCompSortable;
@@ -416,13 +447,25 @@ export default function Home() {
 
         const baseRadarReceitas = receitas.filter(r => {
           const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
-          if (r.simulada) return false;
           
           const rCompSortable = r.competencia.split('/').reverse().join('-');
           return matchTitular && rCompSortable >= currentCompSortable;
         });
 
-        // 2. Projeção de Empréstimos Virtuais (Toda a história futura)
+        // 2. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
+        const radarBuscaResultados = searchTerm ? Array.from(new Set(baseRadarDespesas
+          .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map(d => `${d.descricao}|${d.titular_id}`)
+        )).map(key => {
+          const [desc, tid] = key.split('|');
+          return baseRadarDespesas.find(d => d.descricao === desc && Number(d.titular_id) === Number(tid));
+        }).slice(0, 50) : [];
+
+        const radarDespesasSelecionadas = selectedRadarIds.length > 0 
+          ? baseRadarDespesas.filter(d => selectedRadarIds.includes(d.id))
+          : baseRadarDespesas;
+
+        // 3. Projeção de Empréstimos Virtuais (Toda a história futura)
         const projectedLoansSummary = emprestimos.reduce((acc, loan) => {
           const matchTitular = activeFilterId ? Number(loan.titular_id) === Number(activeFilterId) : true;
           if (!matchTitular) return acc;
@@ -454,25 +497,87 @@ export default function Home() {
           return acc;
         }, [] as Despesa[]);
 
-        // 3. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
-        const allRadarItems = [...baseRadarDespesas, ...projectedLoansSummary];
+        // 4. Projeção de Contas Fixas Virtuais (Despesas)
+        const projectedFixedSummary = contasFixas.reduce((acc, config) => {
+          if (config.tipo === 'receita') return acc;
+          const matchTitular = activeFilterId ? Number(config.titular_id) === Number(activeFilterId) : true;
+          if (!matchTitular) return acc;
 
-        const radarBuscaResultados = searchTerm ? Array.from(new Set(allRadarItems
-          .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(d => `${d.descricao}|${d.titular_id}`)
-        )).map(key => {
-          const [desc, tid] = key.split('|');
-          return allRadarItems.find(d => d.descricao === desc && Number(d.titular_id) === Number(tid));
-        }).slice(0, 50) : [];
+          const dataIni = parseISO(config.data_inicio);
+          const diaOriginal = getDate(dataIni);
+          const isUltimoDia = isLastDayOfMonth(dataIni);
 
-        const radarDespesasSelecionadas = selectedRadarIds.length > 0 
-          ? allRadarItems.filter(d => selectedRadarIds.includes(d.id))
-          : allRadarItems;
+          const limit = config.total_parcelas || (differenceInMonths(new Date(), dataIni) + 24);
 
-        // 4. Estatísticas de Dívida Total (Física + Virtual)
+          for (let i = 1; i <= limit; i++) {
+             const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
+             const vStr = format(dataVenc, 'yyyy-MM-dd');
+             
+             const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && d.parcela_atual === i);
+             
+             if (!exists) {
+               acc.push({
+                 id: (config.id * -3000) - i,
+                 descricao: config.descricao,
+                 valor: config.valor_mensal,
+                 status: 'Em aberto',
+                 vencimento: vStr,
+                 competencia: format(dataVenc, 'MM/yyyy'),
+                 conta_fixa_id: config.id,
+                 titular_id: config.titular_id,
+                 parcela_atual: i,
+                 parcela_total: config.total_parcelas || 0,
+                 categoria: config.categoria || 'Contas Fixas'
+               } as Despesa);
+             }
+          }
+          return acc;
+        }, [] as Despesa[]);
+
+        // 5. Projeção de Receitas Fixas Virtuais (Incomes)
+        const projectedFixedRevenuesRadar = contasFixas.reduce((acc, config) => {
+          if (config.tipo !== 'receita') return acc;
+          const matchTitular = activeFilterId ? Number(config.titular_id) === Number(activeFilterId) : true;
+          if (!matchTitular) return acc;
+
+          const dataIni = parseISO(config.data_inicio);
+          const diaOriginal = getDate(dataIni);
+          const isUltimoDia = isLastDayOfMonth(dataIni);
+
+          const limit = config.total_parcelas || (differenceInMonths(new Date(), dataIni) + 24);
+
+          for (let i = 1; i <= limit; i++) {
+             const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal, false);
+             const vStr = format(dataVenc, 'yyyy-MM-dd');
+             const comp = format(dataVenc, 'MM/yyyy');
+             
+             const exists = receitas.find(r => Number(r.conta_fixa_id) === Number(config.id) && r.competencia === comp);
+             
+             if (!exists) {
+               acc.push({
+                 id: (config.id * -4000) - i,
+                 descricao: config.descricao,
+                 valor: config.valor_mensal,
+                 data_recebimento: vStr,
+                 competencia: comp,
+                 conta_fixa_id: config.id,
+                 titular_id: config.titular_id,
+                 categoria: config.categoria || 'Recursos'
+               } as Receita);
+             }
+          }
+          return acc;
+        }, [] as Receita[]);
+
+        // 6. Estatísticas de Dívida Total (Física + Virtual)
         const allOpenDespesas = [
           ...radarDespesasSelecionadas.filter(d => d.status === 'Em aberto'),
-          ...projectedLoansSummary // Estes são sempre 'Em aberto' (visto que se estivessem pagos estariam no banco)
+          ...projectedLoansSummary,
+          // Para dívida total, incluímos apenas contas fixas que têm prazo (parceladas)
+          ...projectedFixedSummary.filter(d => {
+            const config = contasFixas.find(c => c.id === d.conta_fixa_id);
+            return config && config.total_parcelas !== null;
+          })
         ];
 
         const rStats = {
@@ -482,10 +587,14 @@ export default function Home() {
 
         // 5. Estatísticas do Mês Atual (para Saúde Financeira)
         const currentLoanInstallments = projectedLoansSummary.filter(p => p.competencia === competencia);
+        const currentFixedInstallments = projectedFixedSummary.filter(p => p.competencia === competencia);
         const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0)
-                               + currentLoanInstallments.reduce((acc, p) => acc + p.valor, 0);
+                               + currentLoanInstallments.reduce((acc, p) => acc + p.valor, 0)
+                               + currentFixedInstallments.reduce((acc, p) => acc + p.valor, 0);
         
-        const totalReceitasMes = baseRadarReceitas.filter(r => r.competencia === competencia).reduce((acc, r) => acc + r.valor, 0);
+        const currentFixedRevenues = projectedFixedRevenuesRadar.filter(p => p.competencia === competencia);
+        const totalReceitasMes = baseRadarReceitas.filter(r => r.competencia === competencia).reduce((acc, r) => acc + r.valor, 0)
+                               + currentFixedRevenues.reduce((acc, p) => acc + p.valor, 0);
 
         // 6. Projeção de 8 Meses
         const filteredProjecao: any[] = [];
@@ -494,26 +603,31 @@ export default function Home() {
         for (let i = 0; i < 8; i++) {
           const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
           
-          const rec = baseRadarReceitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
+          // Receitas reais + Virtuais do mês
+          const standardRec = baseRadarReceitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
+          const projectedFixedRec = projectedFixedRevenuesRadar.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
+          
+          const totalRec = standardRec + projectedFixedRec;
           
           // Despesas reais do mês
           const standardDesp = radarDespesasSelecionadas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
           
           // Parcelas projetadas (virtuais) do mês
           const projectedLoanDesp = projectedLoansSummary.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
+          const projectedFixedDesp = projectedFixedSummary.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
 
           // Soma transações de cartões (faturas futuras)
           const fats = cartaoTransacoes.filter((c: CartaoTransacao) => {
             const matchTitular = activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true;
-            return matchTitular && c.competencia === comp && !c.simulada;
+            return matchTitular && c.competencia === comp;
           }).reduce((acc: number, c: CartaoTransacao) => acc + c.valor, 0);
 
           filteredProjecao.push({
             competencia: comp,
-            receitas: rec,
-            despesas: standardDesp + projectedLoanDesp,
+            receitas: totalRec,
+            despesas: standardDesp + projectedLoanDesp + projectedFixedDesp,
             faturas: fats,
-            saldo: rec - (standardDesp + projectedLoanDesp + fats)
+            saldo: totalRec - (standardDesp + projectedLoanDesp + projectedFixedDesp + fats)
           });
           tempMonth++;
           if (tempMonth > 12) { tempMonth = 1; tempYear++; }
@@ -523,8 +637,8 @@ export default function Home() {
         
         // 7. Cálculo dos cartões de titular especializados para o Radar (Incluindo parcelas virtuais do Mês)
         const radarTotalsByTitular = config.titulares.reduce((acc, t) => {
-          const tDespesasFisicas = despesasGerais.filter(d => Number(d.titular_id) === Number(t.id) && d.competencia === competencia && !d.simulada);
-          const tDespesasVirtuais = currentLoanInstallments.filter(p => Number(p.titular_id) === Number(t.id));
+          const tDespesasFisicas = despesasGerais.filter(d => Number(d.titular_id) === Number(t.id) && d.competencia === competencia);
+          const tDespesasVirtuais = [...currentLoanInstallments, ...currentFixedInstallments].filter(p => Number(p.titular_id) === Number(t.id));
           
           const combined = [...tDespesasFisicas, ...tDespesasVirtuais];
           
@@ -586,7 +700,7 @@ export default function Home() {
                   {radarBuscaResultados.map(d => {
                     if (!d) return null;
                     const isSelected = selectedRadarIds.includes(d.id);
-                    const titularNome = config.titulares.find(t => Number(t.id) === Number(d.titular_id))?.nome || 'N/A';
+                    const titularNome = config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A';
                     
                     return (
                       <div 
@@ -649,7 +763,7 @@ export default function Home() {
                     <tbody>
                       {radarDespesasSelecionadas.map(d => (
                         <tr key={d.id}>
-                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => Number(t.id) === Number(d.titular_id))?.nome || 'N/A'}</td>
+                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A'}</td>
                           <td className="px-3 py-2 fw-bold">{d.descricao}</td>
                           <td className="px-3 py-2 small text-muted text-center">{d.parcela_atual}/{d.parcela_total}</td>
                           <td className="px-3 py-2 small text-muted text-center">{d.competencia}</td>
@@ -815,8 +929,8 @@ export default function Home() {
           }}
           title={
             editingItem
-              ? (modalType === 'despesa' ? 'Editar Despesa' : modalType === 'receita' ? 'Editar Receita' : modalType === 'titular' ? 'Editar Titular' : 'Editar Cartão')
-              : (modalType === 'profile' ? 'Editar Meu Perfil' : modalType === 'despesa' ? (activeView === 'cartoes' ? '' : 'Nova Despesa') : modalType === 'receita' ? 'Nova Receita' : modalType === 'titular' ? 'Novo Titular' : modalType === 'emprestimo' ? 'Novo Empréstimo' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Cartão')
+              ? (modalType === 'despesa' ? 'Editar Gasto' : modalType === 'receita' ? 'Editar Ganho' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : modalType === 'emprestimo' ? 'Editar Empréstimo' : 'Editar')
+              : (modalType === 'profile' ? 'Editar Meu Perfil' : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo') ? 'Novo Registro' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Registro')
           }
         >
           {modalType === 'profile' ? (
@@ -827,26 +941,43 @@ export default function Home() {
                 setIsModalOpen(false);
               }}
             />
-          ) : modalType === 'despesa' || modalType === 'receita' ? (
-            <FinanceForm
-              type={modalType}
+          ) : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo' || modalType === 'despesa_cartao') ? (
+            <UniversalFinanceForm
+              initialType={modalType as any}
               subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
               titulares={config.titulares}
               cartoes={config.cartoes}
               competencia={competencia}
-              initialData={editingItem as Despesa | Receita}
+              initialData={editingItem}
               onClose={() => {
                 setIsModalOpen(false);
                 setEditingItem(null);
               }}
-              onSubmit={(data) => {
+              onSubmitFinance={(data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => {
                 if (editingItem) {
-                  if (modalType === 'despesa') updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
+                  if ((editingItem as any).taxa_mensal_percentual !== undefined) {
+                      updateEmprestimo(data as any);
+                  } else if (modalType === 'despesa' || (editingItem as any).vencimento) updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
                   else updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
                 } else {
-                  if (modalType === 'despesa') addDespesa(data as Omit<Despesa, 'id'>);
-                  else addReceita(data as Omit<Receita, 'id'>);
+                  if ((data as any).data_recebimento) addReceita(data as Omit<Receita, 'id'>);
+                  else addDespesa(data as Omit<Despesa, 'id'>);
                 }
+                setIsModalOpen(false);
+                setEditingItem(null);
+              }}
+              onSubmitContaFixa={async (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
+                if (editingItem && (editingItem as any).id) {
+                  await updateContaFixa((editingItem as any).id, data);
+                } else {
+                  await addContaFixa(data);
+                }
+                setIsModalOpen(false);
+                setEditingItem(null);
+              }}
+              onSubmitEmprestimo={(data: Partial<Emprestimo>) => {
+                if (editingItem) updateEmprestimo(data);
+                else addEmprestimo(data);
                 setIsModalOpen(false);
                 setEditingItem(null);
               }}
@@ -874,21 +1005,21 @@ export default function Home() {
                 setEditingItem(null);
               }}
             />
-          ) : modalType === 'emprestimo' ? (
-            <EmprestimoForm 
-              titulares={config.titulares}
-              onClose={() => setIsModalOpen(false)}
-              onSubmit={(data) => {
-                addEmprestimo(data);
-                setIsModalOpen(false);
-              }}
-            />
-          ) : modalType === 'payoff' && selectedLoan ? (
+
+          ) : modalType === 'payoff' && (selectedLoan || selectedFixed) ? (
             <PayoffModal 
-              loan={selectedLoan}
-              installments={despesas.filter(d => d.emprestimo_id === selectedLoan.id)}
-              onConfirmPayoff={(parcelas, isAmort, val) => quitarParcelas(parcelas, isAmort, val, selectedLoan)}
-              onClose={() => setIsModalOpen(false)}
+              loan={selectedLoan!}
+              item={selectedFixed!}
+              installments={despesas.filter(d => 
+                (selectedLoan && d.emprestimo_id === selectedLoan.id) || 
+                (selectedFixed && d.conta_fixa_id === selectedFixed.conta_fixa_id)
+              )}
+              onConfirmPayoff={quitarParcelas}
+              onClose={() => {
+                setIsModalOpen(false);
+                setSelectedLoan(null);
+                setSelectedFixed(null);
+              }}
             />
           ) : null}
         </Modal>
@@ -924,17 +1055,6 @@ export default function Home() {
           confirmLabel="Excluir"
         />
 
-        <ConfirmModal
-          isOpen={isConfirmClearSimuladasOpen}
-          onClose={() => setIsConfirmClearSimuladasOpen(false)}
-          onConfirm={() => {
-            deleteSimuladas();
-            setIsConfirmClearSimuladasOpen(false);
-          }}
-          title="Limpar Simulações"
-          message="Tem certeza que deseja excluir todas as despesas simuladas? Esta ação removerá os dados de todos os meses."
-          confirmLabel="Limpar Tudo"
-        />
 
         <SettingsModal 
           isOpen={isSettingsOpen}
@@ -950,17 +1070,36 @@ export default function Home() {
           onAddTitular={addTitular}
           onUpdateTitular={updateTitular}
           onDeleteTitular={(id) => { 
-            setItemToDelete({ id, type: 'titular' }); 
-            setIsConfirmDeleteOpen(true); 
+            setItemToDelete({ id, type: 'titular' });
+            setIsConfirmDeleteOpen(true);
           }}
           onAddCartao={addCartao}
           onUpdateCartao={updateCartao}
-          onDeleteCartao={(id) => { 
-            setItemToDelete({ id, type: 'cartao' }); 
-            setIsConfirmDeleteOpen(true); 
+          onDeleteCartao={(id) => {
+            setItemToDelete({ id, type: 'cartao' });
+            setIsConfirmDeleteOpen(true);
           }}
+        />
+
+        <ExpenseSettingsModal
+          isOpen={isExpenseSettingsOpen}
+          onClose={() => setIsExpenseSettingsOpen(false)}
           emprestimos={emprestimos}
+          contasFixas={contasFixas}
+          onEditEmprestimo={(loan: Emprestimo) => {
+            setEditingItem(loan);
+            setModalType('emprestimo');
+            setIsExpenseSettingsOpen(false);
+            setIsModalOpen(true);
+          }}
+          onEditContaFixa={(config: ContaFixaConfig) => {
+            setEditingItem(config);
+            setModalType('despesa');
+            setIsExpenseSettingsOpen(false);
+            setIsModalOpen(true);
+          }}
           onDeleteEmprestimo={deleteEmprestimo}
+          onDeleteContaFixa={deleteContaFixa}
         />
       </div>
     </div>

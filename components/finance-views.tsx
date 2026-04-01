@@ -18,99 +18,152 @@ interface TableViewProps {
   onPayoff?: (loanId: number) => void;
 }
 
-export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, titulares, cartoes, onPayoff }: TableViewProps) {
+export function FinanceTable({ 
+  data = [], 
+  type, 
+  onDelete, 
+  onToggleStatus, 
+  onEdit, 
+  titulares = [], 
+  cartoes = [], 
+  onPayoff 
+}: TableViewProps) {
   const headers = {
     geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Parc.', 'Valor', 'Ações'],
     cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
-    receitas: ['Data', 'Titular', 'Descrição', 'Valor', 'Ações']
+    receitas: ['Status', 'Data', 'Titular', 'Descrição', 'Valor', 'Ações']
   };
 
   const currentHeaders = headers[type];
 
-  const getTitularName = (id: any) => titulares.find(t => Number(t.id) === Number(id))?.nome || 'N/A';
-  const getCartaoName = (id: any) => cartoes.find(c => Number(c.id) === Number(id))?.nome_cartao || 'N/A';
+  const getTitularName = (id: number) => titulares.find(t => t.id === id)?.nome || 'N/A';
+  const getCartaoName = (id: number) => cartoes.find(c => c.id === id)?.nome_cartao || 'N/A';
 
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden">
-      <div className="table-responsive">
+      <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
         <table className="table table-hover align-middle mb-0">
           <thead className="table-light">
             <tr>
               {currentHeaders.map(h => (
-                <th key={h} className="px-4 py-3 text-uppercase small fw-bold text-muted border-0">{h}</th>
+                <th 
+                  key={h} 
+                  className={cn(
+                    "px-4 py-3 text-uppercase small fw-bold text-muted border-0",
+                    h === 'Ações' && "text-center"
+                  )}
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {(data || []).length === 0 ? (
               <tr>
-                <td colSpan={currentHeaders.length} className="p-5 text-center text-muted italic">
+                <td colSpan={currentHeaders?.length || 8} className="p-5 text-center text-muted italic">
                   Nenhum registro encontrado para este período.
                 </td>
               </tr>
             ) : (
-              data.map((item) => (
-                <tr
-                  key={(item as any).id}
-                  onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
-                  className={cn(
-                    "cursor-pointer transition-all",
-                    (item as any).isSummary && "fw-bold",
-                    type === 'geral' && (item as any).status !== 'Pago' && (item as any).vencimento && (item as any).vencimento < format(new Date(), 'yyyy-MM-dd') && "row-vencido"
-                  )}
-                >
-                  {type === 'geral' && (
-                    <>
-                      <td className="px-4 py-3">
-                        {(() => {
-                          if (item.simulada) return <span className="status-simulado">Simulado</span>;
-                          if (item.status === 'Pago') return <span className="status-pago">Pago</span>;
+              data.map((item) => {
+                if (!item) return null;
+                return (
+                  <tr
+                    key={(item as any).id}
+                    onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      (item as any).isSummary && "fw-bold",
+                      type === 'geral' && (item as any).status !== 'Pago' && (item as any).vencimento && (item as any).vencimento < format(new Date(), 'yyyy-MM-dd') && "row-vencido"
+                    )}
+                  >
+                    {type === 'geral' && (
+                      <>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            if (item.status === 'Pago') return <span className="status-pago">Pago</span>;
 
-                          const todayStr = format(new Date(), 'yyyy-MM-dd');
-                          if (item.vencimento && item.vencimento !== '-') {
-                            if (item.vencimento < todayStr) return <span className="status-vencida">Vencida</span>;
-                            if (item.vencimento === todayStr) return <span className="status-hoje">Hoje</span>;
-                          }
+                            const todayStr = format(new Date(), 'yyyy-MM-dd');
+                            if (item.vencimento && item.vencimento !== '-') {
+                              if (item.vencimento < todayStr) return <span className="status-vencida">Vencida</span>;
+                              if (item.vencimento === todayStr) return <span className="status-hoje">Hoje</span>;
+                            }
 
-                          return <span className="status-aberto">Em aberto</span>;
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
-                      <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
-                      <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
-                      <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
-                    </>
-                  )}
+                            return <span className="status-aberto">Em aberto</span>;
+                          })()}
+                        </td>
+                        <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
+                        <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
+                        <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
+                        <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
+                        <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
+                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                      </>
+                    )}
 
-                  {type === 'cartoes' && (
-                    <>
-                      <td className="px-4 py-3 fw-bold text-primary">
-                        {getCartaoName((item as any).cartao_id)}
-                        {(item as any).simulada && <span className="ms-2 badge bg-warning text-dark small">Simulada</span>}
-                      </td>
-                      <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
-                      <td className="px-4 py-3">{(item as any).estabelecimento}</td>
-                      <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
-                      <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
-                    </>
-                  )}
+                    {type === 'cartoes' && (
+                      <>
+                        <td className="px-4 py-3 fw-bold text-primary">
+                          {getCartaoName((item as any).cartao_id)}
+                        </td>
+                        <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
+                        <td className="px-4 py-3">{(item as any).estabelecimento}</td>
+                        <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
+                        <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
+                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                      </>
+                    )}
 
-                  {type === 'receitas' && (
-                    <>
-                      <td className="px-4 py-3 text-muted">{formatDate((item as any).data_recebimento)}</td>
-                      <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
-                      <td className="px-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
-                      <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
-                    </>
-                  )}
+                    {type === 'receitas' && (
+                      <>
+                        <td className="px-4 py-3">
+                          <span className={cn(
+                            (item as any).status === 'Recebido' ? "status-pago" : "status-aberto"
+                          )}>
+                            {(item as any).status || 'Recebido'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted">{formatDate((item as any).data_recebimento)}</td>
+                        <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
+                        <td className="px-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
+                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                      </>
+                    )}
 
-                  <td className="px-4 py-3">
-                    <div className="d-flex align-items-center gap-1">
-                      {type === 'geral' && (
-                        <>
+                    <td className="px-4 py-3 text-center">
+                      <div className="d-flex align-items-center justify-content-center gap-1">
+                        {type === 'geral' && (
+                          <>
+                            <button
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                onToggleStatus?.((item as any).id, (item as any).status);
+                              }}
+                              className={cn(
+                                "btn btn-sm border-0",
+                                (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                              )}
+                              title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
+                            >
+                              <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
+                            </button>
+                            
+                            {((item as any).emprestimo_id || (item as any).conta_fixa_id) && (item as any).status !== 'Pago' && (
+                              <button
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation();
+                                  onPayoff?.((item as any).id);
+                                }}
+                                className="btn btn-sm text-amber-600 hover:text-amber-700 border-0"
+                                title="Simular Quitação / Antecipação"
+                              >
+                                <i className="fa-solid fa-hand-holding-dollar"></i>
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {type === 'receitas' && (
                           <button
                             onClick={(e: React.MouseEvent) => {
                               e.stopPropagation();
@@ -118,40 +171,29 @@ export function FinanceTable({ data, type, onDelete, onToggleStatus, onEdit, tit
                             }}
                             className={cn(
                               "btn btn-sm border-0",
-                              (item as any).status === 'Pago' ? "text-success" : "text-muted"
+                              (item as any).status === 'Recebido' ? "text-success" : "text-muted"
                             )}
-                            title={(item as any).status === 'Pago' ? "Marcar como Aberto" : "Marcar como Pago"}
+                            title={(item as any).status === 'Recebido' ? "Marcar como Pendente" : "Marcar como Recebido"}
                           >
-                            <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
+                            <i className={cn("fa-solid", (item as any).status === 'Recebido' ? "fa-circle-check" : "fa-circle")}></i>
                           </button>
-                          
-                          {(item as any).emprestimo_id && (item as any).status !== 'Pago' && (
+                        )}
+                        {!(item as any).isSummary && (
+                          <>
                             <button
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                onPayoff?.((item as any).emprestimo_id);
-                              }}
-                              className="btn btn-sm text-amber-600 hover:text-amber-700 border-0"
-                              title="Simular Quitação / Antecipação"
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
+                              className="btn btn-sm btn-outline-danger border-0"
+                              title="Excluir"
                             >
-                              <i className="fa-solid fa-hand-holding-dollar"></i>
+                              <i className="fa-solid fa-trash-can"></i>
                             </button>
-                          )}
-                        </>
-                      )}
-                      {!(item as any).isSummary && (
-                        <button
-                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete((item as any).id); }}
-                          className="btn btn-sm btn-outline-danger border-0"
-                          title="Excluir"
-                        >
-                          <i className="fa-solid fa-trash-can"></i>
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -166,14 +208,13 @@ export function FilterBar({
   onSearchChange,
   activeFilterId,
   onClearFilter,
-  onClearSimuladas,
-  showClearSimuladas,
   type,
   hideAdd,
   hideSearch,
   onFocus,
   onBlur,
   onAction,
+  onOpenExpenseSettings,
   actionLabel,
   actionIcon
 }: {
@@ -182,14 +223,13 @@ export function FilterBar({
   onSearchChange: (value: string) => void,
   activeFilterId?: number | null,
   onClearFilter?: () => void,
-  onClearSimuladas?: () => void,
-  showClearSimuladas?: boolean,
   type?: 'geral' | 'cartoes' | 'receitas',
   hideAdd?: boolean,
   hideSearch?: boolean,
   onFocus?: () => void,
   onBlur?: () => void,
   onAction?: () => void,
+  onOpenExpenseSettings?: () => void,
   actionLabel?: string,
   actionIcon?: string
 }) {
@@ -233,29 +273,24 @@ export function FilterBar({
       </div>
 
       <div className="d-flex align-items-center gap-2">
-        {type === 'geral' && onClearSimuladas && showClearSimuladas && (
+        {onOpenExpenseSettings && (type === 'geral') && (
           <button
-            onClick={onClearSimuladas}
-            className="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 border-2"
+            onClick={onOpenExpenseSettings}
+            className="btn btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+            style={{ width: '42px', height: '42px', border: '2px solid rgba(0,0,0,0.05)' }}
+            title="Configurações de Despesas"
           >
-            <i className="fa-solid fa-eraser"></i> <span className="d-none d-md-inline">Limpar Simulação</span>
-          </button>
-        )}
-        {onAction && actionLabel && (
-          <button
-            onClick={onAction}
-            className="btn btn-amber rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 text-amber-900 border-0"
-            style={{ backgroundColor: '#FEF3C7' }}
-          >
-            <i className={`fa-solid fa-${actionIcon || 'plus'}`}></i> <span className="d-none d-md-inline">{actionLabel}</span>
+            <i className="fa-solid fa-gear text-muted"></i>
           </button>
         )}
         {!hideAdd && (
           <button
             onClick={onAdd}
-            className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
+            className="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-lg hover:scale-110 active:scale-95 transition-all border-0"
+            style={{ width: '48px', height: '48px' }}
+            title="Novo Lançamento"
           >
-            <i className="fa-solid fa-plus"></i> <span className="d-none d-md-inline">Novo Lançamento</span>
+            <i className="fa-solid fa-plus fs-4"></i>
           </button>
         )}
       </div>
@@ -416,7 +451,7 @@ export function SummaryCards({
               <div>
                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>{c.nome_cartao}</small>
                 <div className="text-muted small opacity-75" style={{ fontSize: '0.6rem', marginTop: '-2px' }}>
-                  {titulares.find(t => Number(t.id) === Number(c.titular_id))?.nome || 'Sem Titular'}
+                  {titulares.find(t => t.id === c.titular_id)?.nome || 'Sem Titular'}
                 </div>
                 <strong className="h5 fw-bold m-0">{formatCurrency(totalsByCard[c.id] || 0)}</strong>
               </div>
