@@ -173,9 +173,11 @@ interface TopbarProps {
   onChangeMonth: (delta: number) => void;
   onLogout?: () => void;
   onOpenPeriodModal: () => void;
+  onBack?: () => void;
+  showBackButton?: boolean;
 }
 
-export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeriodModal }: TopbarProps) {
+export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeriodModal, onBack, showBackButton }: TopbarProps) {
   const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
   
   const getTitle = () => {
@@ -192,20 +194,17 @@ export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeri
 
   return (
     <header className="topbar mb-4">
-      <div className="topbar-brand">
-        <h2 className="fw-bold m-0" id="page-title">{getTitle()}</h2>
-        <div className="d-flex align-items-center gap-2">
-          <div className="mobile-date-btn d-md-none" onClick={onOpenPeriodModal}>
-            <i className="fa-solid fa-calendar-days"></i>
-          </div>
-          <div 
-            className="mobile-date-btn d-md-none" 
-            style={{ color: 'var(--danger)', background: 'rgba(231, 29, 54, 0.1)' }}
-            onClick={onLogout}
+      <div className="topbar-brand d-flex align-items-center gap-2">
+        {showBackButton && (
+          <button 
+            onClick={onBack}
+            className="btn-back-mobile d-md-none"
+            title="Voltar para Home"
           >
-            <i className="fa-solid fa-right-from-bracket"></i>
-          </div>
-        </div>
+            <i className="fa-solid fa-arrow-left"></i>
+          </button>
+        )}
+        <h2 className="fw-bold m-0" id="page-title">{getTitle()}</h2>
       </div>
       <div className="topbar-controls">
         {title !== 'config' && (
@@ -231,30 +230,116 @@ export function Topbar({ title, month, year, onChangeMonth, onLogout, onOpenPeri
 interface MobileNavProps {
   activeView: string;
   onViewChange: (view: string) => void;
+  onLaunch: () => void;
+  activeSettingsTab: string;
+  onSettingsTabChange: (tab: string) => void;
 }
 
-export function MobileNav({ activeView, onViewChange }: MobileNavProps) {
-  const navItems = [
-    { id: 'dashboard', label: 'Home', icon: 'fa-house' },
-    { id: 'geral', label: 'Fixas', icon: 'fa-clipboard-list' },
-    { id: 'cartoes', label: 'Cartões', icon: 'fa-credit-card' },
-    { id: 'receitas', label: 'Receitas', icon: 'fa-money-bill-wave' },
-    { id: 'radar', label: 'Radar', icon: 'fa-wand-magic-sparkles' },
-    { id: 'config', label: 'Config', icon: 'fa-gear' },
-  ];
+export function MobileNav({ 
+  activeView, 
+  onViewChange, 
+  onLaunch,
+  activeSettingsTab,
+  onSettingsTabChange
+}: MobileNavProps) {
+  const [showViewsMenu, setShowViewsMenu] = React.useState(false);
+  const viewsMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (viewsMenuRef.current && !viewsMenuRef.current.contains(event.target as Node)) {
+        setShowViewsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const navItem = (id: string, icon: string, label: string) => (
+    <div 
+      className={cn("mobile-nav-item", activeView === id && !showViewsMenu && "active")}
+      onClick={() => {
+        setShowViewsMenu(false);
+        onViewChange(id);
+      }}
+    >
+      <i className={cn("fa-solid", icon)}></i>
+      <span>{label}</span>
+    </div>
+  );
 
   return (
-    <nav className="mobile-nav">
-      {navItems.map((item) => (
-        <div 
-          key={item.id}
-          className={cn("mobile-nav-item", activeView === item.id && "active")}
-          onClick={() => onViewChange(item.id)}
-        >
-          <i className={cn("fa-solid", item.icon)}></i>
-          <span>{item.label}</span>
+    <nav className="mobile-nav-container">
+      {/* Floating Views Menu */}
+      {showViewsMenu && (
+        <div className="mobile-views-menu animate-in fade-in slide-in-from-bottom-5 duration-300" ref={viewsMenuRef}>
+          <div className="d-flex flex-column gap-2 p-2">
+            {[
+              { id: 'geral', label: 'Fixas', icon: 'fa-clipboard-list' },
+              { id: 'receitas', label: 'Receitas', icon: 'fa-money-bill-wave' },
+              { id: 'cartoes', label: 'Cartões', icon: 'fa-credit-card' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onViewChange(item.id);
+                  setShowViewsMenu(false);
+                }}
+                className={cn(
+                  "btn-view-option d-flex align-items-center gap-3",
+                  activeView === item.id && "active"
+                )}
+              >
+                <i className={cn("fa-solid", item.icon)}></i>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
+
+      <div className="mobile-nav-content">
+        {/* SLOT 1: HOME */}
+        {navItem('dashboard', 'fa-house', 'Home')}
+
+        {/* SLOT 2: MENU (Views) */}
+        <div 
+          className={cn("mobile-nav-item", (activeView === 'geral' || activeView === 'receitas' || activeView === 'cartoes') && !showViewsMenu && "active")}
+          onClick={() => {
+            setShowViewsMenu(!showViewsMenu);
+          }}
+        >
+          <i className="fa-solid fa-layer-group"></i>
+          <span>Vistas</span>
+        </div>
+
+        {/* SLOT 3: CENTER FAB (+) */}
+        <div className="mobile-nav-fab-container">
+          <button 
+            className="mobile-fab"
+            onClick={onLaunch}
+            title="Lançamento Rápido"
+          >
+            <i className="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        {/* SLOT 4: RADAR */}
+        {navItem('radar', 'fa-wand-magic-sparkles', 'Radar')}
+
+        {/* SLOT 5: CONFIG */}
+        <div 
+          className={cn("mobile-nav-item", activeView === 'config' && "active")}
+          onClick={() => {
+            setShowViewsMenu(false);
+            onSettingsTabChange('menu');
+            onViewChange('config');
+          }}
+        >
+          <i className="fa-solid fa-gear"></i>
+          <span>Config</span>
+        </div>
+      </div>
     </nav>
   );
 }

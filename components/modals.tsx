@@ -22,17 +22,17 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1060] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 backdrop-blur-sm bg-black/40" onClick={onClose}>
       <div
-        className="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow-premium p-10 relative overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-[640px] bg-surface-container-lowest rounded-[1.5rem] md:rounded-[2.5rem] shadow-premium p-6 md:p-10 relative overflow-y-auto max-h-[95vh] md:max-h-[85vh] animate-in zoom-in-95 duration-200"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <button
           type="button"
-          className="absolute top-8 right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+          className="absolute top-4 right-4 md:top-8 md:right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
           onClick={onClose}
         >
-          <X size={24} />
+          <X size={20} className="md:w-6 md:h-6" />
         </button>
         {children}
       </div>
@@ -98,11 +98,11 @@ export function UniversalFinanceForm({
   return (
     <div className="animate-in fade-in duration-300">
       {/* Unified Header */}
-      <header className="mb-8 pe-10">
-        <div className="flex items-center gap-4">
-          <span 
-            className="material-symbols-outlined transition-all duration-300 text-[54px] leading-none" 
-            style={{ 
+      <header className="mb-4 md:mb-8 pe-10">
+        <div className="flex items-center gap-3 md:gap-4">
+          <span
+            className="material-symbols-outlined transition-all duration-300 text-[40px] md:text-[54px] leading-none"
+            style={{
               fontVariationSettings: "'FILL' 1",
               color: typeColors[activeType]
             }}
@@ -110,11 +110,11 @@ export function UniversalFinanceForm({
             {typeIcons[activeType]}
           </span>
           <div className="flex flex-col">
-            <h1 className="text-4xl font-headline font-black text-slate-900 tracking-tight leading-none mb-1">
-              Novo Registro
+            <h1 className="text-xl md:text-3xl font-headline font-black text-slate-900 tracking-tight leading-none mb-1">
+              {isEditing ? 'Editar Registro' : 'Novo Registro'}
             </h1>
-            <span 
-              className="font-headline font-bold uppercase tracking-[0.2em] text-[13px] transition-all duration-300 ml-0.5 leading-none"
+            <span
+              className="font-headline font-bold uppercase tracking-[0.2em] text-[10px] md:text-[13px] transition-all duration-300 ml-0.5 leading-none"
               style={{ color: `${typeColors[activeType]}bf` }}
             >
               {typeLabels[activeType]}
@@ -125,64 +125,68 @@ export function UniversalFinanceForm({
 
       {/* Tabs Selector */}
       {!isEditing && (
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-[#F1F5F9] p-1 rounded-full flex w-full max-w-[560px] h-12 relative border border-slate-200/50 shadow-inner overflow-hidden">
+        <div className="flex flex-col items-center mb-6 md:mb-8">
+          <div className="bg-[#F1F5F9] p-1 rounded-full flex w-full max-w-[560px] h-11 md:h-12 relative border border-slate-200/50 shadow-inner overflow-hidden">
             {/* Sliding Pill Background - 4 options = 25% each */}
-            <div 
+            <div
               className="absolute top-1 bottom-1 shadow-md transition-all duration-300 ease-out"
-              style={{ 
+              style={{
                 borderRadius: '9999px',
                 backgroundColor: typeColors[activeType],
-                left: activeType === 'despesa' ? '4px' : 
-                      activeType === 'despesa_cartao' ? 'calc(25% + 2px)' : 
-                      activeType === 'receita' ? 'calc(50% + 2px)' : 
+                left: activeType === 'despesa' ? '4px' :
+                  activeType === 'despesa_cartao' ? 'calc(25% + 2px)' :
+                    activeType === 'receita' ? 'calc(50% + 2px)' :
                       'calc(75% + 2px)',
                 width: 'calc(25% - 6px)'
               }}
             />
-            
-            <button 
+
+            <button
               type="button"
               className={cn(
-                "flex-1 relative z-10 text-[10px] font-black transition-all duration-300 flex items-center justify-center",
+                "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
                 activeType === 'despesa' ? "text-white" : "text-slate-400 hover:text-navy/40"
               )}
               onClick={() => setActiveType('despesa')}
-            > 
-              DESPESA
+            >
+              <span className="md:hidden">DESP.</span>
+              <span className="hidden md:inline">DESPESA</span>
             </button>
 
-            <button 
+            <button
               type="button"
               className={cn(
-                "flex-1 relative z-10 text-[10px] font-black transition-all duration-300 flex items-center justify-center",
+                "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
                 activeType === 'despesa_cartao' ? "text-white" : "text-slate-400 hover:text-navy/40"
               )}
               onClick={() => setActiveType('despesa_cartao')}
-            > 
-              CARTÃO
+            >
+              <span className="md:hidden">CART.</span>
+              <span className="hidden md:inline">CARTÃO</span>
             </button>
-            
-            <button 
+
+            <button
               type="button"
               className={cn(
-                "flex-1 relative z-10 text-[10px] font-black transition-all duration-300 flex items-center justify-center",
+                "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
                 activeType === 'receita' ? "text-white" : "text-slate-400 hover:text-navy/40"
               )}
               onClick={() => setActiveType('receita')}
-            > 
-              RECEITA
+            >
+              <span className="md:hidden">REC.</span>
+              <span className="hidden md:inline">RECEITA</span>
             </button>
 
-            <button 
+            <button
               type="button"
               className={cn(
-                "flex-1 relative z-10 text-[10px] font-black transition-all duration-300 flex items-center justify-center",
+                "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
                 activeType === 'emprestimo' ? "text-white" : "text-slate-400 hover:text-navy/40"
               )}
               onClick={() => setActiveType('emprestimo')}
-            > 
-              EMPRÉSTIMO
+            >
+              <span className="md:hidden">EMP.</span>
+              <span className="hidden md:inline">EMPRÉSTIMO</span>
             </button>
           </div>
         </div>
@@ -353,21 +357,20 @@ export function FinanceForm({
         </header>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
         <div className="relative group">
-          <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Valor do Lançamento</label>
-          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-slate-200 group-focus-within:bg-white transition-all shadow-sm border border-outline-variant/30">
+          <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider">Valor do Lançamento</label>
+          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-4 py-2 md:py-3 focus-within:ring-2 focus-within:ring-slate-200 group-focus-within:bg-white transition-all shadow-sm border border-outline-variant/30">
             <span className={cn(
-              "text-xl font-headline font-bold transition-all mr-3 mt-1",
+              "text-lg md:text-xl font-headline font-bold transition-all mr-2 md:mr-3 mt-1",
               formData.valor ? "text-navy" : "text-navy/20"
             )}>R$</span>
             <input
               required
               className={cn(
-                "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-1",
+                "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-1 text-xl md:text-2xl",
                 formData.valor ? "text-slate-900" : "text-slate-900/20"
               )}
-              style={{ fontSize: '24px', lineHeight: '1', height: 'auto' }}
               placeholder="0,00"
               type="number"
               step="0.01"
@@ -377,12 +380,12 @@ export function FinanceForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 md:gap-y-3">
           <div className="md:col-span-2">
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Descrição</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição</label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Assinatura Mensal Software"
               type="text"
               value={formData.descricao}
@@ -391,9 +394,9 @@ export function FinanceForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Responsável</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
             <select
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.titular_id}
               onChange={e => setFormData({ ...formData, titular_id: parseInt(e.target.value) })}
             >
@@ -402,9 +405,9 @@ export function FinanceForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Categoria</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Categoria</label>
             <input
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Mercado, Saúde..."
               type="text"
               value={formData.categoria}
@@ -415,9 +418,12 @@ export function FinanceForm({
           {(isRevenue || (isExpense && subType === 'fixa')) && (
             <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 mb-1">
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-navy uppercase tracking-wider">Modelo de Lançamento</span>
-                <p className="text-[10px] text-slate-500">
-                  {isRevenue 
+                <span className="text-[10px] md:text-xs font-bold text-navy uppercase tracking-wider">
+                  <span className="md:hidden">Tipo lancamento</span>
+                  <span className="hidden md:inline">Modelo de Lançamento</span>
+                </span>
+                <p className="hidden md:block text-[10px] text-slate-500">
+                  {isRevenue
                     ? 'Virtualizado permite ajustes em receitas variáveis como bônus'
                     : 'Virtualizado permite antecipações e ajustes mensais'}
                 </p>
@@ -429,7 +435,7 @@ export function FinanceForm({
                     "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
                     isRecorrente ? "left-[calc(50%+2px)]" : "left-1"
                   )}
-                  style={{ 
+                  style={{
                     borderRadius: '9999px',
                     backgroundColor: isRevenue ? '#00995D' : '#1e293b'
                   }}
@@ -438,7 +444,7 @@ export function FinanceForm({
                 <button
                   type="button"
                   className={cn(
-                    "flex-1 relative z-10 text-[10px] font-black transition-all duration-300",
+                    "flex-1 relative z-10 text-[9px] md:text-[10px] font-black tracking-tight transition-all duration-300",
                     !isRecorrente ? "text-white" : "text-slate-400 hover:text-navy/40"
                   )}
                   onClick={() => setIsRecorrente(false)}
@@ -447,7 +453,7 @@ export function FinanceForm({
                 <button
                   type="button"
                   className={cn(
-                    "flex-1 relative z-10 text-[10px] font-black transition-all duration-300",
+                    "flex-1 relative z-10 text-[9px] md:text-[10px] font-black tracking-tight transition-all duration-300",
                     isRecorrente ? "text-white" : "text-slate-400 hover:text-navy/40"
                   )}
                   onClick={() => setIsRecorrente(true)}
@@ -461,7 +467,7 @@ export function FinanceForm({
               {subType === 'cartao' ? (
                 <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-4 items-start">
                   <div>
-                    <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Cartão / Vencimento</label>
+                    <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Cartão / Vencimento</label>
                     <select
                       className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
                       value={formData.cartao_vencimento_id}
@@ -475,9 +481,9 @@ export function FinanceForm({
                   </div>
 
                   <div className="flex flex-col">
-                    <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Tipo de Gasto</label>
-                    <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
-                      {/* Sliding Pill Background - Hidden when Parcelado is active to avoid overlap */}
+                    <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Tipo de Gasto</label>
+                    <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-9 md:h-[44px] relative border border-slate-200/50 shadow-inner">
+                      {/* Sliding Pill Background - Hidden when <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span> is active to avoid overlap */}
                       <div
                         className={cn(
                           "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-navy shadow-md transition-all duration-300 ease-out",
@@ -489,7 +495,7 @@ export function FinanceForm({
                       <button
                         type="button"
                         className={cn(
-                          "flex-1 relative z-10 text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
                           paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
                         )}
                         onClick={() => {
@@ -497,7 +503,7 @@ export function FinanceForm({
                           setFormData({ ...formData, parcela_total: 1 });
                         }}
                       >
-                        À VISTA
+                        À vista
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
@@ -530,13 +536,13 @@ export function FinanceForm({
                         <button
                           type="button"
                           style={{ borderRadius: '9999px' }}
-                          className="flex-1 rounded-full text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
+                          className="flex-1 rounded-full text-[9px] md:text-[11px] font-headline font-medium text-slate-500 hover:text-navy/60 transition-all duration-300"
                           onClick={() => {
                             setPaymentType('Parcelado');
                             setFormData({ ...formData, parcela_total: 2 });
                           }}
                         >
-                          PARCELADO
+                          <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>
                         </button>
                       )}
                     </div>
@@ -547,13 +553,13 @@ export function FinanceForm({
                 <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-3 items-start">
                   <div>
                     <div className="flex items-center h-[26px] mb-1 px-1">
-                      <label className="label-md font-label text-on-surface-variant block">
+                      <label className="text-[10px] md:label-md font-label text-on-surface-variant block whitespace-nowrap">
                         {isRevenue ? 'Data de Recebimento' : 'Data de Vencimento'}
                       </label>
                     </div>
                     <input
                       type="date"
-                      className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+                      className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm text-on-surface"
                       value={formData.vencimento}
                       onChange={e => setFormData({ ...formData, vencimento: e.target.value })}
                     />
@@ -561,9 +567,9 @@ export function FinanceForm({
 
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-1 px-1 h-[26px]">
-                      <label className="label-md font-label text-on-surface-variant">
-                        {isRecorrente 
-                          ? (isIndefinite ? 'Recorrência' : 'Duração (Meses)') 
+                      <label className="text-[10px] md:label-md font-label text-on-surface-variant whitespace-nowrap uppercase font-bold tracking-wider">
+                        {isRecorrente
+                          ? (isIndefinite ? 'Recorrência' : 'Duração')
                           : (isRevenue ? 'Tipo de Recebimento' : 'Tipo de Pagamento')}
                       </label>
                       {isRecorrente && (
@@ -572,7 +578,7 @@ export function FinanceForm({
                           onClick={() => setIsIndefinite(!isIndefinite)}
                           style={{ borderRadius: '9999px' }}
                           className={cn(
-                            "text-[10px] font-black uppercase tracking-tighter px-3 py-1 border transition-all -mt-[1px]",
+                            "text-[9px] md:text-[10px] font-black uppercase tracking-tighter px-2 md:px-3 py-1 border transition-all -mt-[1px] whitespace-nowrap",
                             isIndefinite
                               ? "bg-navy/10 text-navy border-navy/20"
                               : "bg-slate-50 text-slate-400 border-slate-200 hover:text-navy hover:border-navy/30"
@@ -583,12 +589,12 @@ export function FinanceForm({
                       )}
                     </div>
 
-                    <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
+                    <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-9 md:h-[44px] relative border border-slate-200/50 shadow-inner">
                       {isRecorrente ? (
                         isIndefinite ? (
                           <div className="flex-1 rounded-full bg-white/50 text-slate-400 flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
                             <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                            <span className="text-[11px] font-headline font-black uppercase">Tempo Indeterminado</span>
+                            <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter">Tempo Indeterminado</span>
                           </div>
                         ) : (
                           <div className="flex-1 rounded-full bg-navy text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full w-full">
@@ -633,7 +639,7 @@ export function FinanceForm({
                           <button
                             type="button"
                             className={cn(
-                              "flex-1 relative z-10 text-[11px] font-headline font-black transition-all duration-300",
+                              "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
                               paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
                             )}
                             onClick={() => {
@@ -641,7 +647,7 @@ export function FinanceForm({
                               setFormData({ ...formData, parcela_total: 1 });
                             }}
                           >
-                            À VISTA
+                            À vista
                           </button>
                           {paymentType === 'Parcelado' ? (
                             <div
@@ -674,7 +680,7 @@ export function FinanceForm({
                             <button
                               type="button"
                               className={cn(
-                                "flex-1 relative z-10 text-[11px] font-headline font-black transition-all duration-300",
+                                "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
                                 paymentType === 'Parcelado' ? "text-white" : "text-slate-400 hover:text-navy/40"
                               )}
                               onClick={() => {
@@ -682,7 +688,7 @@ export function FinanceForm({
                                 setFormData({ ...formData, parcela_total: 2 });
                               }}
                             >
-                              PARCELADO
+                              <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>
                             </button>
                           )}
                         </>
@@ -696,19 +702,19 @@ export function FinanceForm({
           ) : (
             <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-4 items-start">
               <div>
-                <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Data de Receber</label>
+                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data de Receber</label>
                 <input
                   type="date"
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm text-on-surface"
                   value={formData.vencimento}
                   onChange={e => setFormData({ ...formData, vencimento: e.target.value })}
                 />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-1 px-1 h-[26px]">
-                  <label className="label-md font-label text-on-surface-variant">
-                    {isRecorrente 
-                      ? (isIndefinite ? 'Recorrência' : 'Duração (Meses)') 
+                  <label className="text-[10px] md:label-md font-label text-on-surface-variant whitespace-nowrap uppercase font-bold tracking-wider">
+                    {isRecorrente
+                      ? (isIndefinite ? 'Recorrência' : 'Duração')
                       : 'Tipo de Recebimento'}
                   </label>
                   {isRecorrente && (
@@ -717,7 +723,7 @@ export function FinanceForm({
                       onClick={() => setIsIndefinite(!isIndefinite)}
                       style={{ borderRadius: '9999px' }}
                       className={cn(
-                        "text-[10px] font-black uppercase tracking-tighter px-3 py-1 border transition-all -mt-[1px]",
+                        "text-[9px] md:text-[10px] font-black uppercase tracking-tighter px-2 md:px-3 py-1 border transition-all -mt-[1px] whitespace-nowrap",
                         isIndefinite
                           ? "bg-[#00995D]/10 text-[#00995D] border-[#00995D]/20"
                           : "bg-slate-50 text-slate-400 border-slate-200 hover:text-[#00995D] hover:border-[#00995D]/30"
@@ -733,10 +739,10 @@ export function FinanceForm({
                     isIndefinite ? (
                       <div className="flex-1 rounded-full bg-white/50 text-slate-400 flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
                         <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                        <span className="text-[11px] font-headline font-black uppercase">Tempo Indeterminado</span>
+                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter">Tempo Indeterminado</span>
                       </div>
                     ) : (
-                      <div 
+                      <div
                         className="flex-1 rounded-full text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full w-full"
                         style={{ backgroundColor: '#00995D' }}
                       >
@@ -769,13 +775,13 @@ export function FinanceForm({
                     )
                   ) : (
                     <>
-                      {/* Sliding Pill Background - Hidden when Parcelado is active to avoid overlap */}
+                      {/* Sliding Pill Background - Hidden when <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span> is active to avoid overlap */}
                       <div
                         className={cn(
                           "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
                           paymentType === 'Parcelado' ? "hidden opacity-0" : "left-1 opacity-100"
                         )}
-                        style={{ 
+                        style={{
                           borderRadius: '9999px',
                           backgroundColor: '#00995D'
                         }}
@@ -784,7 +790,7 @@ export function FinanceForm({
                       <button
                         type="button"
                         className={cn(
-                          "flex-1 relative z-10 text-[11px] font-headline font-black transition-all duration-300",
+                          "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
                           paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
                         )}
                         onClick={() => {
@@ -792,7 +798,7 @@ export function FinanceForm({
                           setFormData({ ...formData, parcela_total: 1 });
                         }}
                       >
-                        À VISTA
+                        À vista
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
@@ -826,7 +832,7 @@ export function FinanceForm({
                         <button
                           type="button"
                           className={cn(
-                            "flex-1 relative z-10 text-[11px] font-headline font-black transition-all duration-300",
+                            "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
                             paymentType === 'Parcelado' ? "text-white" : "text-slate-400 hover:text-navy/40"
                           )}
                           onClick={() => {
@@ -834,7 +840,7 @@ export function FinanceForm({
                             setFormData({ ...formData, parcela_total: 2 });
                           }}
                         >
-                          PARCELADO
+                          <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>
                         </button>
                       )}
                     </>
@@ -847,10 +853,10 @@ export function FinanceForm({
         </div>
 
 
-        <div className="pt-4 grid grid-cols-2 gap-x-8 items-center">
+        <div className="pt-2 md:pt-4 grid grid-cols-2 gap-x-4 md:gap-x-8 items-center">
           <button
             type="button"
-            className="text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left"
+            className="text-xs md:text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left px-2"
             onClick={onClose}
           >
             Cancelar
@@ -865,10 +871,10 @@ export function FinanceForm({
               handleSubmit(e as any);
             }}
             style={{ borderRadius: '9999px', backgroundColor: themeColor }}
-            className="text-white h-[48px] font-label font-semibold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2 opacity-90 hover:opacity-100"
+            className="text-white h-[44px] md:h-[48px] font-label font-semibold text-xs md:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2 opacity-90 hover:opacity-100"
           >
-            <span className="material-symbols-outlined text-lg">check_circle</span>
-            Confirmar Lançamento
+            <span className="material-symbols-outlined text-base md:text-lg">check_circle</span>
+            {!!initialData ? 'Salvar' : 'Registrar'}
           </button>
         </div>
       </form>
@@ -966,7 +972,7 @@ export function TitularForm({
   return (
     <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` }); }} className="row g-3">
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome do Titular</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Nome do Titular</label>
         <input
           required
           type="text"
@@ -976,7 +982,7 @@ export function TitularForm({
         />
       </div>
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Foto do Titular</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Foto do Titular</label>
         <div className="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
           <div className="position-relative" style={{ width: '60px', height: '60px' }}>
             {formData.foto ? (
@@ -1012,19 +1018,19 @@ export function TitularForm({
           </div>
         </div>
       </div>
-      <div className="col-12 mt-4 d-flex gap-3">
+      <div className="col-12 mt-2 md:mt-4 d-flex gap-2 md:gap-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="btn btn-outline-secondary w-100 py-3 fw-bold rounded-pill text-uppercase"
+            className="btn btn-outline-secondary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
           >
             Cancelar
           </button>
         )}
         <button
           disabled={isUploading}
-          className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase"
+          className="btn btn-primary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
         >
           <i className="fa-solid fa-check me-2"></i>Salvar Titular
         </button>
@@ -1073,7 +1079,7 @@ export function CartaoForm({
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Nome do Cartão</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Nome do Cartão</label>
         <input
           required
           type="text"
@@ -1083,7 +1089,7 @@ export function CartaoForm({
         />
       </div>
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Titular</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Titular</label>
         <select
           className="form-select rounded-3"
           value={formData.titular_id}
@@ -1093,7 +1099,7 @@ export function CartaoForm({
         </select>
       </div>
       <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Vencimento</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Dia Vencimento</label>
         <input
           required
           type="number"
@@ -1104,7 +1110,7 @@ export function CartaoForm({
         />
       </div>
       <div className="col-md-6">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Dia Fechamento</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Dia Fechamento</label>
         <input
           required
           type="number"
@@ -1114,17 +1120,17 @@ export function CartaoForm({
           onChange={e => setFormData({ ...formData, dia_fechamento: parseInt(e.target.value) || 0 })}
         />
       </div>
-      <div className="col-12 mt-4 d-flex gap-3">
+      <div className="col-12 mt-2 md:mt-4 d-flex gap-2 md:gap-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="btn btn-outline-secondary w-100 py-3 fw-bold rounded-pill text-uppercase"
+            className="btn btn-outline-secondary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
           >
             Cancelar
           </button>
         )}
-        <button className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase">
+        <button className="btn btn-primary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm">
           <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
         </button>
       </div>
@@ -1155,52 +1161,59 @@ export function MonthYearModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1050 }} onClick={onClose}>
-      <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
-        <div className="modal-content rounded-4 border-0 shadow-lg">
-          <div className="modal-header border-0 pb-0">
-            <h5 className="modal-title fw-bold">Selecionar Período</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 md:p-4 backdrop-blur-md bg-black/40" onClick={onClose}>
+      <div
+        className={cn("w-full max-w-[420px] bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200", "modal-month-year")}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-4 md:p-6 pb-0 flex justify-between items-center">
+          <h5 className="text-lg md:text-xl font-bold text-navy m-0">Selecionar Período</h5>
+          <button type="button" className="p-2 hover:bg-slate-100 rounded-full transition-colors" onClick={onClose}>
+            <span className="material-symbols-outlined text-slate-400">close</span>
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 text-center">
+          <div className="flex justify-between align-items-center mb-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+            <button
+              type="button"
+              className="w-10 h-10 flex items-center justify-center bg-white shadow-sm rounded-xl border border-slate-200 text-navy hover:bg-slate-50 transition-all"
+              onClick={() => setViewYear((prev: number) => prev - 1)}
+            >
+              <i className="fa-solid fa-chevron-left small"></i>
+            </button>
+            <h4 className="font-black text-xl m-0 flex items-center">{viewYear}</h4>
+            <button
+              type="button"
+              className="w-10 h-10 flex items-center justify-center bg-white shadow-sm rounded-xl border border-slate-200 text-navy hover:bg-slate-50 transition-all"
+              onClick={() => setViewYear((prev: number) => prev + 1)}
+            >
+              <i className="fa-solid fa-chevron-right small"></i>
+            </button>
           </div>
-          <div className="modal-body p-4 text-center">
-            <div className="d-flex justify-content-between align-items-center mb-4 bg-light p-2 rounded-3">
-              <button
-                type="button"
-                className="btn btn-sm btn-white shadow-sm rounded-3 border-0 bg-white"
-                onClick={() => setViewYear((prev: number) => prev - 1)}
-              >
-                <i className="fa-solid fa-chevron-left"></i>
-              </button>
-              <h4 className="fw-bold m-0">{viewYear}</h4>
-              <button
-                type="button"
-                className="btn btn-sm btn-white shadow-sm rounded-3 border-0 bg-white"
-                onClick={() => setViewYear((prev: number) => prev + 1)}
-              >
-                <i className="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-            <div className="row g-2">
-              {meses.map((mes, index) => {
-                const monthNum = index + 1;
-                const isSelected = monthNum === currentMonth && viewYear === currentYear;
-                return (
-                  <div key={mes} className="col-4">
-                    <button
-                      type="button"
-                      className={`btn w-100 py-3 rounded-3 fw-bold transition-all ${isSelected ? 'btn-primary' : 'btn-light'}`}
-                      style={{ border: isSelected ? 'none' : '1px solid #eee' }}
-                      onClick={() => {
-                        onSelect(monthNum, viewYear);
-                        onClose();
-                      }}
-                    >
-                      {mes.substring(0, 3)}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-3 gap-2">
+            {meses.map((mes, index) => {
+              const monthNum = index + 1;
+              const isSelected = monthNum === currentMonth && viewYear === currentYear;
+              return (
+                <button
+                  key={mes}
+                  type="button"
+                  className={cn(
+                    "py-3 rounded-2xl font-bold transition-all text-xs md:text-sm border",
+                    isSelected
+                      ? "bg-navy text-white border-navy shadow-md"
+                      : "bg-white text-slate-600 border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+                  )}
+                  onClick={() => {
+                    onSelect(monthNum, viewYear);
+                    onClose();
+                  }}
+                >
+                  {mes.substring(0, 3).toUpperCase()}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1312,7 +1325,7 @@ export function ProfileForm({
   return (
     <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Seu Nome</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block whitespace-nowrap">Seu Nome</label>
         <input
           required
           type="text"
@@ -1322,7 +1335,7 @@ export function ProfileForm({
         />
       </div>
       <div className="col-12">
-        <label className="form-label small fw-bold text-muted text-uppercase mb-1">Sua Foto</label>
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block whitespace-nowrap">Sua Foto</label>
         <div className="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
           <div className="position-relative" style={{ width: '60px', height: '60px' }}>
             {formData.foto ? (
@@ -1358,10 +1371,10 @@ export function ProfileForm({
         </div>
       </div>
       {sizeError && <div className="col-12 mt-2 alert alert-danger small py-2">{sizeError}</div>}
-      <div className="col-12 mt-4">
+      <div className="col-12 mt-4 d-flex gap-2">
         <button
           disabled={isUploading}
-          className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase"
+          className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
         >
           <i className="fa-solid fa-check me-2"></i>Atualizar Perfil
         </button>
@@ -1389,6 +1402,8 @@ const getCardLogo = (name: string) => {
 
   return <div className="w-10 h-10 rounded-xl bg-slate-700 d-flex align-items-center justify-content-center text-white opacity-40 shadow-sm"><span className="material-symbols-outlined text-[20px]">credit_card</span></div>;
 };
+
+import { SettingsView } from './settings-view';
 
 export function SettingsModal({
   isOpen,
@@ -1425,501 +1440,34 @@ export function SettingsModal({
   onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => void,
   onDeleteCartao: (id: number) => void
 }) {
-  const [activeTab, setActiveTab] = useState('geral');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [internalView, setInternalView] = useState<'list' | 'add' | 'edit'>('list');
-  const [editingItem, setEditingItem] = useState<any>(null);
-
-  // Handle Esc to go back to list if in edit/add mode
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && internalView !== 'list') {
-        e.stopPropagation();
-        setInternalView('list');
-        setEditingItem(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [internalView]);
-
-  // Reset internal view when changing tabs
-  useEffect(() => {
-    setInternalView('list');
-    setEditingItem(null);
-  }, [activeTab]);
-
   if (!isOpen) return null;
-
-  const tabs = [
-    { id: 'geral', label: 'Geral', icon: 'settings' },
-    { id: 'titulares', label: 'Titulares', icon: 'person_add' },
-    { id: 'cartoes', label: 'Cartões', icon: 'credit_card' },
-    { id: 'familia', label: 'Controle de Dados', icon: 'database' },
-    { id: 'notificacoes', label: 'Notificações', icon: 'notifications' },
-    { id: 'personalizacao', label: 'Personalização', icon: 'palette' },
-    { id: 'billing', label: 'Assinatura', icon: 'payments' },
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'geral':
-        return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-10">
-              <div className="d-flex align-items-center gap-3 mb-2">
-                <div className="w-2 h-8 bg-primary rounded-full"></div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Geral</h1>
-              </div>
-              <p className="text-muted-foreground">Personalize a sua experiência e segurança da conta.</p>
-            </header>
-
-            {/* Configurações de Tema */}
-            <section className="space-y-6">
-              <div className="d-flex align-items-center justify-content-between">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground mb-1">Aparência do Sistema</h3>
-                  <p className="text-muted-foreground small mb-0">Escolha como o sistema deve aparecer no seu dispositivo.</p>
-                </div>
-              </div>
-
-              <div className="row g-4">
-                <div className="col-md-6">
-                  <div
-                    onClick={() => isDarkMode && toggleDarkMode()}
-                    className={cn(
-                      "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300 hover:scale-[1.02]",
-                      !isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
-                    )}
-                  >
-                    <div className="aspect-[16/9] rounded-xl bg-slate-100 mb-3 overflow-hidden border border-border/50 relative">
-                      {/* Mockup Light Mode */}
-                      <div className="absolute inset-0 p-3">
-                        <div className="w-full h-4 bg-white rounded shadow-sm mb-2"></div>
-                        <div className="row g-2">
-                          <div className="col-4"><div className="h-20 bg-white rounded shadow-sm"></div></div>
-                          <div className="col-8"><div className="h-20 bg-white rounded shadow-sm"></div></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="px-3 pb-2 d-flex align-items-center justify-content-between">
-                      <span className="font-bold text-sm">Modo Claro</span>
-                      {!isDarkMode && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
-                    </div>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div
-                    onClick={() => !isDarkMode && toggleDarkMode()}
-                    className={cn(
-                      "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300 hover:scale-[1.02]",
-                      isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
-                    )}
-                  >
-                    <div className="aspect-[16/9] rounded-xl bg-slate-900 mb-3 overflow-hidden border border-border/50 relative">
-                      {/* Mockup Dark Mode */}
-                      <div className="absolute inset-0 p-3">
-                        <div className="w-full h-4 bg-slate-800 rounded shadow-sm mb-2"></div>
-                        <div className="row g-2">
-                          <div className="col-4"><div className="h-20 bg-slate-800 rounded shadow-sm"></div></div>
-                          <div className="col-8"><div className="h-20 bg-slate-800 rounded shadow-sm"></div></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="px-3 pb-2 d-flex align-items-center justify-content-between">
-                      <span className="font-bold text-sm">Modo Escuro</span>
-                      {isDarkMode && <span className="material-symbols-outlined text-primary text-lg">check_circle</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Cor de Destaque */}
-            <section className="pt-8 border-top border-border">
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-foreground mb-1">Cor de Destaque</h3>
-                <p className="text-muted-foreground small mb-0">Personalize a identidade visual do seu painel.</p>
-              </div>
-
-              <div className="d-flex align-items-center gap-4 flex-wrap">
-                {[
-                  { id: 'default', color: '#4361ee', name: 'Indigo' },
-                  { id: 'emerald', color: '#10b981', name: 'Emerald' },
-                  { id: 'rose', color: '#f43f5e', name: 'Rose' },
-                  { id: 'amber', color: '#f59e0b', name: 'Amber' },
-                  { id: 'violet', color: '#8b5cf6', name: 'Violet' },
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    className="group relative d-flex flex-column align-items-center gap-2 border-0 bg-transparent p-0"
-                  >
-                    <div
-                      className="w-12 h-12 rounded-2xl transition-all duration-300 group-hover:scale-110 shadow-sm border-2"
-                      style={{ backgroundColor: c.color, borderColor: c.id === 'default' ? 'var(--primary)' : 'transparent' }}
-                    ></div>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                      {c.name}
-                    </span>
-                  </button>
-                ))}
-
-                <button className="w-12 h-12 rounded-2xl bg-muted border border-dashed border-border d-flex align-items-center justify-content-center text-muted-foreground hover:bg-primary/5 hover:border-primary hover:text-primary transition-all">
-                  <span className="material-symbols-outlined">add</span>
-                </button>
-              </div>
-            </section>
-
-            {/* Security Quick Link */}
-            <section className="pt-10">
-              <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 d-flex align-items-center justify-content-between overflow-hidden relative">
-                <div className="flex-grow-1 relative z-10">
-                  <div className="d-flex align-items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-                    <span className="text-xs font-black text-primary uppercase tracking-widest">Segurança Pro</span>
-                  </div>
-                  <h4 className="text-xl font-bold text-foreground mb-1">Proteja seus dados financeiros</h4>
-                  <p className="text-muted-foreground small mb-0 max-w-sm">Ative o 2FA para garantir que só você tenha acesso às suas movimentações bancárias.</p>
-                </div>
-                <button className="btn btn-primary rounded-pill px-6 py-2 fw-bold text-sm relative z-10 shadow-lg border-0">
-                  Configurar MFA
-                </button>
-                <div className="absolute end-[-20px] bottom-[-20px] opacity-[0.03] rotate-12">
-                  <span className="material-symbols-outlined" style={{ fontSize: '180px' }}>shield</span>
-                </div>
-              </div>
-            </section>
-          </div>
-        );
-      case 'titulares':
-        return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-10 d-flex justify-content-between align-items-center">
-              <div>
-                <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className="w-2 h-8 bg-primary rounded-full"></div>
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">
-                    {internalView === 'list' ? 'Titulares' : internalView === 'add' ? 'Novo Titular' : 'Editar Titular'}
-                  </h1>
-                </div>
-                <p className="text-muted-foreground m-0">
-                  {internalView === 'list' ? 'Gerencie as pessoas que possuem contas nesta família.' : 'Preencha os dados abaixo.'}
-                </p>
-              </div>
-              {internalView === 'list' ? (
-                <button
-                  onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                  className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
-                >
-                  <span className="material-symbols-outlined">add</span>
-                  NOVO
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setInternalView('list'); setEditingItem(null); }}
-                  className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
-                >
-                  <span className="material-symbols-outlined">arrow_back</span>
-                  VOLTAR
-                </button>
-              )}
-            </header>
-
-            {internalView === 'list' ? (
-              <div className="grid gap-4">
-                {titulares.map((t) => (
-                  <div key={t.id} className="group bg-card hover:bg-muted/30 p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all duration-300">
-                    <div className="d-flex align-items-center gap-4">
-                      <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-border shadow-sm">
-                        <Image
-                          src={t.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.nome)}&background=random&color=fff&bold=true`}
-                          fill
-                          unoptimized
-                          className="object-fit-cover"
-                          alt={t.nome}
-                        />
-                      </div>
-                      <div>
-                        <div className="fw-bold text-foreground text-lg tracking-tight leading-tight">{t.nome}</div>
-                        <div className="d-flex align-items-center gap-2 mt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary fw-bold text-[10px] uppercase tracking-wider">Titular Principal</span>
-                          <span className="text-muted-foreground text-[10px] opacity-60 uppercase font-bold tracking-tighter">ID: #{t.id}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="d-flex gap-2">
-                      <button onClick={() => { setEditingItem(t); setInternalView('edit'); }} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
-                      <button onClick={() => onDeleteTitular(t.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
-                    </div>
-                  </div>
-                ))}
-
-                {titulares.length === 0 && (
-                  <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
-                    <span className="material-symbols-outlined text-[48px] mb-4">person_off</span>
-                    <p className="fw-bold text-uppercase tracking-widest text-sm">Nenhum titular cadastrado</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-card p-6 rounded-3xl border border-border shadow-sm border-dashed">
-                <TitularForm
-                  initialData={editingItem}
-                  onCancel={() => { setInternalView('list'); setEditingItem(null); }}
-                  onSubmit={(data) => {
-                    if (editingItem) onUpdateTitular(editingItem.id, data);
-                    else onAddTitular(data);
-                    setInternalView('list');
-                    setEditingItem(null);
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        );
-      case 'cartoes':
-        return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-10 d-flex justify-content-between align-items-center">
-              <div>
-                <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className="w-2 h-8 bg-primary rounded-full"></div>
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">
-                    {internalView === 'list' ? 'Cartões' : internalView === 'add' ? 'Novo Cartão' : 'Editar Cartão'}
-                  </h1>
-                </div>
-                <p className="text-muted-foreground m-0">
-                  {internalView === 'list' ? 'Configure e gerencie seus cartões de crédito.' : 'Preencha os dados abaixo.'}
-                </p>
-              </div>
-              {internalView === 'list' ? (
-                <button
-                  onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                  className="btn btn-primary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2 shadow-lg border-0"
-                >
-                  <span className="material-symbols-outlined">add_card</span>
-                  NOVO
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setInternalView('list'); setEditingItem(null); }}
-                  className="btn btn-outline-secondary rounded-2xl px-6 py-3 fw-bold d-flex align-items-center gap-2"
-                >
-                  <span className="material-symbols-outlined">arrow_back</span>
-                  VOLTAR
-                </button>
-              )}
-            </header>
-
-            {internalView === 'list' ? (
-              <div className="row g-4 overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: '600px' }}>
-                {cartoes.map((c) => {
-                  const titular = titulares.find(t => t.id === c.titular_id);
-                  return (
-                    <div key={c.id} className="col-md-6 mb-2">
-                      <div className="group bg-card hover:bg-muted/30 p-5 rounded-[1.5rem] border border-border transition-all duration-300 relative overflow-hidden">
-                        <div className="d-flex justify-content-between align-items-start relative z-10">
-                          <div className="d-flex align-items-center gap-4">
-                            {getCardLogo(c.nome_cartao)}
-                            <div className="overflow-hidden">
-                              <div className="fw-bold text-foreground tracking-tight m-0 text-truncate">{c.nome_cartao}</div>
-                              <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
-                                {titular?.nome || 'Personal'}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="d-flex gap-1">
-                            <button onClick={() => { setEditingItem(c); setInternalView('edit'); }} className="btn-icon rounded-lg hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-edit-blue">edit</span></button>
-                            <button onClick={() => onDeleteCartao(c.id)} className="btn-icon rounded-lg hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-delete-red">delete</span></button>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 pt-4 border-top border-border/50 d-flex gap-4 relative z-10">
-                          <div>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0 opacity-50">Vencimento</p>
-                            <p className="text-xs font-bold text-foreground m-0">Dia {c.dia_vencimento}</p>
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-0 opacity-50">Fechamento</p>
-                            <p className="text-xs font-bold text-foreground m-0">Dia {c.dia_fechamento}</p>
-                          </div>
-                        </div>
-
-                        {/* Decoração sutil de cartão */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="bg-card p-6 rounded-3xl border border-border shadow-sm border-dashed">
-                <CartaoForm
-                  initialData={editingItem}
-                  titulares={titulares}
-                  onCancel={() => { setInternalView('list'); setEditingItem(null); }}
-                  onSubmit={async (data) => {
-                    if (editingItem) await onUpdateCartao(editingItem.id, data);
-                    else await onAddCartao(data);
-                    setInternalView('list');
-                    setEditingItem(null);
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        );
-      case 'familia':
-        return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-10">
-              <div className="d-flex align-items-center gap-3 mb-2">
-                <div className="w-2 h-8 bg-primary rounded-full"></div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight m-0">Família</h1>
-              </div>
-              <p className="text-muted-foreground">Gerencie os membros que compartilham este painel com você.</p>
-            </header>
-
-            {userType === 'titular' && (
-              <section className="bg-primary/5 border border-primary/20 rounded-3xl p-6 relative overflow-hidden mb-10">
-                <div className="relative z-10 w-100">
-                  <h4 className="text-foreground font-bold text-lg mb-1">Convidar por E-mail</h4>
-                  <p className="text-muted-foreground small mb-4">Envie um convite para um novo membro se juntar à sua família.</p>
-                  <div className="d-flex gap-2">
-                    <div className="flex-grow-1 position-relative">
-                      <input
-                        type="email"
-                        className="form-control bg-card border border-border text-foreground rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                        placeholder="exemplo@email.com"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                      />
-                      <span className="material-symbols-outlined position-absolute end-0 top-50 translate-middle-y me-4 text-muted opacity-30">mail</span>
-                    </div>
-                    <button
-                      className="px-8 rounded-2xl btn btn-primary fw-bold text-sm text-uppercase border-0 shadow-lg"
-                      onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
-                    >
-                      Convidar
-                    </button>
-                  </div>
-                </div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-              </section>
-            )}
-
-            <div className="grid gap-3">
-              {familyMembers.map((member) => (
-                <div key={member.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between transition-all hover:bg-muted/20">
-                  <div className="d-flex align-items-center gap-4">
-                    <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-sm">
-                      <Image
-                        src={member.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.nome)}&background=random&color=fff&bold=true`}
-                        fill
-                        unoptimized
-                        className="object-fit-cover"
-                        alt={member.nome}
-                      />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-foreground text-base tracking-tight leading-tight">{member.nome}</div>
-                      <div className="text-muted-foreground text-xs opacity-60">@{member.email.split('@')[0]}</div>
-                    </div>
-                  </div>
-                  <div className="d-flex align-items-center gap-3">
-                    <span className={cn(
-                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                      member.tipo === 'titular' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                    )}>
-                      {member.tipo === 'titular' ? 'Admin' : 'Membro'}
-                    </span>
-                    {userType === 'titular' && member.email !== user?.email && (
-                      <button className="btn-icon rounded-xl hover:bg-danger/10 hover:text-danger text-muted-foreground transition-all">
-                        <span className="material-symbols-outlined text-[18px]">person_remove</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-30 text-foreground">
-            <span className="material-symbols-outlined text-[120px] mb-8">construction</span>
-            <h3 className="fw-bold h2 tracking-tighter">Em breve</h3>
-            <p className="fs-5 tracking-widest text-uppercase">Esta seção está sendo preparada.</p>
-          </div>
-        );
-    }
-  };
 
   return (
     <div className="modal fade show d-block settings-modal-custom" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
       <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
         <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
-          <div className="d-flex h-100 flex-column flex-md-row">
-            {/* SideNavBar Interna */}
-            <aside className="bg-muted/20 border-end border-border d-flex flex-column h-full py-6 flex-shrink-0" style={{ width: '240px' }}>
-              <div className="px-6 mb-8 mt-2">
-                <h2 className="text-foreground fw-bold h4 m-0 tracking-tighter text-uppercase">Definições</h2>
-                <p className="text-muted-foreground m-0 tracking-widest text-uppercase mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>Preferências</p>
-              </div>
-
-              <nav className="flex-fill space-y-1 px-4 overflow-auto mt-2">
-                {tabs.map((tab) => (
-                  <button
-                    type="button"
-                    key={tab.id}
-                    className={cn(
-                      "w-100 d-flex align-items-center gap-3 px-4 py-3 border-0 transition-all duration-300 rounded-xl mb-1",
-                      activeTab === tab.id
-                        ? "bg-primary text-white shadow-lg shadow-primary/20"
-                        : "bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                    )}
-                    style={{ fontSize: '10px', textAlign: 'left' }}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-                    <span className="font-bold tracking-widest text-uppercase">{tab.label}</span>
-                  </button>
-                ))}
-              </nav>
-
-              <div className="px-6 mt-auto pt-6 border-top border-border">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="w-12 h-12 rounded-circle bg-primary/10 d-flex align-items-center justify-content-center border border-primary/20 shadow-sm flex-shrink-0">
-                    {user?.foto ? (
-                      <Image src={user.foto} width={48} height={48} className="rounded-circle object-cover" unoptimized alt={user.nome} referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="material-symbols-outlined text-primary opacity-80" style={{ fontSize: '20px' }}>person</span>
-                    )}
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="text-foreground fw-black text-truncate" style={{ fontSize: '15px', lineHeight: '1' }}>{user?.nome || 'Usuário'}</div>
-                    <div className="text-muted-foreground text-uppercase tracking-widest mt-1" style={{ fontSize: '9px', fontWeight: 'bold' }}>
-                      {user?.tipo === 'titular' ? 'Admin' : 'Membro'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            {/* Main Content Area */}
-            <main className="flex-fill overflow-auto p-5 p-md-10 bg-background custom-scrollbar">
-              <div className="max-w-4xl h-100 d-flex flex-column">
-                <div className="flex-fill">
-                  {renderContent()}
-                </div>
-
-                <footer className="mt-16 pt-8 border-top border-border d-flex justify-content-end gap-6 pb-6">
-                  <button type="button" className="px-10 py-3 rounded-pill btn btn-light border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors" onClick={onClose}>
-                    Fechar
-                  </button>
-                </footer>
-              </div>
-            </main>
+          <SettingsView
+            user={user}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            familyMembers={familyMembers}
+            onInvite={onInvite}
+            userType={userType}
+            titulares={titulares}
+            cartoes={cartoes}
+            onAddTitular={onAddTitular}
+            onUpdateTitular={onUpdateTitular}
+            onDeleteTitular={onDeleteTitular}
+            onAddCartao={onAddCartao}
+            onUpdateCartao={onUpdateCartao}
+            onDeleteCartao={onDeleteCartao}
+            isMobile={false}
+          />
+          {/* Footer fixo para o Modal */}
+          <div className="absolute bottom-0 right-0 p-6 z-50">
+            <button type="button" className="px-10 py-3 rounded-pill btn btn-light border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors" onClick={onClose}>
+              Fechar
+            </button>
           </div>
         </div>
       </div>
@@ -1993,18 +1541,18 @@ export function EmprestimoForm({
   return (
     <>
       {!hideHeader && (
-        <header className="mb-8 pe-10">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#FEF3C7] p-3 rounded-2xl border border-amber-200/30 shadow-sm">
-              <span className="material-symbols-outlined text-amber-700" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <header className="mb-4 md:mb-8 pe-10">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="bg-[#FEF3C7] p-2 md:p-3 rounded-2xl border border-amber-200/30 shadow-sm">
+              <span className="material-symbols-outlined text-amber-700 text-[32px] md:text-[54px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 account_balance
               </span>
             </div>
-            <div className="space-y-1">
-              <span className="font-headline font-bold text-amber-700/50 uppercase tracking-[0.2em] text-[11px]">
+            <div className="space-y-0.5 md:space-y-1">
+              <span className="font-headline font-bold text-amber-700/50 uppercase tracking-[0.2em] text-[9px] md:text-[11px]">
                 Empréstimos e Financiamentos
               </span>
-              <h1 className="text-4xl font-headline font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-xl md:text-4xl font-headline font-black text-slate-900 tracking-tight leading-tight">
                 Novo Crédito
               </h1>
             </div>
@@ -2012,13 +1560,13 @@ export function EmprestimoForm({
         </header>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 md:gap-y-3">
           <div className="md:col-span-2">
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Descrição do Contrato</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição do Contrato</label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
               placeholder="Ex: Financiamento Imobiliário Inter"
               type="text"
               value={formData.descricao}
@@ -2027,12 +1575,12 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Valor da Parcela (VF)</label>
-            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
-              <span className="text-navy/40 font-bold mr-2">R$</span>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Valor da Parcela (VF)</label>
+            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
+              <span className="text-navy/40 font-bold mr-2 text-sm md:text-base">R$</span>
               <input
                 required
-                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy text-sm md:text-base"
                 type="number" step="0.01"
                 value={formData.valor_parcela}
                 onChange={e => setFormData({ ...formData, valor_parcela: e.target.value })}
@@ -2041,24 +1589,24 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Taxa Mensal (%)</label>
-            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 ring-1 ring-outline-variant/30">
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Taxa Mensal (%)</label>
+            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
               <input
                 required
-                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy"
+                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy text-sm md:text-base"
                 type="number" step="0.0001"
                 value={formData.taxa_mensal_percentual}
                 onChange={e => setFormData({ ...formData, taxa_mensal_percentual: e.target.value })}
               />
-              <span className="text-navy/40 font-bold ml-2">%</span>
+              <span className="text-navy/40 font-bold ml-2 text-sm md:text-base">%</span>
             </div>
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Total de Parcelas</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Total de Parcelas</label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
               type="number"
               value={formData.total_parcelas}
               onChange={e => setFormData({ ...formData, total_parcelas: e.target.value })}
@@ -2066,18 +1614,18 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Data 1º Vencimento</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data 1º Vencimento</label>
             <input
               required
               type="date"
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm h-[44px]"
               value={formData.data_primeiro_vencimento}
               onChange={e => setFormData({ ...formData, data_primeiro_vencimento: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Competência de Início</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Competência de Início</label>
             <select
               className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.competencia_inicial}
@@ -2105,7 +1653,7 @@ export function EmprestimoForm({
           </div>
 
           <div>
-            <label className="label-md font-label text-on-surface-variant mb-1 block ml-1">Responsável</label>
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
             <select
               className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.titular_id}
@@ -2468,7 +2016,7 @@ export function ExpenseSettingsModal({
       case 'rec_parceladas':
         const isReceitaTab = activeTab.startsWith('rec_');
         const isRecorrenteTab = activeTab === 'recorrentes' || activeTab === 'rec_recorrentes';
-        
+
         const filtered = contasFixas.filter(c => {
           const typeMatch = isReceitaTab ? c.tipo === 'receita' : (!c.tipo || c.tipo === 'despesa');
           const recurrenceMatch = isRecorrenteTab ? c.total_parcelas === null : c.total_parcelas !== null;
@@ -2481,13 +2029,13 @@ export function ExpenseSettingsModal({
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <header className="mb-8">
               <h3 className="text-xl font-bold text-foreground m-0">
-                {isReceitaTab 
-                  ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas') 
-                  : (isRecorrenteTab ? 'Despesas Recorrentes' : 'Gastos Parcelados')}
+                {isReceitaTab
+                  ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
+                  : (isRecorrenteTab ? 'Despesas Recorrentes' : 'Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s')}
               </h3>
               <p className="text-muted-foreground small">
-                {isReceitaTab 
-                  ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo (ex: Bônus parcelado).') 
+                {isReceitaTab
+                  ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo (ex: Bônus parcelado).')
                   : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo (ex: Empréstimos pessoais).')}
               </p>
             </header>
@@ -2568,7 +2116,7 @@ export function ExpenseSettingsModal({
                               ? "text-white"
                               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           )}
-                          style={{ 
+                          style={{
                             fontSize: '10px',
                             background: activeTab === tab.id ? '#111827' : 'transparent',
                             borderRadius: '9999px',

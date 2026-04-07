@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import { Sidebar, Topbar, MobileNav } from '@/components/layout';
-import { KPICards, ExtratoTable, DashboardCharts } from '@/components/dashboard';
+import { KPICards, ExtratoTable, TitularChart, PaymentStatusChart } from '@/components/dashboard';
+
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
 import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal, EmprestimoForm, PayoffModal, ExpenseSettingsModal, UniversalFinanceForm } from '@/components/modals';
+import { SettingsView } from '@/components/settings-view';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -16,6 +18,7 @@ import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-
 
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
+  const [activeSettingsTab, setActiveSettingsTab] = useState('geral');
   const [inviteEmail, setInviteEmail] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', pass: '', nome: '' });
   const [loginError, setLoginError] = useState('');
@@ -283,33 +286,34 @@ export default function Home() {
         return (
           <div className="space-y-4">
             <KPICards stats={stats} />
-            <div className="row g-4 mt-4">
-              <div className="col-lg-8">
+            <div className="row g-3 mt-1">
+              <div className="col-lg-6">
                 <ExtratoTable 
                   despesas={sortExpenses(filteredDespesas).slice(0, 15)} 
                   onEdit={(item: Despesa) => { setModalType('despesa'); setEditingItem(item); setIsModalOpen(true); }}
                 />
               </div>
-              <div className="col-lg-4">
-                <div className="row g-4 h-100">
-                  <div className="col-12">
-                    <DashboardCharts despesas={filteredDespesas} stats={stats} titulares={config.titulares} />
+              <div className="col-lg-6">
+                <div className="row g-3 h-100">
+                  <div className="col-md-6">
+                    <TitularChart despesas={filteredDespesas} titulares={config.titulares} />
                   </div>
-                  <div className="col-12 mt-4">
+                  <div className="col-md-6">
+                    <PaymentStatusChart stats={stats} />
+                  </div>
+                  <div className="col-12">
                     <div className="bg-card border border-border rounded-4 shadow-sm h-100">
-                      <div className="card-body p-4">
-                        <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+                      <div className="card-body p-3">
+                        <h6 className="fw-bold mb-3 d-flex align-items-center gap-2 small text-muted text-uppercase">
                           <i className="fa-solid fa-note-sticky text-primary"></i> Anotações
-                        </h5>
+                        </h6>
                         <textarea
-                          className="form-control border-0 bg-light rounded-4 p-3"
+                          className="form-control border-0 bg-light rounded-4 p-2 small transition-all focus:bg-white focus:ring-1 focus:ring-primary"
                           rows={8}
-                          placeholder="💡 Toque aqui para escrever seus lembretes, metas financeiras ou observações do mês..."
-                          style={{ resize: 'none' }}
+
+                          placeholder="💡 Seus lembretes..."
+                          style={{ resize: 'none', fontSize: '0.85rem' }}
                         ></textarea>
-                        <div className="mt-3 text-end">
-                          <span className="small text-muted italic">Salvo automaticamente</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -862,6 +866,36 @@ export default function Home() {
           </div>
         );
 
+      case 'config':
+        return (
+          <SettingsView
+            user={userProfile}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            familyMembers={familyMembers}
+            onInvite={handleInvite}
+            userType={userType}
+            titulares={config.titulares}
+            cartoes={config.cartoes}
+            onAddTitular={addTitular}
+            onUpdateTitular={updateTitular}
+            onDeleteTitular={(id) => { 
+              setItemToDelete({ id, type: 'titular' });
+              setIsConfirmDeleteOpen(true);
+            }}
+            onAddCartao={addCartao}
+            onUpdateCartao={updateCartao}
+            onDeleteCartao={(id) => {
+              setItemToDelete({ id, type: 'cartao' });
+              setIsConfirmDeleteOpen(true);
+            }}
+            isMobile={true}
+            activeTab={activeSettingsTab}
+            onTabChange={setActiveSettingsTab}
+            onCloseSettings={() => setActiveView('dashboard')}
+          />
+        );
+
       default:
         return null;
     }
@@ -895,14 +929,18 @@ export default function Home() {
       />
 
       <div className="content">
-        <Topbar
-          title={activeView}
-          month={currentMonth}
-          year={currentYear}
-          onChangeMonth={changeMonth}
-          onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
-          onLogout={signOut}
-        />
+        {activeView !== 'config' && (
+          <Topbar
+            title={activeView}
+            month={currentMonth}
+            year={currentYear}
+            onChangeMonth={changeMonth}
+            onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
+            onLogout={signOut}
+            showBackButton={activeView !== 'dashboard'}
+            onBack={() => setActiveView('dashboard')}
+          />
+        )}
 
         <div className="content-body p-3 p-md-4">
           {isLoading ? (
@@ -912,13 +950,21 @@ export default function Home() {
           ) : renderContent()}
         </div>
 
-        <MobileNav
-          activeView={activeView}
-          onViewChange={(view) => {
-            if (view === 'config') setIsSettingsOpen(true);
-            else setActiveView(view);
-          }}
-        />
+        {activeView !== 'config' && (
+          <MobileNav
+            activeView={activeView}
+            onViewChange={(view) => {
+              setActiveView(view);
+            }}
+            onLaunch={() => {
+              setModalType('despesa');
+              setEditingItem(null);
+              setIsModalOpen(true);
+            }}
+            activeSettingsTab={activeSettingsTab}
+            onSettingsTabChange={setActiveSettingsTab}
+          />
+        )}
 
         {/* Modals */}
         <Modal

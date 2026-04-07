@@ -49,8 +49,9 @@ export function FinanceTable({
                 <th 
                   key={h} 
                   className={cn(
-                    "px-4 py-3 text-uppercase small fw-bold text-muted border-0",
-                    h === 'Ações' && "text-center"
+                    "px-2 px-md-4 py-3 text-uppercase small fw-bold text-muted border-0",
+                    h === 'Ações' && "text-center",
+                    (h === 'Titular' || h === 'Categoria' || h === 'Parc.' || h === 'Data') && "d-none d-md-table-cell"
                   )}
                 >
                   {h}
@@ -80,7 +81,7 @@ export function FinanceTable({
                   >
                     {type === 'geral' && (
                       <>
-                        <td className="px-4 py-3">
+                        <td className="px-2 px-md-4 py-3">
                           {(() => {
                             if (item.status === 'Pago') return <span className="status-pago">Pago</span>;
 
@@ -93,12 +94,12 @@ export function FinanceTable({
                             return <span className="status-aberto">Em aberto</span>;
                           })()}
                         </td>
-                        <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
-                        <td className={cn("px-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
-                        <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
-                        <td className="px-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
-                        <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
-                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                        <td className="px-2 px-md-4 py-3 fw-bold d-none d-md-table-cell">{getTitularName((item as any).titular_id)}</td>
+                        <td className={cn("px-2 px-md-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
+                        <td className="px-2 px-md-4 py-3 d-none d-md-table-cell"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
+                        <td className="px-2 px-md-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
+                        <td className="px-2 px-md-4 py-3 small text-muted d-none d-md-table-cell">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
+                        <td className="px-2 px-md-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                       </>
                     )}
 
@@ -117,17 +118,17 @@ export function FinanceTable({
 
                     {type === 'receitas' && (
                       <>
-                        <td className="px-4 py-3">
+                        <td className="px-2 px-md-4 py-3">
                           <span className={cn(
                             (item as any).status === 'Recebido' ? "status-pago" : "status-aberto"
                           )}>
                             {(item as any).status || 'Recebido'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-muted">{formatDate((item as any).data_recebimento)}</td>
-                        <td className="px-4 py-3 fw-bold">{getTitularName((item as any).titular_id)}</td>
-                        <td className="px-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
-                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                        <td className="px-2 px-md-4 py-3 text-muted d-none d-md-table-cell">{formatDate((item as any).data_recebimento)}</td>
+                        <td className="px-2 px-md-4 py-3 fw-bold d-none d-md-table-cell">{getTitularName((item as any).titular_id)}</td>
+                        <td className="px-2 px-md-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
+                        <td className="px-2 px-md-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
                       </>
                     )}
 
