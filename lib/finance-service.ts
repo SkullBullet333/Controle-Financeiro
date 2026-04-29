@@ -185,28 +185,26 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string, fam
 
 export async function salvarReceita(dados: Partial<Receita>, userId: string, familyId: string) {
   if (dados.id) {
-    const dataPretendida = parseISO(dados.data_recebimento!);
+    const { id, ...camposParaAtualizar } = dados as any;
     
-    // Aplica regras de ajuste de data de receita
-    const dataAjustada = ajustarDataReceita(dataPretendida);
-    const comp = calcularCompetenciaReceita(dataAjustada);
+    let updatePayload: any = { 
+      ...camposParaAtualizar,
+      updated_at: new Date().toISOString() 
+    };
+
+    if (dados.data_recebimento) {
+      const dataPretendida = parseISO(dados.data_recebimento);
+      const dataAjustada = ajustarDataReceita(dataPretendida);
+      const comp = calcularCompetenciaReceita(dataAjustada);
+      
+      updatePayload.data_recebimento = format(dataAjustada, 'yyyy-MM-dd');
+      updatePayload.competencia = comp;
+    }
 
     const { data, error } = await supabase
       .from('receitas')
-      .update({
-        descricao: dados.descricao,
-        categoria: dados.categoria,
-        valor: dados.valor,
-        parcela_atual: dados.parcela_atual || 1,
-        parcela_total: dados.parcela_total || 1,
-        data_recebimento: format(dataAjustada, 'yyyy-MM-dd'),
-        titular_id: dados.titular_id,
-        status: dados.status || 'Recebido',
-        competencia: comp,
-        conta_fixa_id: dados.conta_fixa_id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', dados.id)
+      .update(updatePayload)
+      .eq('id', id)
       .select()
       .single();
     
@@ -427,12 +425,11 @@ export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: strin
 
 export async function deletarEmprestimo(id: number) {
   // 1. Deletar as despesas associadas primeiro (evita erro de FK se não houver cascade)
-  const { error: despesasError } = await supabase
+  // 1. Desvincular as despesas associadas para preservar o histórico
+  await supabase
     .from('despesas')
-    .delete()
+    .update({ emprestimo_id: null })
     .eq('emprestimo_id', id);
-  
-  if (despesasError) throw despesasError;
 
   // 2. Deletar o mestre do empréstimo
   const { error } = await supabase.from('emprestimos').delete().eq('id', id);
@@ -462,11 +459,11 @@ export async function salvarContaFixaConfig(dados: Partial<ContaFixaConfig>, use
 }
 
 export async function deletarContaFixaConfig(id: number) {
-  // 1. Deletar as despesas associadas primeiro
-  await supabase.from('despesas').delete().eq('conta_fixa_id', id);
+  // 1. Desvincular as despesas associadas para preservar o histórico
+  await supabase.from('despesas').update({ conta_fixa_id: null }).eq('conta_fixa_id', id);
   
-  // 2. Deletar as receitas associadas
-  await supabase.from('receitas').delete().eq('conta_fixa_id', id);
+  // 2. Desvincular as receitas associadas
+  await supabase.from('receitas').update({ conta_fixa_id: null }).eq('conta_fixa_id', id);
 
   // 3. Deletar o mestre
   const { error } = await supabase.from('contas_fixas').delete().eq('id', id);

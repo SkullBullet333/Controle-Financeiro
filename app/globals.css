@@ -622,6 +622,18 @@ body.dark-mode .status-simulado {
   background-color: rgba(231, 29, 54, 0.05) !important;
 }
 
+.table-primary-subtle {
+  background-color: rgba(67, 97, 238, 0.08) !important;
+}
+
+.border-primary-subtle {
+  border-left: 4px solid var(--primary) !important;
+}
+
+body.dark-mode .table-primary-subtle {
+  background-color: rgba(67, 97, 238, 0.15) !important;
+}
+
 /* Entry Card style for forms */
 .entry-card {
   background: var(--card);

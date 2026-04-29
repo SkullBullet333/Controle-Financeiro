@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
-import { format, addMonths, parseISO, isLastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
+import { format, addMonths, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +15,7 @@ export function useFinance(activeView: string) {
   const [contasFixas, setContasFixas] = useState<ContaFixaConfig[]>([]);
   const [nota, setNota] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [themeColor, setThemeColor] = useState<string>('#4361ee');
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
@@ -204,15 +205,26 @@ export function useFinance(activeView: string) {
     if (savedDark) {
       const dark = JSON.parse(savedDark);
       setIsDarkMode(dark);
-      if (dark) document.body.classList.add('dark');
+      if (dark) document.body.classList.add('dark-mode');
+    }
+    
+    const savedColor = localStorage.getItem('fin_theme_color');
+    if (savedColor) {
+      setThemeColor(savedColor);
+      document.documentElement.style.setProperty('--primary', savedColor);
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('fin_dark', JSON.stringify(isDarkMode));
-    if (isDarkMode) document.body.classList.add('dark');
-    else document.body.classList.remove('dark');
+    if (isDarkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
   }, [isDarkMode]);
+
+  useEffect(() => {
+    localStorage.setItem('fin_theme_color', themeColor);
+    document.documentElement.style.setProperty('--primary', themeColor);
+  }, [themeColor]);
 
   const competencia = useMemo(() => {
     return `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
@@ -353,14 +365,19 @@ export function useFinance(activeView: string) {
   const updateCartaoTransacao = async (id: number, updates: Partial<CartaoTransacao>) => {
     if (!user) return;
     try {
+      // 1. Obter competência atual para recalcular faturas se necessário
       const { data: item } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
-      const { error } = await supabase.from('cartoes').update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      }).eq('id', id);
+      
+      const payload: any = { ...updates };
+      if (payload.valor !== undefined) payload.valor = Number(payload.valor);
+
+      const { error } = await supabase.from('cartoes').update(payload).eq('id', id);
       if (error) throw error;
       
-      if (item) await consolidarFaturas(item.competencia, user.id);
+      // 2. Consolidar faturas da competência afetada
+      if (item?.competencia) await consolidarFaturas(item.competencia, user.id);
+      
+      // 3. Se a competência mudou, consolidar a nova também
       if (updates.competencia && updates.competencia !== item?.competencia) {
         await consolidarFaturas(updates.competencia, user.id);
       }
@@ -857,7 +874,13 @@ export function useFinance(activeView: string) {
     const totals: Record<number, { despesas: number, receitas: number }> = {};
     config.titulares.forEach(t => totals[t.id] = { despesas: 0, receitas: 0 });
     
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    
     consolidatedDespesas.forEach(d => {
+      // Excluir se não for da competência atual OU se estiver vencido (vencimento < hoje e em aberto)
+      const isOverdue = d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr;
+      if (d.competencia !== competencia || isOverdue) return;
+
       if (totals[d.titular_id]) {
         totals[d.titular_id].despesas += d.valor;
       }
@@ -923,7 +946,7 @@ export function useFinance(activeView: string) {
       }, 0);
 
       const rec = recFisicas + recVirtuais;
-      const desp = despesas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
+      const desp = despesas.filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura ')).reduce((acc, d) => acc + d.valor, 0);
       const fats = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + c.valor, 0);
       
       projecao.push({
@@ -964,6 +987,129 @@ export function useFinance(activeView: string) {
       }).catch(err => console.error('Antigravity: Error auto-syncing revenues:', err));
     }
   }, [consolidatedReceitas, user, familyId, isLoading, fetchData]);
+
+  const lastAutoLaunchRef = useRef<string | null>(null);
+
+  // Auto-lançamento de despesas projetadas (5 dias antes do fim do mês)
+  useEffect(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    
+    const autoLaunch = async () => {
+      if (isLoading || !familyId || !user?.id || (emprestimos.length === 0 && contasFixas.length === 0)) return;
+      if (lastAutoLaunchRef.current === todayStr) return;
+      
+      const today = new Date();
+      const lastDay = lastDayOfMonth(today);
+      const daysToLast = lastDay.getDate() - today.getDate();
+      
+      // Só ativa se estivermos nos últimos 5 dias do mês
+      if (daysToLast > 5) return;
+
+      const nextMonthDate = addMonths(today, 1);
+      const currentComp = format(today, 'MM/yyyy');
+      const nextComp = format(nextMonthDate, 'MM/yyyy');
+      const targetComps = [currentComp, nextComp];
+      
+      const toLaunch: any[] = [];
+
+      // 1. Verificar Empréstimos
+      for (const loan of emprestimos) {
+        const dataIni = parseISO(loan.data_primeiro_vencimento);
+        const diaOriginal = getDate(dataIni);
+        const isUltimo = isLastDayOfMonth(dataIni);
+
+        for (let i = 1; i <= loan.total_parcelas; i++) {
+          let comp = '';
+          if (loan.competencia_inicial) {
+            const [m, y] = loan.competencia_inicial.split('/').map(Number);
+            comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+          } else {
+            const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+            comp = format(dataV, 'MM/yyyy');
+          }
+
+          if (targetComps.includes(comp)) {
+            const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i);
+            if (!exists) {
+              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+              toLaunch.push({
+                descricao: loan.descricao,
+                valor: loan.valor_parcela,
+                vencimento: format(dataVenc, 'yyyy-MM-dd'),
+                competencia: comp,
+                status: 'Em aberto',
+                titular_id: loan.titular_id,
+                emprestimo_id: loan.id,
+                parcela_atual: i,
+                parcela_total: loan.total_parcelas,
+                categoria: 'Empréstimos e Financiamentos',
+                user_id: user.id,
+                family_id: familyId
+              });
+            }
+          }
+        }
+      }
+
+      // 2. Verificar Contas Fixas
+      for (const config of contasFixas) {
+        if (config.tipo === 'receita') continue;
+        const dataIni = parseISO(config.data_inicio);
+        const diaOriginal = getDate(dataIni);
+        const isUltimo = isLastDayOfMonth(dataIni);
+        const limit = config.total_parcelas || 24;
+
+        for (let i = 1; i <= limit; i++) {
+          let comp = '';
+          if (config.competencia_inicial) {
+            const [m, y] = config.competencia_inicial.split('/').map(Number);
+            comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+          } else {
+            const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+            comp = format(dataV, 'MM/yyyy');
+          }
+
+          if (targetComps.includes(comp)) {
+            const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i);
+            if (!exists) {
+              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+              toLaunch.push({
+                descricao: config.descricao,
+                valor: config.valor_mensal,
+                vencimento: format(dataVenc, 'yyyy-MM-dd'),
+                competencia: comp,
+                status: 'Em aberto',
+                titular_id: config.titular_id,
+                conta_fixa_id: config.id,
+                parcela_atual: i,
+                parcela_total: config.total_parcelas || 0,
+                categoria: config.categoria || 'Contas Fixas',
+                user_id: user.id,
+                family_id: familyId
+              });
+            }
+          }
+        }
+      }
+
+      if (toLaunch.length > 0) {
+        console.log(`Auto-lançando ${toLaunch.length} despesas projetadas.`);
+        lastAutoLaunchRef.current = todayStr; // Marcar como feito
+        const { error } = await supabase.from('despesas').insert(toLaunch);
+        if (error) {
+          console.error('Erro ao auto-lançar despesas:', error);
+          lastAutoLaunchRef.current = null; // Resetar para tentar de novo
+        } else {
+          fetchData();
+        }
+      } else {
+        // Se não tem nada para lançar, também marcamos como checado para hoje
+        lastAutoLaunchRef.current = todayStr;
+      }
+    };
+
+    autoLaunch();
+  }, [isLoading, familyId, user?.id, emprestimos, contasFixas, despesas.length, fetchData]);
 
   return {
     user,
@@ -1028,6 +1174,8 @@ export function useFinance(activeView: string) {
     inviteMember,
     userName,
     userType,
-    updateProfile
+    updateProfile,
+    themeColor,
+    setThemeColor
   };
 }

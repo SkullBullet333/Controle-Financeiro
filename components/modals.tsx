@@ -69,7 +69,7 @@ export function UniversalFinanceForm({
   useEffect(() => {
     if (isEditing) {
       if ((initialData as any).taxa_mensal_percentual !== undefined) setActiveType('emprestimo');
-      else if ((initialData as any).data_recebimento !== undefined) setActiveType('receita');
+      else if ((initialData as any).data_recebimento !== undefined || (initialData as any).tipo === 'receita') setActiveType('receita');
       else setActiveType('despesa');
     }
   }, [initialData, isEditing]);
@@ -261,8 +261,9 @@ export function FinanceForm({
   const isRevenue = (type as string) === 'receita';
   const isExpense = (type as string) === 'despesa';
 
-  const [isRecorrente, setIsRecorrente] = useState(subType === 'fixa');
-  const [isIndefinite, setIsIndefinite] = useState(!(initialData as any)?.parcela_total || (initialData as any)?.parcela_total === 0);
+  const isMasterConfig = !!(initialData as any)?.data_inicio;
+  const [isRecorrente, setIsRecorrente] = useState(isMasterConfig || (subType === 'fixa' && !initialData));
+  const [isIndefinite, setIsIndefinite] = useState(isMasterConfig ? !(initialData as any).total_parcelas : true);
 
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -1411,6 +1412,8 @@ export function SettingsModal({
   user,
   isDarkMode,
   toggleDarkMode,
+  themeColor,
+  setThemeColor,
   familyMembers,
   onInvite,
   userType,
@@ -1428,6 +1431,8 @@ export function SettingsModal({
   user: Profile | null,
   isDarkMode: boolean,
   toggleDarkMode: () => void,
+  themeColor: string,
+  setThemeColor: (color: string) => void,
   familyMembers: Profile[],
   onInvite: (email: string) => void,
   userType: 'titular' | 'membro',
@@ -1450,6 +1455,8 @@ export function SettingsModal({
             user={user}
             isDarkMode={isDarkMode}
             toggleDarkMode={toggleDarkMode}
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
             familyMembers={familyMembers}
             onInvite={onInvite}
             userType={userType}
@@ -2031,7 +2038,7 @@ export function ExpenseSettingsModal({
               <h3 className="text-xl font-bold text-foreground m-0">
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
-                  : (isRecorrenteTab ? 'Despesas Recorrentes' : 'Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s')}
+                  : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s</>)}
               </h3>
               <p className="text-muted-foreground small">
                 {isReceitaTab
@@ -2094,9 +2101,8 @@ export function ExpenseSettingsModal({
               <div className="d-none d-md-flex flex-column align-items-start px-3 mb-6">
                 <div className="d-flex align-items-center gap-2 mb-2">
                   <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Master Config</span>
+                  <span className="text-[25px] font-black text-primary uppercase tracking-widest">Ajustes</span>
                 </div>
-                <h4 className="text-lg font-bold text-foreground">Ajustes</h4>
               </div>
 
               <div className="flex-grow-1 d-flex flex-row flex-md-column gap-4">

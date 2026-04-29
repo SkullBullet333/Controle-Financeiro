@@ -13,7 +13,7 @@ import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon
 import { formatCurrency, cn } from '@/lib/utils';
 import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths } from 'date-fns';
+import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths, addMonths } from 'date-fns';
 import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
 
 export default function Home() {
@@ -33,7 +33,7 @@ export default function Home() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [selectedFixed, setSelectedFixed] = useState<any>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'emprestimo' | 'conta_fixa' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
   const [selectedRadarIds, setSelectedRadarIds] = useState<number[]>([]);
@@ -81,6 +81,8 @@ export default function Home() {
     isLoading,
     isDarkMode,
     toggleDarkMode,
+    themeColor,
+    setThemeColor,
     changeMonth,
     setMonth,
     setYear,
@@ -289,14 +291,14 @@ export default function Home() {
             <div className="row g-3 mt-1">
               <div className="col-lg-6">
                 <ExtratoTable 
-                  despesas={sortExpenses(filteredDespesas).slice(0, 15)} 
+                  despesas={sortExpenses(consolidatedDespesas).slice(0, 15)} 
                   onEdit={(item: Despesa) => { setModalType('despesa'); setEditingItem(item); setIsModalOpen(true); }}
                 />
               </div>
               <div className="col-lg-6">
                 <div className="row g-3 h-100">
                   <div className="col-md-6">
-                    <TitularChart despesas={filteredDespesas} titulares={config.titulares} />
+                    <TitularChart despesas={consolidatedDespesas} titulares={config.titulares} />
                   </div>
                   <div className="col-md-6">
                     <PaymentStatusChart stats={stats} />
@@ -363,6 +365,9 @@ export default function Home() {
               totalVencido={stats.totalVencido}
               activeFilterId={activeFilterId}
               onFilterChange={setActiveFilterId}
+              allCartaoTransacoes={cartaoTransacoes}
+              currentMonth={currentMonth}
+              currentYear={currentYear}
             />
             <FilterBar
               onAdd={() => {
@@ -393,10 +398,11 @@ export default function Home() {
                 if (activeView === 'receitas') updateReceita(id, { status: currentVal === 'Recebido' ? 'Pendente' : 'Recebido' });
               }}
               onEdit={(item) => {
-                setModalType(activeView === 'receitas' ? 'receita' : 'despesa');
+                const isRevenue = (item as any).data_recebimento || (item as any).tipo === 'receita';
+                setModalType(isRevenue ? 'receita' : 'despesa');
                 
-                // Se for uma conta fixa virtual, carregar a configuração mestre para edição/reajuste
-                if ((item as any).conta_fixa_id) {
+                // Se for uma conta fixa VIRTUAL (id < 0), carregar a configuração mestre para edição/reajuste
+                if ((item as any).conta_fixa_id && (item as any).id < 0) {
                   const masterConfig = contasFixas.find(c => c.id === (item as any).conta_fixa_id);
                   if (masterConfig) {
                     setEditingItem(masterConfig as any);
@@ -407,6 +413,18 @@ export default function Home() {
 
                 setEditingItem(item);
                 setIsModalOpen(true);
+              }}
+              onInlineUpdate={(id, updates) => {
+                if (activeView === 'cartoes') {
+                  // Mapeia descricao de volta para estabelecimento para a tabela de cartões
+                  const cardUpdates = { ...updates };
+                  if (cardUpdates.descricao) {
+                    cardUpdates.estabelecimento = cardUpdates.descricao;
+                    delete cardUpdates.descricao;
+                  }
+                  updateCartaoTransacao(id, cardUpdates);
+                }
+                if (activeView === 'geral') updateDespesa(id, updates);
               }}
               titulares={config.titulares}
               cartoes={config.cartoes}
@@ -438,38 +456,10 @@ export default function Home() {
         );
 
       case 'radar':
-        // 1. Filtragem Base: Despesas e Receitas (Apenas do Mês Selecionado para Frente)
         const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
         const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-        const baseRadarDespesas = despesas.filter(d => {
-          const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
-          
-          const dCompSortable = d.competencia.split('/').reverse().join('-');
-          return matchTitular && dCompSortable >= currentCompSortable;
-        });
-
-        const baseRadarReceitas = receitas.filter(r => {
-          const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
-          
-          const rCompSortable = r.competencia.split('/').reverse().join('-');
-          return matchTitular && rCompSortable >= currentCompSortable;
-        });
-
-        // 2. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
-        const radarBuscaResultados = searchTerm ? Array.from(new Set(baseRadarDespesas
-          .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(d => `${d.descricao}|${d.titular_id}`)
-        )).map(key => {
-          const [desc, tid] = key.split('|');
-          return baseRadarDespesas.find(d => d.descricao === desc && Number(d.titular_id) === Number(tid));
-        }).slice(0, 50) : [];
-
-        const radarDespesasSelecionadas = selectedRadarIds.length > 0 
-          ? baseRadarDespesas.filter(d => selectedRadarIds.includes(d.id))
-          : baseRadarDespesas;
-
-        // 3. Projeção de Empréstimos Virtuais (Toda a história futura)
+        // 1. Projeção de Empréstimos Virtuais (Toda a história futura)
         const projectedLoansSummary = emprestimos.reduce((acc, loan) => {
           const matchTitular = activeFilterId ? Number(loan.titular_id) === Number(activeFilterId) : true;
           if (!matchTitular) return acc;
@@ -482,9 +472,16 @@ export default function Home() {
              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
              const vStr = format(dataVenc, 'yyyy-MM-dd');
              
-             // Só projetamos se ainda não existir no banco (Pago ou Aberto físico)
-             const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && d.parcela_atual === i);
+             const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i);
              
+             let comp = '';
+             if (loan.competencia_inicial) {
+               const [m, y] = loan.competencia_inicial.split('/').map(Number);
+               comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+             } else {
+               comp = format(dataVenc, 'MM/yyyy');
+             }
+
              if (!exists) {
                acc.push({
                  id: (loan.id * -2000) - i,
@@ -492,16 +489,19 @@ export default function Home() {
                  valor: loan.valor_parcela,
                  status: 'Em aberto',
                  vencimento: vStr,
-                 competencia: format(dataVenc, 'MM/yyyy'),
+                 competencia: comp,
                  emprestimo_id: loan.id,
-                 titular_id: loan.titular_id
+                 titular_id: loan.titular_id,
+                 parcela_atual: i,
+                 parcela_total: loan.total_parcelas,
+                 categoria: 'Empréstimos e Financiamentos'
                } as Despesa);
              }
           }
           return acc;
         }, [] as Despesa[]);
 
-        // 4. Projeção de Contas Fixas Virtuais (Despesas)
+        // 2. Projeção de Contas Fixas Virtuais (Despesas)
         const projectedFixedSummary = contasFixas.reduce((acc, config) => {
           if (config.tipo === 'receita') return acc;
           const matchTitular = activeFilterId ? Number(config.titular_id) === Number(activeFilterId) : true;
@@ -517,8 +517,16 @@ export default function Home() {
              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
              const vStr = format(dataVenc, 'yyyy-MM-dd');
              
-             const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && d.parcela_atual === i);
+             const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i);
              
+             let comp = '';
+             if (config.competencia_inicial) {
+               const [m, y] = config.competencia_inicial.split('/').map(Number);
+               comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+             } else {
+               comp = format(dataVenc, 'MM/yyyy');
+             }
+
              if (!exists) {
                acc.push({
                  id: (config.id * -3000) - i,
@@ -526,7 +534,7 @@ export default function Home() {
                  valor: config.valor_mensal,
                  status: 'Em aberto',
                  vencimento: vStr,
-                 competencia: format(dataVenc, 'MM/yyyy'),
+                 competencia: comp,
                  conta_fixa_id: config.id,
                  titular_id: config.titular_id,
                  parcela_atual: i,
@@ -537,6 +545,39 @@ export default function Home() {
           }
           return acc;
         }, [] as Despesa[]);
+
+        // 3. Filtragem Base Consolidada (Inclui Físicas, Virtuais Mês Atual e Virtuais Futuras)
+        // Usamos 'despesas' (lista completa) em vez de 'despesasGerais' para garantir que a projeção 
+        // seja estável independente do mês selecionado no topo.
+        const baseRadarDespesas = [
+          ...despesas.filter(d => !d.isSummary && !d.descricao?.startsWith('Fatura ')),
+          ...projectedLoansSummary,
+          ...projectedFixedSummary
+        ].filter(d => {
+          const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
+          const dCompSortable = d.competencia.split('/').reverse().join('-');
+          // No radar, mostramos tudo da competência selecionada para frente
+          return matchTitular && dCompSortable >= currentCompSortable;
+        });
+
+        const baseRadarReceitas = receitas.filter(r => {
+          const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
+          const rCompSortable = r.competencia.split('/').reverse().join('-');
+          return matchTitular && rCompSortable >= currentCompSortable;
+        });
+
+        // 4. Busca de Sugestões (Mostrar apenas descrições únicas POR TITULAR)
+        const radarBuscaResultados = searchTerm ? Array.from(new Set(baseRadarDespesas
+          .filter(d => d.descricao?.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map(d => `${d.descricao}|${d.titular_id}`)
+        )).map(key => {
+          const [desc, tid] = key.split('|');
+          return baseRadarDespesas.find(d => d.descricao === desc && Number(d.titular_id) === Number(tid));
+        }).slice(0, 50) : [];
+
+        const radarDespesasSelecionadas = selectedRadarIds.length > 0 
+          ? baseRadarDespesas.filter(d => selectedRadarIds.includes(d.id))
+          : baseRadarDespesas;
 
         // 5. Projeção de Receitas Fixas Virtuais (Incomes)
         const projectedFixedRevenuesRadar = contasFixas.reduce((acc, config) => {
@@ -553,7 +594,13 @@ export default function Home() {
           for (let i = 1; i <= limit; i++) {
              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal, false);
              const vStr = format(dataVenc, 'yyyy-MM-dd');
-             const comp = format(dataVenc, 'MM/yyyy');
+             let comp = '';
+             if (config.competencia_inicial) {
+               const [m, y] = config.competencia_inicial.split('/').map(Number);
+               comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+             } else {
+               comp = format(dataVenc, 'MM/yyyy');
+             }
              
              const exists = receitas.find(r => Number(r.conta_fixa_id) === Number(config.id) && r.competencia === comp);
              
@@ -573,34 +620,42 @@ export default function Home() {
           return acc;
         }, [] as Receita[]);
 
-        // 6. Estatísticas de Dívida Total (Física + Virtual)
-        const allOpenDespesas = [
-          ...radarDespesasSelecionadas.filter(d => d.status === 'Em aberto'),
-          ...projectedLoansSummary,
-          // Para dívida total, incluímos apenas contas fixas que têm prazo (parceladas)
-          ...projectedFixedSummary.filter(d => {
-            const config = contasFixas.find(c => c.id === d.conta_fixa_id);
-            return config && config.total_parcelas !== null;
-          })
-        ];
+        // 6. Estatísticas de Dívida Total (Física + Virtual filtradas pela seleção)
+        const allOpenDespesas = radarDespesasSelecionadas.filter(d => {
+          if (d.status !== 'Em aberto') return false;
+          // Se for recorrente sem limite de parcelas, não é "dívida" acumulada
+          if (d.conta_fixa_id) {
+             const config = contasFixas.find(c => c.id === d.conta_fixa_id);
+             if (!config || config.total_parcelas === null) return false;
+          }
+          return true;
+        });
 
-        const rStats = {
-          totalDividaAberto: allOpenDespesas.reduce((acc, d) => acc + d.valor, 0),
-          qtdParcelasRestante: allOpenDespesas.length,
-        };
+        const rStats = allOpenDespesas.reduce((acc, d) => {
+          const loan = d.emprestimo_id ? emprestimos.find(e => e.id === d.emprestimo_id) : null;
+          const taxa = loan?.taxa_mensal_percentual || 0;
+          const { vp, discount } = (taxa > 0 && d.vencimento && d.vencimento !== '-')
+            ? calculatePresentValue(d.valor, taxa, d.vencimento, new Date())
+            : { vp: d.valor, discount: 0 };
+            
+          return {
+            totalDividaAberto: acc.totalDividaAberto + d.valor,
+            totalVP: acc.totalVP + vp,
+            totalDiscount: acc.totalDiscount + discount,
+            qtdParcelasRestante: acc.qtdParcelasRestante + 1
+          };
+        }, { totalDividaAberto: 0, totalVP: 0, totalDiscount: 0, qtdParcelasRestante: 0 });
+        
+        const discountPercentage = rStats.totalDividaAberto > 0 ? (rStats.totalDiscount / rStats.totalDividaAberto) * 100 : 0;
 
-        // 5. Estatísticas do Mês Atual (para Saúde Financeira)
-        const currentLoanInstallments = projectedLoansSummary.filter(p => p.competencia === competencia);
-        const currentFixedInstallments = projectedFixedSummary.filter(p => p.competencia === competencia);
-        const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0)
-                               + currentLoanInstallments.reduce((acc, p) => acc + p.valor, 0)
-                               + currentFixedInstallments.reduce((acc, p) => acc + p.valor, 0);
+        // 7. Estatísticas do Mês Atual (para Saúde Financeira)
+        const totalDespesasMes = radarDespesasSelecionadas.filter(d => d.competencia === competencia).reduce((acc, d) => acc + d.valor, 0);
         
         const currentFixedRevenues = projectedFixedRevenuesRadar.filter(p => p.competencia === competencia);
         const totalReceitasMes = baseRadarReceitas.filter(r => r.competencia === competencia).reduce((acc, r) => acc + r.valor, 0)
                                + currentFixedRevenues.reduce((acc, p) => acc + p.valor, 0);
 
-        // 6. Projeção de 8 Meses
+        // 8. Projeção de 8 Meses
         const filteredProjecao: any[] = [];
         let tempMonth = currentMonth;
         let tempYear = currentYear;
@@ -613,14 +668,12 @@ export default function Home() {
           
           const totalRec = standardRec + projectedFixedRec;
           
-          // Despesas reais do mês
-          const standardDesp = radarDespesasSelecionadas.filter(d => d.competencia === comp).reduce((acc, d) => acc + d.valor, 0);
+          // Despesas totais do mês (físicas + virtuais, EXCLUINDO faturas de cartão para não duplicar)
+          const totalDesp = radarDespesasSelecionadas
+            .filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura '))
+            .reduce((acc, d) => acc + d.valor, 0);
           
-          // Parcelas projetadas (virtuais) do mês
-          const projectedLoanDesp = projectedLoansSummary.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
-          const projectedFixedDesp = projectedFixedSummary.filter(p => p.competencia === comp).reduce((acc, p) => acc + p.valor, 0);
-
-          // Soma transações de cartões (faturas futuras)
+          // Soma transações de cartões (faturas projetadas e reais)
           const fats = cartaoTransacoes.filter((c: CartaoTransacao) => {
             const matchTitular = activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true;
             return matchTitular && c.competencia === comp;
@@ -629,9 +682,9 @@ export default function Home() {
           filteredProjecao.push({
             competencia: comp,
             receitas: totalRec,
-            despesas: standardDesp + projectedLoanDesp + projectedFixedDesp,
+            despesas: totalDesp,
             faturas: fats,
-            saldo: totalRec - (standardDesp + projectedLoanDesp + projectedFixedDesp + fats)
+            saldo: totalRec - (totalDesp + fats)
           });
           tempMonth++;
           if (tempMonth > 12) { tempMonth = 1; tempYear++; }
@@ -639,14 +692,17 @@ export default function Home() {
 
         const healthScore = Math.round(totalReceitasMes > 0 ? (1 - (totalDespesasMes / totalReceitasMes)) * 100 : 0);
         
-        // 7. Cálculo dos cartões de titular especializados para o Radar (Incluindo parcelas virtuais do Mês)
+        // 9. Cálculo dos cartões de titular especializados para o Radar
         const radarTotalsByTitular = config.titulares.reduce((acc, t) => {
-          const tDespesasFisicas = despesasGerais.filter(d => Number(d.titular_id) === Number(t.id) && d.competencia === competencia);
-          const tDespesasVirtuais = [...currentLoanInstallments, ...currentFixedInstallments].filter(p => Number(p.titular_id) === Number(t.id));
+          // despesasGerais já contém as virtuais (loans e fixed) do mês atual
+          const combined = despesasGerais.filter(d => {
+            const isMyTitular = Number(d.titular_id) === Number(t.id);
+            const isCurrentComp = d.competencia === competencia;
+            const isOverdue = d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr;
+            return isMyTitular && isCurrentComp && !isOverdue;
+          });
           
-          const combined = [...tDespesasFisicas, ...tDespesasVirtuais];
-          
-          const cards = combined.filter(d => d.isSummary || d.descricao.startsWith('Fatura ')).reduce((sum, d) => sum + d.valor, 0);
+          const cards = combined.filter(d => d.isSummary || d.descricao?.startsWith('Fatura ')).reduce((sum, d) => sum + d.valor, 0);
           const total = combined.reduce((sum, d) => sum + d.valor, 0);
           
           acc[t.id] = { cards, others: total - cards, total };
@@ -668,19 +724,33 @@ export default function Home() {
             />
 
             {/* KPIs Principais de Dívida - Agora no TOPO */}
-            <div className="row g-4 mb-2">
-              <div className="col-md-6">
+            <div className="row g-3 mb-2">
+              <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-red flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🔴 Dívida Total em Aberto</span>
-                  <div className="text-3xl font-black text-danger mb-1">{formatCurrency(rStats.totalDividaAberto)}</div>
-                  <span className="text-[10px] text-gray mt-1">Soma de todas as parcelas futuras</span>
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🔴 Dívida Nominal</span>
+                  <div className="text-2xl font-black text-danger mb-1">{formatCurrency(rStats.totalDividaAberto)}</div>
+                  <span className="text-[10px] text-gray mt-1">Soma das parcelas</span>
                 </div>
               </div>
-              <div className="col-md-6">
+              <div className="col-6 col-lg-3">
+                <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100 py-4">
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💰 V. Presente (Hoje)</span>
+                  <div className="text-2xl font-black text-primary mb-1">{formatCurrency(rStats.totalVP)}</div>
+                  <span className="text-[10px] text-gray mt-1">Pagando tudo hoje</span>
+                </div>
+              </div>
+              <div className="col-6 col-lg-3">
+                <div className="kpi-card kpi-card-green flex flex-col items-center justify-center text-center h-100 py-4">
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💸 Desconto Ganho</span>
+                  <div className="text-2xl font-black text-success mb-1">{formatCurrency(rStats.totalDiscount)}</div>
+                  <span className="text-[10px] text-success mt-1 fw-bold opacity-80">Economia de {discountPercentage.toFixed(1)}%</span>
+                </div>
+              </div>
+              <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📅 Parcelas Restantes</span>
-                  <div className="text-3xl font-black text-faturas mb-1">{rStats.qtdParcelasRestante}</div>
-                  <span className="text-[10px] text-gray mt-1">Quantidade total de lançamentos</span>
+                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📅 Parcelas</span>
+                  <div className="text-2xl font-black text-faturas mb-1">{rStats.qtdParcelasRestante}</div>
+                  <span className="text-[10px] text-gray mt-1">Lançamentos pendentes</span>
                 </div>
               </div>
             </div>
@@ -761,22 +831,40 @@ export default function Home() {
                         <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Parcela</th>
                         <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Competência</th>
                         <th className="px-3 py-2 small fw-bold text-muted uppercase text-center">Vencimento</th>
-                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-end">Valor</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-end">V. Nominal</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-end">Desconto</th>
+                        <th className="px-3 py-2 small fw-bold text-muted uppercase text-end">V. Presente</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {radarDespesasSelecionadas.map(d => (
-                        <tr key={d.id}>
-                          <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A'}</td>
-                          <td className="px-3 py-2 fw-bold">{d.descricao}</td>
-                          <td className="px-3 py-2 small text-muted text-center">{d.parcela_atual}/{d.parcela_total}</td>
-                          <td className="px-3 py-2 small text-muted text-center">{d.competencia}</td>
-                          <td className="px-3 py-2 small text-muted text-center">
-                            {d.vencimento && d.vencimento !== '-' ? d.vencimento.split('-').reverse().join('/') : '-'}
-                          </td>
-                          <td className="px-3 py-2 fw-bold text-end">{formatCurrency(d.valor)}</td>
-                        </tr>
-                      ))}
+                      {radarDespesasSelecionadas.map(d => {
+                        const loan = d.emprestimo_id ? emprestimos.find(e => e.id === d.emprestimo_id) : null;
+                        const taxa = loan?.taxa_mensal_percentual || 0;
+                        const { vp, discount } = (taxa > 0 && d.vencimento && d.vencimento !== '-')
+                          ? calculatePresentValue(d.valor, taxa, d.vencimento, new Date())
+                          : { vp: d.valor, discount: 0 };
+
+                        return (
+                          <tr key={d.id}>
+                            <td className="px-3 py-2 fw-bold text-primary">{config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A'}</td>
+                            <td className="px-3 py-2 fw-bold">{d.descricao}</td>
+                            <td className="px-3 py-2 small text-muted text-center">{d.parcela_atual}/{d.parcela_total}</td>
+                            <td className="px-3 py-2 small text-muted text-center">{d.competencia}</td>
+                            <td className="px-3 py-2 small text-muted text-center">
+                              {d.vencimento && d.vencimento !== '-' ? d.vencimento.split('-').reverse().join('/') : '-'}
+                            </td>
+                            <td className="px-3 py-2 fw-bold text-muted text-end">
+                              {discount > 0 ? <del className="text-muted opacity-75 fw-normal">{formatCurrency(d.valor)}</del> : formatCurrency(d.valor)}
+                            </td>
+                            <td className="px-3 py-2 text-success fw-bold text-end">
+                              {discount > 0 ? `-${formatCurrency(discount)}` : '-'}
+                            </td>
+                            <td className="px-3 py-2 fw-black text-primary text-end">
+                              {formatCurrency(vp)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1095,6 +1183,8 @@ export default function Home() {
             else if (type === 'cartao_transacao') deleteCartaoTransacao(id);
             else if (type === 'titular') deleteTitular(id);
             else if (type === 'cartao') deleteCartao(id);
+            else if (type === 'emprestimo') deleteEmprestimo(id);
+            else if (type === 'conta_fixa') deleteContaFixa(id);
           }}
           title="Confirmar Exclusão"
           message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
@@ -1108,6 +1198,8 @@ export default function Home() {
           user={userProfile}
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
+          themeColor={themeColor}
+          setThemeColor={setThemeColor}
           familyMembers={familyMembers}
           onInvite={handleInvite}
           userType={userType}
@@ -1140,12 +1232,18 @@ export default function Home() {
           }}
           onEditContaFixa={(config: ContaFixaConfig) => {
             setEditingItem(config);
-            setModalType('despesa');
+            setModalType(config.tipo === 'receita' ? 'receita' : 'despesa');
             setIsExpenseSettingsOpen(false);
             setIsModalOpen(true);
           }}
-          onDeleteEmprestimo={deleteEmprestimo}
-          onDeleteContaFixa={deleteContaFixa}
+          onDeleteEmprestimo={(id) => {
+            setItemToDelete({ id, type: 'emprestimo' });
+            setIsConfirmDeleteOpen(true);
+          }}
+          onDeleteContaFixa={(id) => {
+            setItemToDelete({ id, type: 'conta_fixa' });
+            setIsConfirmDeleteOpen(true);
+          }}
         />
       </div>
     </div>

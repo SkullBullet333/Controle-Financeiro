@@ -2,8 +2,20 @@
 
 import Image from 'next/image';
 import React from 'react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Cell,
+  LabelList
+} from 'recharts';
+import { addMonths, format, startOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale/pt-BR';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
 import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +25,7 @@ interface TableViewProps {
   onDelete: (id: number) => void;
   onToggleStatus?: (id: number, currentVal: any) => void;
   onEdit?: (item: any) => void;
+  onInlineUpdate?: (id: number, updates: any) => void;
   titulares: Titular[];
   cartoes: CartaoConfig[];
   onPayoff?: (loanId: number) => void;
@@ -24,10 +37,36 @@ export function FinanceTable({
   onDelete, 
   onToggleStatus, 
   onEdit, 
+  onInlineUpdate,
   titulares = [], 
   cartoes = [], 
   onPayoff 
 }: TableViewProps) {
+  const [editingId, setEditingId] = React.useState<number | null>(null);
+  const [editValues, setEditValues] = React.useState<any>({});
+  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
+
+  // Listener para ESC e clique fora
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedIds(new Set());
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      // Se clicar no botão de fechar do modal ou outros elementos de UI, não limpa
+      const target = e.target as HTMLElement;
+      if (target.closest('.modal') || target.closest('.btn-close')) return;
+      
+      setSelectedIds(new Set());
+    };
+    
+    window.addEventListener('keydown', handleEsc);
+    window.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   const headers = {
     geral: ['Status', 'Titular', 'Descrição', 'Categoria', 'Vencimento', 'Parc.', 'Valor', 'Ações'],
     cartoes: ['Cartão', 'Titular', 'Estabel.', 'Categoria', 'Parc.', 'Valor', 'Ações'],
@@ -69,15 +108,40 @@ export function FinanceTable({
             ) : (
               data.map((item) => {
                 if (!item) return null;
+                const itemId = (item as any).id;
+                const isSelected = selectedIds.has(itemId);
+
                 return (
                   <tr
-                    key={(item as any).id}
-                    onDoubleClick={() => !(item as any).isSummary && onEdit?.(item)}
+                    key={itemId}
                     className={cn(
                       "cursor-pointer transition-all",
+                      isSelected && "table-primary-subtle border-primary-subtle",
                       (item as any).isSummary && "fw-bold",
                       type === 'geral' && (item as any).status !== 'Pago' && (item as any).vencimento && (item as any).vencimento < format(new Date(), 'yyyy-MM-dd') && "row-vencido"
                     )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedIds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(itemId)) next.delete(itemId);
+                        else next.add(itemId);
+                        return next;
+                      });
+                    }}
+                    onDoubleClick={() => {
+                      if ((item as any).isSummary) return;
+                      // Apenas permite edição em linha para registros físicos (id > 0)
+                      if ((type === 'cartoes' || type === 'geral') && onInlineUpdate && itemId > 0) {
+                        setEditingId(itemId);
+                        setEditValues({
+                          descricao: (item as any).descricao || (item as any).estabelecimento,
+                          valor: (item as any).valor
+                        });
+                      } else {
+                        onEdit?.(item);
+                      }
+                    }}
                   >
                     {type === 'geral' && (
                       <>
@@ -95,11 +159,47 @@ export function FinanceTable({
                           })()}
                         </td>
                         <td className="px-2 px-md-4 py-3 fw-bold d-none d-md-table-cell">{getTitularName((item as any).titular_id)}</td>
-                        <td className={cn("px-2 px-md-4 py-3", (item as any).isSummary && "fw-bold")}>{(item as any).descricao}</td>
+                        <td className={cn("px-2 px-md-4 py-3", (item as any).isSummary && "fw-bold")}>
+                          {editingId === (item as any).id ? (
+                            <input
+                              autoFocus
+                              className="form-control form-control-sm"
+                              value={editValues.descricao}
+                              onChange={e => setEditValues({ ...editValues, descricao: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            (item as any).descricao
+                          )}
+                        </td>
                         <td className="px-2 px-md-4 py-3 d-none d-md-table-cell"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
                         <td className="px-2 px-md-4 py-3 text-muted">{formatDate((item as any).vencimento)}</td>
                         <td className="px-2 px-md-4 py-3 small text-muted d-none d-md-table-cell">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
-                        <td className="px-2 px-md-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                        <td className="px-2 px-md-4 py-3 fw-bold">
+                          {editingId === (item as any).id ? (
+                            <input
+                              type="number"
+                              className="form-control form-control-sm fw-bold"
+                              value={editValues.valor}
+                              onChange={e => setEditValues({ ...editValues, valor: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            formatCurrency((item as any).valor)
+                          )}
+                        </td>
                       </>
                     )}
 
@@ -109,10 +209,46 @@ export function FinanceTable({
                           {getCartaoName((item as any).cartao_id)}
                         </td>
                         <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
-                        <td className="px-4 py-3">{(item as any).estabelecimento}</td>
+                        <td className="px-4 py-3">
+                          {editingId === (item as any).id ? (
+                            <input
+                              autoFocus
+                              className="form-control form-control-sm"
+                              value={editValues.descricao}
+                              onChange={e => setEditValues({ ...editValues, descricao: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            (item as any).estabelecimento
+                          )}
+                        </td>
                         <td className="px-4 py-3"><span className="badge bg-light text-dark text-uppercase">{(item as any).categoria || 'OUTROS'}</span></td>
                         <td className="px-4 py-3 small text-muted">{(item as any).parcela_atual}/{(item as any).parcela_total}</td>
-                        <td className="px-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                        <td className="px-4 py-3 fw-bold">
+                          {editingId === (item as any).id ? (
+                            <input
+                              type="number"
+                              className="form-control form-control-sm fw-bold"
+                              value={editValues.valor}
+                              onChange={e => setEditValues({ ...editValues, valor: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            formatCurrency((item as any).valor)
+                          )}
+                        </td>
                       </>
                     )}
 
@@ -134,7 +270,33 @@ export function FinanceTable({
 
                     <td className="px-4 py-3 text-center">
                       <div className="d-flex align-items-center justify-content-center gap-1">
-                        {type === 'geral' && (
+                        {editingId === (item as any).id ? (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onInlineUpdate?.((item as any).id, editValues);
+                                setEditingId(null);
+                              }}
+                              className="btn btn-sm btn-success border-0"
+                              title="Salvar"
+                            >
+                              <i className="fa-solid fa-check"></i>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingId(null);
+                              }}
+                              className="btn btn-sm btn-light border-0"
+                              title="Cancelar"
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {type === 'geral' && (
                           <>
                             <button
                               onClick={(e: React.MouseEvent) => {
@@ -190,11 +352,13 @@ export function FinanceTable({
                             </button>
                           </>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })
             )}
           </tbody>
         </table>
@@ -238,28 +402,26 @@ export function FilterBar({
     <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
       <div className="d-flex align-items-center gap-3 flex-1">
         {!hideSearch && (
-          <div className="input-group" style={{ maxWidth: '400px' }}>
-            <span className="input-group-text bg-white border-end-0 text-muted">
+          <div className="d-flex align-items-center bg-white border border-border rounded-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary" style={{ maxWidth: '400px', flex: 1 }}>
+            <div className="px-3 text-muted">
               <i className="fa-solid fa-magnifying-glass"></i>
-            </span>
+            </div>
             <input
               type="text"
-              className="form-control border-start-0 ps-0 shadow-none border-end-0"
+              className="form-control border-0 px-0 shadow-none bg-transparent h-100 py-2"
+              style={{ boxShadow: 'none' }}
               placeholder="O que você procura?"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               onFocus={onFocus}
               onBlur={onBlur}
             />
-            {searchTerm && (
-              <button
-                className="btn bg-white border-start-0 text-muted border-end-0"
-                onClick={() => onSearchChange('')}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            )}
-            <span className="input-group-text bg-white border-start-0"></span>
+            <div 
+              className={cn("px-3 text-muted", searchTerm ? "cursor-pointer hover:text-danger transition-colors" : "")}
+              onClick={() => searchTerm && onSearchChange('')}
+            >
+              {searchTerm && <i className="fa-solid fa-xmark"></i>}
+            </div>
           </div>
         )}
 
@@ -274,14 +436,14 @@ export function FilterBar({
       </div>
 
       <div className="d-flex align-items-center gap-2">
-        {onOpenExpenseSettings && (type === 'geral') && (
+        {onOpenExpenseSettings && (type === 'geral' || type === 'receitas') && (
           <button
             onClick={onOpenExpenseSettings}
             className="btn btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
-            style={{ width: '42px', height: '42px', border: '2px solid rgba(0,0,0,0.05)' }}
-            title="Configurações de Despesas"
+            style={{ width: '48px', height: '48px', border: '2px solid rgba(0,0,0,0.05)' }}
+            title="Configurações"
           >
-            <i className="fa-solid fa-gear text-muted"></i>
+            <i className="fa-solid fa-gear text-muted fs-4"></i>
           </button>
         )}
         {!hideAdd && (
@@ -299,6 +461,83 @@ export function FilterBar({
   );
 }
 
+function CardProjectionTooltip({ 
+  cardId, 
+  allTransacoes, 
+  currentMonth, 
+  currentYear 
+}: { 
+  cardId: number, 
+  allTransacoes: CartaoTransacao[],
+  currentMonth: number,
+  currentYear: number
+}) {
+  const data = React.useMemo(() => {
+    const projection = [];
+    let tMonth = currentMonth;
+    let tYear = currentYear;
+
+    for (let i = 0; i < 8; i++) {
+      const comp = `${String(tMonth).padStart(2, '0')}/${tYear}`;
+      const total = allTransacoes
+        .filter(c => Number(c.cartao_id) === Number(cardId) && c.competencia === comp)
+        .reduce((acc, c) => acc + Number(c.valor), 0);
+      
+      const date = new Date(tYear, tMonth - 1, 1);
+      projection.push({
+        mes: format(date, 'MMM', { locale: ptBR }),
+        valor: total
+      });
+
+      tMonth++;
+      if (tMonth > 12) {
+        tMonth = 1;
+        tYear++;
+      }
+    }
+    return projection;
+  }, [cardId, allTransacoes, currentMonth, currentYear]);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-4" style={{ width: '500px', height: '260px' }}>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h6 className="text-xs font-bold text-slate-500 uppercase tracking-wider m-0">Projeção de Fatura (8 Meses)</h6>
+        <span className="text-[10px] bg-primary bg-opacity-10 text-primary px-2 py-0.5 rounded-full font-bold">Estimado</span>
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={data} margin={{ top: 25, right: 20, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.3} />
+          <XAxis 
+            dataKey="mes" 
+            fontSize={11} 
+            tickLine={false} 
+            axisLine={false}
+            tick={{ fill: '#64748b', fontWeight: 600 }}
+          />
+          <YAxis hide />
+          <RechartsTooltip 
+            formatter={(value: number) => [formatCurrency(value), 'Fatura']}
+            contentStyle={{ backgroundColor: 'white', borderColor: '#e2e8f0', borderRadius: '12px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+          />
+          <Bar dataKey="valor" radius={[6, 6, 0, 0]} barSize={40}>
+            <LabelList 
+              dataKey="valor" 
+              position="top" 
+              fontSize={9} 
+              fontWeight={700}
+              formatter={(val: number) => val > 0 ? formatCurrency(val).replace('R$', '').trim() : ''} 
+              fill="#334155"
+            />
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#cbd5e1'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export function SummaryCards({
   type,
   cartoes,
@@ -308,7 +547,10 @@ export function SummaryCards({
   radarTotalsByTitular,
   totalVencido,
   activeFilterId,
-  onFilterChange
+  onFilterChange,
+  allCartaoTransacoes = [],
+  currentMonth = new Date().getMonth() + 1,
+  currentYear = new Date().getFullYear()
 }: {
   type: 'geral' | 'cartoes' | 'receitas' | 'radar',
   cartoes: any[],
@@ -318,8 +560,13 @@ export function SummaryCards({
   radarTotalsByTitular?: Record<number, { cards: number, others: number, total: number }>,
   totalVencido?: number,
   activeFilterId: number | null,
-  onFilterChange: (id: number | null) => void
+  onFilterChange: (id: number | null) => void,
+  allCartaoTransacoes?: CartaoTransacao[],
+  currentMonth?: number,
+  currentYear?: number
 }) {
+  const [hoveredCardId, setHoveredCardId] = React.useState<number | null>(null);
+  const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
   const getCardLogo = (name: string) => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes('nubank')) return 'https://i.ibb.co/rRRmcj5K/Nubank.png';
@@ -430,9 +677,12 @@ export function SummaryCards({
       })}
 
       {type === 'cartoes' && cartoes.map((c) => (
-        <div key={c.id} className="col-12 col-sm-6 col-md">
+        <div key={c.id} className="col-12 col-sm-6 col-md relative">
           <div
             onClick={() => onFilterChange(c.id)}
+            onMouseEnter={() => setHoveredCardId(c.id)}
+            onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+            onMouseLeave={() => setHoveredCardId(null)}
             className={cn(
               "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
               isSelected(c.id) ? "border-primary border-2 shadow-md" : "border-border"
@@ -458,6 +708,27 @@ export function SummaryCards({
               </div>
             </div>
           </div>
+
+          {/* Tooltip Projeção */}
+          {hoveredCardId === c.id && (
+            <div 
+              className="fixed z-50 pointer-events-none transition-opacity"
+              style={{ 
+                left: mousePos.x + 520 > (typeof window !== 'undefined' ? window.innerWidth : 1000) 
+                  ? `${mousePos.x - 515}px` 
+                  : `${mousePos.x + 15}px`, 
+                top: `${mousePos.y + 15}px`,
+                display: 'block'
+              }}
+            >
+              <CardProjectionTooltip 
+                cardId={c.id} 
+                allTransacoes={allCartaoTransacoes} 
+                currentMonth={currentMonth}
+                currentYear={currentYear}
+              />
+            </div>
+          )}
         </div>
       ))}
 

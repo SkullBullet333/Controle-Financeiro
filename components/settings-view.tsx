@@ -10,6 +10,8 @@ interface SettingsViewProps {
   user: Profile | null;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  themeColor?: string;
+  setThemeColor?: (color: string) => void;
   familyMembers: Profile[];
   onInvite: (email: string) => void;
   userType: 'titular' | 'membro';
@@ -39,6 +41,8 @@ export function SettingsView({
   user,
   isDarkMode,
   toggleDarkMode,
+  themeColor = '#4361ee',
+  setThemeColor,
   familyMembers,
   onInvite,
   userType,
@@ -188,8 +192,12 @@ export function SettingsView({
                 {['#4361ee', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'].map((color) => (
                   <div
                     key={color}
-                    className="w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all cursor-pointer hover:scale-110"
-                    style={{ backgroundColor: color, borderColor: color === '#4361ee' ? 'var(--primary)' : 'transparent' }}
+                    onClick={() => setThemeColor && setThemeColor(color)}
+                    className={cn(
+                      "w-10 h-10 md:w-12 md:h-12 rounded-2xl border-2 transition-all cursor-pointer",
+                      themeColor === color ? "scale-110 shadow-md" : "hover:scale-110"
+                    )}
+                    style={{ backgroundColor: color, borderColor: themeColor === color ? 'var(--text)' : 'transparent' }}
                   ></div>
                 ))}
               </div>
