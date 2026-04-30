@@ -27,15 +27,15 @@ interface SettingsViewProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   onCloseSettings?: () => void;
+  lembretes?: {id: number, texto: string, concluido: boolean, data?: string}[];
+  onAddLembrete?: (texto: string, data?: string) => void;
+  onToggleLembrete?: (id: number) => void;
+  onDeleteLembrete?: (id: number) => void;
+  avisosConfig?: { vencidas: boolean, hoje: boolean, radar: boolean };
+  onUpdateAvisosConfig?: (key: 'vencidas' | 'hoje' | 'radar', value: boolean) => void;
 }
 
-const getCardLogo = (name: string) => {
-  const n = name.toLowerCase();
-  if (n.includes('inter')) return <div className="w-10 h-10 rounded-lg bg-orange-500 d-flex align-items-center justify-content-center text-white fw-bold">I</div>;
-  if (n.includes('nubank')) return <div className="w-10 h-10 rounded-lg bg-purple-600 d-flex align-items-center justify-content-center text-white fw-bold">N</div>;
-  if (n.includes('itaú') || n.includes('itau')) return <div className="w-10 h-10 rounded-lg bg-blue-800 d-flex align-items-center justify-content-center text-white fw-bold">It</div>;
-  return <div className="w-10 h-10 rounded-lg bg-slate-400 d-flex align-items-center justify-content-center text-white fw-bold"><i className="fa-solid fa-credit-card"></i></div>;
-};
+import { CardLogo } from './card-ui';
 
 export function SettingsView({
   user,
@@ -57,7 +57,13 @@ export function SettingsView({
   isMobile = false,
   activeTab: controlledTab,
   onTabChange: onControlledTabChange,
-  onCloseSettings
+  onCloseSettings,
+  lembretes = [],
+  onAddLembrete,
+  onToggleLembrete,
+  onDeleteLembrete,
+  avisosConfig = { vencidas: true, hoje: true, radar: false },
+  onUpdateAvisosConfig
 }: SettingsViewProps) {
   const [internalTab, setInternalTab] = useState('geral');
   const activeTab = controlledTab || internalTab;
@@ -65,51 +71,83 @@ export function SettingsView({
   const [inviteEmail, setInviteEmail] = useState('');
   const [internalView, setInternalView] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [newReminderText, setNewReminderText] = useState('');
+  const [newReminderDate, setNewReminderDate] = useState('');
+  const [showAddReminder, setShowAddReminder] = useState(false);
 
   useEffect(() => {
     setInternalView('list');
     setEditingItem(null);
   }, [activeTab]);
 
+  const handleAddReminder = () => {
+    if (newReminderText.trim()) {
+      onAddLembrete?.(newReminderText, newReminderDate);
+      setNewReminderText('');
+      setNewReminderDate('');
+      setShowAddReminder(false);
+    }
+  };
+
   const tabs = [
-    { id: 'geral', label: 'Geral', icon: 'settings' },
-    { id: 'titulares', label: 'Titulares', icon: 'person_add' },
-    { id: 'cartoes', label: 'Cartões', icon: 'credit_card' },
-    { id: 'familia', label: 'Dados', icon: 'database' },
-    { id: 'notificacoes', label: 'Avisos', icon: 'notifications' },
-    { id: 'personalizacao', label: 'Visual', icon: 'palette' },
+    { id: 'geral', label: 'Geral', icon: 'settings', desc: 'Dados e segurança da conta' },
+    { id: 'titulares', label: 'Titulares', icon: 'person_add', desc: 'Gerencie as pessoas da família' },
+    { id: 'cartoes', label: 'Cartões', icon: 'credit_card', desc: 'Configure seus cartões de crédito' },
+    { id: 'familia', label: 'Dados', icon: 'database', desc: 'Exportação e backup de dados' },
+    { id: 'notificacoes', label: 'Avisos', icon: 'notifications', desc: 'Central de notificações e alertas' },
+    { id: 'personalizacao', label: 'Visual', icon: 'palette', desc: 'Cores e temas do aplicativo' },
   ];
   
   const renderHub = () => {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-5 duration-500 overflow-y-auto overflow-x-hidden custom-scrollbar h-100 flex flex-col">
-        <header className="mb-8 pt-4">
-          <div className="d-flex align-items-center justify-content-between mb-2 px-1">
-            <div className="d-flex align-items-center gap-3">
-              <button 
-                onClick={onCloseSettings}
-                className="btn-icon p-2 hover:bg-muted rounded-full bg-muted/20 d-flex align-items-center justify-content-center"
-              >
-                <span className="material-symbols-outlined text-foreground">arrow_back_ios_new</span>
-              </button>
-              <h1 className="text-2xl font-bold text-foreground tracking-tighter m-0">CONFIGURAÇÕES</h1>
-            </div>
+        <header className="mb-6 pt-4">
+          <div className="d-flex align-items-center gap-3 mb-2 px-1">
+            <button 
+              onClick={onCloseSettings}
+              className="btn-icon p-2 hover:bg-muted rounded-full bg-muted/20 d-flex align-items-center justify-content-center"
+            >
+              <span className="material-symbols-outlined text-foreground">arrow_back_ios_new</span>
+            </button>
+            <h1 className="text-2xl font-bold text-foreground tracking-tighter m-0">AJUSTES</h1>
           </div>
-          <p className="text-muted-foreground small ps-1 mt-1">Gerencie suas preferências e dados do sistema.</p>
+          <p className="text-muted-foreground small ps-1 mt-1">Configure o sistema de acordo com sua preferência.</p>
         </header>
 
-        <div className="row g-3 mx-0 flex-1 pb-10">
+        <div className="mb-6 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+          <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-4 px-1 opacity-70">O que há de novo?</h3>
+          <div className="d-flex gap-4 overflow-x-auto pb-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+             {[
+               { label: 'Radar Pro', icon: 'auto_graph', color: 'bg-blue-500/10 text-blue-600' },
+               { label: 'Alertas', icon: 'notifications_active', color: 'bg-amber-500/10 text-amber-600' },
+               { label: 'Importar', icon: 'upload_file', color: 'bg-purple-500/10 text-purple-600' },
+               { label: 'Backup', icon: 'cloud_sync', color: 'bg-emerald-500/10 text-emerald-600' }
+             ].map((item, i) => (
+               <div key={i} className="flex-shrink-0 d-flex flex-column align-items-center gap-2" style={{ width: '70px' }}>
+                 <div className={cn("w-14 h-14 rounded-full d-flex align-items-center justify-content-center shadow-sm border border-border/10 bg-card", item.color)}>
+                   <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                 </div>
+                 <span className="text-[9px] font-black uppercase tracking-tight text-center leading-tight text-foreground/80">{item.label}</span>
+               </div>
+             ))}
+          </div>
+        </div>
+
+        <div className="flex-1 pb-10 space-y-2 px-1">
           {tabs.map((tab) => (
-            <div key={tab.id} className="col-6">
-              <div
-                onClick={() => setActiveTab(tab.id)}
-                className="bg-card border border-border rounded-3xl p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center transition-all active:scale-95 shadow-sm hover:shadow-md cursor-pointer"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center mb-3">
-                  <span className="material-symbols-outlined text-primary text-3xl">{tab.icon}</span>
-                </div>
-                <div className="font-bold text-foreground text-sm tracking-tight">{tab.label}</div>
+            <div
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="sicoob-settings-item bg-card border border-border/40 rounded-2xl p-3 d-flex align-items-center gap-3 transition-all active:bg-muted/50 cursor-pointer shadow-sm"
+            >
+              <div className="w-11 h-11 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center flex-shrink-0 text-primary">
+                <span className="material-symbols-outlined text-2xl">{tab.icon}</span>
               </div>
+              <div className="flex-grow">
+                <div className="font-bold text-foreground text-[13px] leading-none mb-1">{tab.label}</div>
+                <div className="text-muted-foreground text-[10px] leading-tight opacity-80">{tab.desc}</div>
+              </div>
+              <span className="material-symbols-outlined text-muted-foreground/30 text-lg">chevron_right</span>
             </div>
           ))}
         </div>
@@ -131,6 +169,40 @@ export function SettingsView({
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Geral</h1>
                 </div>
                 <p className="text-muted-foreground small">Personalize a sua experiência e segurança da conta.</p>
+              </header>
+            )}
+
+            <section className="pt-2">
+              <h3 className="text-lg font-bold text-foreground mb-4">Segurança</h3>
+              <div className="bg-card p-4 rounded-2xl border border-border">
+                <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center text-primary">
+                      <span className="material-symbols-outlined">verified_user</span>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-sm">Autenticação em Duas Etapas</div>
+                      <div className="text-muted-foreground text-[10px]">Proteja sua conta com segurança extra.</div>
+                    </div>
+                  </div>
+                  <div className="form-check form-switch m-0 p-0 d-flex align-items-center">
+                    <input className="form-check-input ms-0 cursor-pointer" type="checkbox" role="switch" checked={true} readOnly />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+      case 'personalizacao':
+        return (
+          <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {!isMobile && (
+              <header className="mb-6 md:mb-10">
+                <div className="d-flex align-items-center gap-3 mb-2">
+                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Visual</h1>
+                </div>
+                <p className="text-muted-foreground small">Personalize as cores e o tema do seu aplicativo.</p>
               </header>
             )}
 
@@ -189,7 +261,23 @@ export function SettingsView({
             <section className="pt-8 border-top border-border">
               <h3 className="text-lg font-bold text-foreground mb-4">Cor de Destaque</h3>
               <div className="d-flex align-items-center gap-3 flex-wrap">
-                {['#4361ee', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'].map((color) => (
+                {[
+                  '#4361ee', // Azul
+                  '#10b981', // Verde
+                  '#003641', // Sicoob Deep Teal
+                  '#f43f5e', // Rosa/Vermelho
+                  '#f59e0b', // Amarelo/Laranja
+                  '#8b5cf6', // Roxo
+                  '#d946ef', // Magenta
+                  '#06b6d4', // Ciano
+                  '#f97316', // Coral
+                  '#64748b', // Grafite
+                  '#171717', // Charcoal
+                  '#000000', // Preto Puro
+                  '#1e1b4b', // Midnight Blue
+                  '#064e3b', // Deep Forest
+                  '#2e1065'  // Deep Night
+                ].map((color) => (
                   <div
                     key={color}
                     onClick={() => setThemeColor && setThemeColor(color)}
@@ -310,7 +398,7 @@ export function SettingsView({
                     <div className="bg-card p-4 rounded-2xl border border-border relative overflow-hidden">
                       <div className="d-flex justify-content-between align-items-start relative z-10">
                         <div className="d-flex align-items-center gap-3">
-                          {getCardLogo(c.nome_cartao)}
+                          <CardLogo name={c.nome_cartao} />
                           <div className="fw-bold text-foreground">{c.nome_cartao}</div>
                         </div>
                         <div className="d-flex gap-1">
@@ -397,8 +485,184 @@ export function SettingsView({
             </div>
           </div>
         );
-      default:
-        return <div className="py-20 text-center text-muted">Em breve</div>;
+      case 'notificacoes':
+        return (
+          <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {!isMobile && (
+              <header className="mb-6 md:mb-10">
+                <div className="d-flex align-items-center gap-3 mb-2">
+                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Avisos</h1>
+                </div>
+                <p className="text-muted-foreground small">Configure alertas e lembretes importantes.</p>
+              </header>
+            )}
+
+            <section className="space-y-4">
+              <h3 className="text-lg font-bold text-foreground mb-1">Notificações do Sistema</h3>
+              <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
+                <div className="p-4 d-flex align-items-center justify-content-between hover:bg-muted/30 transition-colors">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-danger/10 d-flex align-items-center justify-content-center text-danger">
+                      <span className="material-symbols-outlined">event_busy</span>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-sm">Contas Vencidas</div>
+                      <div className="text-muted-foreground text-[10px]">Avisar sobre contas que passaram do prazo.</div>
+                    </div>
+                  </div>
+                  <div className="form-check form-switch m-0">
+                    <input 
+                      className="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      role="switch" 
+                      checked={avisosConfig.vencidas} 
+                      onChange={(e) => onUpdateAvisosConfig?.('vencidas', e.target.checked)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 d-flex align-items-center justify-content-between hover:bg-muted/30 transition-colors">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-warning/10 d-flex align-items-center justify-content-center text-warning">
+                      <span className="material-symbols-outlined">notification_important</span>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-sm">Contas a Vencer Hoje</div>
+                      <div className="text-muted-foreground text-[10px]">Notificar quando uma conta vence no dia atual.</div>
+                    </div>
+                  </div>
+                  <div className="form-check form-switch m-0">
+                    <input 
+                      className="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      role="switch" 
+                      checked={avisosConfig.hoje} 
+                      onChange={(e) => onUpdateAvisosConfig?.('hoje', e.target.checked)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 d-flex align-items-center justify-content-between hover:bg-muted/30 transition-colors">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center text-primary">
+                      <span className="material-symbols-outlined">insights</span>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-sm">Resumo do Radar</div>
+                      <div className="text-muted-foreground text-[10px]">Avisos sobre extrapolação de orçamento mensal.</div>
+                    </div>
+                  </div>
+                  <div className="form-check form-switch m-0">
+                    <input 
+                      className="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      role="switch" 
+                      checked={avisosConfig.radar} 
+                      onChange={(e) => onUpdateAvisosConfig?.('radar', e.target.checked)} 
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <div className="d-flex align-items-center justify-content-between">
+                <h3 className="text-lg font-bold text-foreground m-0">Meus Lembretes</h3>
+                <button 
+                  onClick={() => setShowAddReminder(!showAddReminder)}
+                  className="btn btn-primary btn-sm rounded-xl px-3 py-1.5 font-bold text-[10px] tracking-widest uppercase border-0 shadow-sm"
+                >
+                  {showAddReminder ? 'CANCELAR' : 'ADICIONAR'}
+                </button>
+              </div>
+
+              {showAddReminder && (
+                <div className="bg-muted/30 p-4 rounded-2xl border border-border animate-in slide-in-from-top-2 duration-300 space-y-3">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">O que você deseja lembrar?</label>
+                    <input 
+                      type="text" 
+                      className="form-control bg-card border-border rounded-xl text-sm py-2.5" 
+                      placeholder="Ex: Lançar despesas de cartão"
+                      value={newReminderText}
+                      onChange={(e) => setNewReminderText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddReminder()}
+                    />
+                  </div>
+                  <div className="row g-2">
+                    <div className="col-7">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Data (Opcional)</label>
+                      <input 
+                        type="date" 
+                        className="form-control bg-card border-border rounded-xl text-sm" 
+                        value={newReminderDate}
+                        onChange={(e) => setNewReminderDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="col-5 d-flex align-items-end">
+                      <button 
+                        className="btn btn-primary rounded-xl px-3 w-100 py-2 font-bold text-xs"
+                        disabled={!newReminderText.trim()}
+                        onClick={handleAddReminder}
+                      >
+                        SALVAR
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {lembretes.length === 0 ? (
+                <div className="bg-card rounded-2xl border border-border border-dashed p-10 text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted/20 d-flex align-items-center justify-content-center mx-auto mb-4">
+                    <span className="material-symbols-outlined text-muted-foreground opacity-30 text-3xl">task</span>
+                  </div>
+                  <p className="text-muted-foreground font-medium small m-0">Nenhum lembrete personalizado criado.</p>
+                  <p className="text-muted-foreground/60 text-[10px] mt-1">Clique em "Adicionar" para criar um lembrete com data.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lembretes.map((l) => (
+                    <div key={l.id} className="bg-card p-3 rounded-2xl border border-border d-flex align-items-center justify-content-between group hover:border-primary/30 transition-all">
+                      <div className="d-flex align-items-center gap-3">
+                        <div 
+                          onClick={() => onToggleLembrete?.(l.id)}
+                          className={cn(
+                            "w-6 h-6 rounded-lg border-2 d-flex align-items-center justify-content-center cursor-pointer transition-all",
+                            l.concluido ? "bg-primary border-primary text-white" : "border-muted-foreground/30 hover:border-primary"
+                          )}
+                        >
+                          {l.concluido && <span className="material-symbols-outlined text-sm font-black">check</span>}
+                        </div>
+                        <div>
+                          <div className={cn(
+                            "text-sm font-medium transition-all",
+                            l.concluido ? "text-muted-foreground line-through" : "text-foreground"
+                          )}>
+                            {l.texto}
+                          </div>
+                          {l.data && (
+                            <div className="text-[10px] text-muted-foreground d-flex align-items-center gap-1 mt-0.5">
+                              <span className="material-symbols-outlined text-xs">calendar_today</span>
+                              {new Date(l.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => onDeleteLembrete?.(l.id)}
+                        className="btn-icon p-2 hover:bg-danger/10 rounded-lg transition-all text-danger opacity-60 hover:opacity-100"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        );
     }
   };
   
@@ -466,6 +730,100 @@ export function SettingsView({
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+export function SettingsModal({
+  isOpen,
+  onClose,
+  user,
+  isDarkMode,
+  toggleDarkMode,
+  themeColor,
+  setThemeColor,
+  familyMembers,
+  onInvite,
+  userType,
+  titulares,
+  cartoes,
+  onAddTitular,
+  onUpdateTitular,
+  onDeleteTitular,
+  onAddCartao,
+  onUpdateCartao,
+  onDeleteCartao,
+  lembretes,
+  onAddLembrete,
+  onToggleLembrete,
+  onDeleteLembrete,
+  avisosConfig,
+  onUpdateAvisosConfig
+}: {
+  isOpen: boolean,
+  onClose: () => void,
+  user: Profile | null,
+  isDarkMode: boolean,
+  toggleDarkMode: () => void,
+  themeColor: string,
+  setThemeColor: (color: string) => void,
+  familyMembers: Profile[],
+  onInvite: (email: string) => void,
+  userType: 'titular' | 'membro',
+  titulares: Titular[],
+  cartoes: CartaoConfig[],
+  onAddTitular: (t: Omit<Titular, 'id'>) => void,
+  onUpdateTitular: (id: number, t: Partial<Titular>) => void,
+  onDeleteTitular: (id: number) => void,
+  onAddCartao: (c: Omit<CartaoConfig, 'id'>) => void,
+  onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => void,
+  onDeleteCartao: (id: number) => void,
+  lembretes: {id: number, texto: string, concluido: boolean, data?: string}[],
+  onAddLembrete: (texto: string, data?: string) => void,
+  onToggleLembrete: (id: number) => void,
+  onDeleteLembrete: (id: number) => void,
+  avisosConfig: { vencidas: boolean, hoje: boolean, radar: boolean },
+  onUpdateAvisosConfig: (key: 'vencidas' | 'hoje' | 'radar', value: boolean) => void
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal fade show d-block settings-modal-custom" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
+        <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '870px' }}>
+          <SettingsView
+            user={user}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
+            familyMembers={familyMembers}
+            onInvite={onInvite}
+            userType={userType}
+            titulares={titulares}
+            cartoes={cartoes}
+            onAddTitular={onAddTitular}
+            onUpdateTitular={onUpdateTitular}
+            onDeleteTitular={onDeleteTitular}
+            onAddCartao={onAddCartao}
+            onUpdateCartao={onUpdateCartao}
+            onDeleteCartao={onDeleteCartao}
+            isMobile={false}
+            lembretes={lembretes}
+            onAddLembrete={onAddLembrete}
+            onToggleLembrete={onToggleLembrete}
+            onDeleteLembrete={onDeleteLembrete}
+            avisosConfig={avisosConfig}
+            onUpdateAvisosConfig={onUpdateAvisosConfig}
+          />
+          {/* Footer fixo para o Modal */}
+          <div className="absolute bottom-0 right-0 p-6 z-50">
+            <button type="button" className="px-10 py-3 rounded-pill btn btn-light border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors" onClick={onClose}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

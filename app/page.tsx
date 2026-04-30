@@ -6,8 +6,8 @@ import { KPICards, ExtratoTable, TitularChart, PaymentStatusChart } from '@/comp
 
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
 import { AnalysisPlan } from '@/components/analysis-view';
-import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, SettingsModal, EmprestimoForm, PayoffModal, ExpenseSettingsModal, UniversalFinanceForm } from '@/components/modals';
-import { SettingsView } from '@/components/settings-view';
+import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, EmprestimoForm, PayoffModal, ExpenseSettingsModal, UniversalFinanceForm } from '@/components/modals';
+import { SettingsView, SettingsModal } from '@/components/settings-view';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -117,7 +117,14 @@ export default function Home() {
     addContaFixa,
     updateContaFixa,
     deleteContaFixa,
-    quitarParcelas
+    quitarParcelas,
+    alertas,
+    lembretes,
+    addLembrete,
+    toggleLembrete,
+    deleteLembrete,
+    avisosConfig,
+    updateAvisosConfig
   } = useFinance(activeView);
 
 
@@ -287,7 +294,7 @@ export default function Home() {
       case 'dashboard':
         return (
           <div className="space-y-4">
-            <KPICards stats={stats} />
+            <KPICards stats={stats} onViewChange={setActiveView} />
             <div className="row g-3 mt-1">
               <div className="col-lg-6">
                 <ExtratoTable 
@@ -978,9 +985,17 @@ export default function Home() {
               setIsConfirmDeleteOpen(true);
             }}
             isMobile={true}
+            themeColor={themeColor}
+            setThemeColor={setThemeColor}
             activeTab={activeSettingsTab}
             onTabChange={setActiveSettingsTab}
             onCloseSettings={() => setActiveView('dashboard')}
+            lembretes={lembretes}
+            onAddLembrete={addLembrete}
+            onToggleLembrete={toggleLembrete}
+            onDeleteLembrete={deleteLembrete}
+            avisosConfig={avisosConfig}
+            onUpdateAvisosConfig={updateAvisosConfig}
           />
         );
 
@@ -1027,6 +1042,9 @@ export default function Home() {
             onLogout={signOut}
             showBackButton={activeView !== 'dashboard'}
             onBack={() => setActiveView('dashboard')}
+            user={userProfile}
+            themeColor={themeColor}
+            alertas={alertas}
           />
         )}
 
@@ -1051,6 +1069,7 @@ export default function Home() {
             }}
             activeSettingsTab={activeSettingsTab}
             onSettingsTabChange={setActiveSettingsTab}
+            themeColor={themeColor}
           />
         )}
 
@@ -1217,6 +1236,12 @@ export default function Home() {
             setItemToDelete({ id, type: 'cartao' });
             setIsConfirmDeleteOpen(true);
           }}
+          lembretes={lembretes}
+          onAddLembrete={addLembrete}
+          onToggleLembrete={toggleLembrete}
+          onDeleteLembrete={deleteLembrete}
+          avisosConfig={avisosConfig}
+          onUpdateAvisosConfig={updateAvisosConfig}
         />
 
         <ExpenseSettingsModal

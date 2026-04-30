@@ -73,7 +73,30 @@ export function useFinance(activeView: string) {
       }
       if (receitasData) setReceitas(receitasData);
       if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
-      if (notaData) setNota(notaData?.conteudo || '');
+      if (notaData) {
+        const raw = notaData?.conteudo || '';
+        try {
+          if (raw.startsWith('{')) {
+            const parsed = JSON.parse(raw);
+            setNota(parsed.nota || '');
+            setLembretes(parsed.lembretes || []);
+            
+            // Sincronizar preferências se existirem
+            if (parsed.preferencias) {
+              const prefs = parsed.preferencias;
+              if (prefs.darkMode !== undefined) setIsDarkMode(prefs.darkMode);
+              if (prefs.themeColor) setThemeColor(prefs.themeColor);
+              if (prefs.avisos) setAvisosConfig(prev => ({ ...prev, ...prefs.avisos }));
+            }
+          } else {
+            setNota(raw);
+            setLembretes([]);
+          }
+        } catch {
+          setNota(raw);
+          setLembretes([]);
+        }
+      }
       if (emprestimosData) setEmprestimos(emprestimosData);
       if (contasFixasData) setContasFixas(contasFixasData);
 
@@ -221,10 +244,71 @@ export function useFinance(activeView: string) {
     else document.body.classList.remove('dark-mode');
   }, [isDarkMode]);
 
+  const [lembretes, setLembretes] = useState<{id: number, texto: string, concluido: boolean, data?: string}[]>([]);
+  const [avisosConfig, setAvisosConfig] = useState({
+    vencidas: true,
+    hoje: true,
+    radar: false
+  });
+
+  const saveSettingsToCloud = async (overrides: any = {}) => {
+    try {
+      const payload = JSON.stringify({ 
+        nota, 
+        lembretes: overrides.lembretes || lembretes,
+        preferencias: {
+          darkMode: overrides.isDarkMode !== undefined ? overrides.isDarkMode : isDarkMode,
+          themeColor: overrides.themeColor || themeColor,
+          avisos: overrides.avisosConfig || avisosConfig
+        }
+      });
+      await supabase.from('table_notas').upsert({ conteudo: payload });
+    } catch (error) {
+      console.error('Erro ao sincronizar configurações:', error);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('fin_theme_color', themeColor);
-    document.documentElement.style.setProperty('--primary', themeColor);
-  }, [themeColor]);
+    if (!isLoading && user) {
+       localStorage.setItem('fin_theme_color', themeColor);
+       document.documentElement.style.setProperty('--primary', themeColor);
+    }
+  }, [themeColor, isLoading, user]);
+
+  const addLembrete = async (texto: string, data?: string) => {
+    const newReminders = [...lembretes, { id: Date.now(), texto, concluido: false, data }];
+    setLembretes(newReminders);
+    await saveSettingsToCloud({ lembretes: newReminders });
+  };
+
+  const toggleLembrete = async (id: number) => {
+    const newReminders = lembretes.map(l => l.id === id ? { ...l, concluido: !l.concluido } : l);
+    setLembretes(newReminders);
+    await saveSettingsToCloud({ lembretes: newReminders });
+  };
+
+  const deleteLembrete = async (id: number) => {
+    const newReminders = lembretes.filter(l => l.id !== id);
+    setLembretes(newReminders);
+    await saveSettingsToCloud({ lembretes: newReminders });
+  };
+
+  const updateAvisosConfig = async (key: keyof typeof avisosConfig, value: boolean) => {
+    const newConfig = { ...avisosConfig, [key]: value };
+    setAvisosConfig(newConfig);
+    await saveSettingsToCloud({ avisosConfig: newConfig });
+  };
+
+  const setAndSyncThemeColor = async (color: string) => {
+    setThemeColor(color);
+    await saveSettingsToCloud({ themeColor: color });
+  };
+
+  const toggleAndSyncDarkMode = async () => {
+    const newVal = !isDarkMode;
+    setIsDarkMode(newVal);
+    await saveSettingsToCloud({ isDarkMode: newVal });
+  };
 
   const competencia = useMemo(() => {
     return `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
@@ -592,11 +676,21 @@ export function useFinance(activeView: string) {
 
   const updateNota = async (conteudo: string) => {
     if (!user) return;
-    // Em um sistema multi-tenancy, o RLS e o DEFAULT get_my_family_id() 
-    // cuidarão para que o upsert caia na linha correta da família.
-    const { error } = await supabase.from('table_notas').upsert({ conteudo });
-    if (!error) setNota(conteudo);
-    else console.error('Error updating nota:', error);
+    try {
+      const payload = JSON.stringify({ 
+        nota: conteudo, 
+        lembretes,
+        preferencias: {
+          darkMode: isDarkMode,
+          themeColor,
+          avisos: avisosConfig
+        }
+      });
+      const { error } = await supabase.from('table_notas').upsert({ conteudo: payload });
+      if (!error) setNota(conteudo);
+    } catch (error) {
+      console.error('Error updating nota:', error);
+    }
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
@@ -762,6 +856,33 @@ export function useFinance(activeView: string) {
 
     return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments, ...virtualFixedInstallments].filter(Boolean);
   }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, contasFixas, despesas]);
+
+  const alertas = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    
+    const vencidas = (avisosConfig.vencidas !== false) 
+      ? consolidatedDespesas.filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
+      : [];
+      
+    const vencendoHoje = (avisosConfig.hoje !== false)
+      ? consolidatedDespesas.filter(d => d.status === 'Em aberto' && d.vencimento === todayStr)
+      : [];
+
+    const total = vencidas.length + vencendoHoje.length;
+    
+    console.log('Antigravity: Calculando alertas', { 
+      config: avisosConfig, 
+      vencidas: vencidas.length, 
+      hoje: vencendoHoje.length,
+      total 
+    });
+
+    return {
+      vencidas,
+      vencendoHoje,
+      total
+    };
+  }, [consolidatedDespesas, avisosConfig]);
 
   const consolidatedReceitas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-01');
@@ -1139,7 +1260,7 @@ export function useFinance(activeView: string) {
     changeMonth,
     setMonth,
     setYear,
-    toggleDarkMode,
+    toggleDarkMode: toggleAndSyncDarkMode,
     updateNota,
     signIn,
     signUp,
@@ -1176,6 +1297,13 @@ export function useFinance(activeView: string) {
     userType,
     updateProfile,
     themeColor,
-    setThemeColor
+    setThemeColor: setAndSyncThemeColor,
+    alertas,
+    lembretes,
+    addLembrete,
+    toggleLembrete,
+    deleteLembrete,
+    avisosConfig,
+    updateAvisosConfig
   };
 }

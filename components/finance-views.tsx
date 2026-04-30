@@ -15,9 +15,9 @@ import {
 } from 'recharts';
 import { addMonths, format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { CardLogo } from './card-ui';
 import { Despesa, Receita, CartaoTransacao, CartaoConfig, Titular, Status, Categoria } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 interface TableViewProps {
   data: any[]; // Voltar para any temporariamente ou usar union restrito
@@ -81,7 +81,87 @@ export function FinanceTable({
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden">
       <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-        <table className="table table-hover align-middle mb-0">
+        
+        {/* Mobile List View - Sicoob Style */}
+        <div className="d-md-none p-2">
+          {(data || []).length === 0 ? (
+            <div className="p-5 text-center text-muted italic">Nenhum registro encontrado.</div>
+          ) : (
+            data.map((item) => {
+              if (!item) return null;
+              const itemId = (item as any).id;
+              const isReceita = type === 'receitas';
+              const isCartao = type === 'cartoes';
+              const isSummary = (item as any).isSummary;
+              
+              const title = (item as any).descricao || (item as any).estabelecimento || 'Resumo';
+              const status = (item as any).status;
+              const valor = (item as any).valor;
+              const date = (item as any).vencimento || (item as any).data_recebimento || (item as any).data_compra || '-';
+              
+              // Icon definition
+              let iconContent = null;
+              if (isCartao && !isSummary) {
+                 const cartaoName = getCartaoName((item as any).cartao_id);
+                 iconContent = <CardLogo name={cartaoName} size="sm" />;
+              } else {
+                 const iconClass = isReceita ? "fa-arrow-down text-success" : (isSummary ? "fa-chart-pie text-primary" : "fa-arrow-up text-danger");
+                 iconContent = <i className={cn("fa-solid", iconClass)}></i>;
+              }
+              const iconBg = isCartao ? "" : (isReceita ? "bg-success bg-opacity-10" : (isSummary ? "bg-primary bg-opacity-10" : "bg-danger bg-opacity-10"));
+
+              return (
+                <div 
+                  key={itemId}
+                  className="sicoob-list-item cursor-pointer mb-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isSummary) onEdit?.(item);
+                  }}
+                >
+                  <div className={cn("sicoob-list-icon", iconBg, isCartao ? "p-0 bg-transparent border-0" : "")}>
+                    {iconContent}
+                  </div>
+                  <div className="sicoob-list-content">
+                    <div className={cn("fw-bold text-dark text-truncate", isSummary ? "text-primary" : "")} style={{ fontSize: '0.9rem' }}>
+                      {title}
+                    </div>
+                    <div className="d-flex align-items-center gap-2 mt-1">
+                      {date !== '-' && (
+                        <span className="small text-muted">{formatDate(date)}</span>
+                      )}
+                      {!isSummary && status && (
+                        <>
+                          <span className="text-muted" style={{ fontSize: '10px' }}>•</span>
+                          <span className={cn(
+                            "badge rounded-pill fw-bold",
+                            status === 'Pago' || status === 'Recebido' ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning"
+                          )} style={{ fontSize: '0.65rem' }}>
+                            {status}
+                          </span>
+                        </>
+                      )}
+                      {!isSummary && isCartao && (item as any).parcela_total > 1 && (
+                        <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill" style={{ fontSize: '0.65rem' }}>
+                          {(item as any).parcela_atual}/{(item as any).parcela_total}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="sicoob-list-value">
+                    <div className={cn("fw-bold", isReceita ? "text-success" : "text-dark")}>
+                      {isReceita ? '+' : ''}{formatCurrency(valor)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Standard Desktop Table */}
+        <table className="table table-hover align-middle mb-0 d-none d-md-table">
+
           <thead className="table-light">
             <tr>
               {currentHeaders.map(h => (
@@ -567,26 +647,7 @@ export function SummaryCards({
 }) {
   const [hoveredCardId, setHoveredCardId] = React.useState<number | null>(null);
   const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
-  const getCardLogo = (name: string) => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('nubank')) return 'https://i.ibb.co/rRRmcj5K/Nubank.png';
-    if (lowerName.includes('inter')) return 'https://i.ibb.co/mFSsyhBj/inter.png';
-    if (lowerName.includes('itaú') || lowerName.includes('itau')) return 'https://i.ibb.co/twPnVb6h/itau.avif';
-    if (lowerName.includes('bradesco')) return 'https://i.ibb.co/BH4v1bVJ/Bradesco.png';
-    if (lowerName.includes('santander')) return 'https://i.ibb.co/Pz3tF8yC/Santander.png';
-    if (lowerName.includes('caixa')) return 'https://i.ibb.co/yBk7gxR1/caixa.png';
-    if (lowerName.includes('mercado pago')) return 'https://i.ibb.co/hFkY0VVQ/Mercado-Pago.webp';
-    if (lowerName.includes('sicoob platinum')) return 'https://i.ibb.co/p6knTbFb/Sicoob-Platinum.png';
-    if (lowerName.includes('sicoob clássico')) return 'https://i.ibb.co/m5wswjcc/Sicoob-Cl-ssico.jpg';
-    if (lowerName.includes('eucard')) return 'https://i.ibb.co/93nFRcXn/Eucard.jpg';
-    if (lowerName.includes('cabal')) return 'https://i.ibb.co/fVNSC8Rs/Cabal.png';
 
-    // Fallbacks para outros bancos
-    if (lowerName.includes('bb') || lowerName.includes('brasil')) return 'https://logo.clearbit.com/bb.com.br';
-    if (lowerName.includes('xp')) return 'https://logo.clearbit.com/xpi.com.br';
-    if (lowerName.includes('btg')) return 'https://logo.clearbit.com/btgpactual.com';
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&bold=true`;
-  };
 
   const isSelected = (id: number | null) => activeFilterId === id;
 
@@ -689,16 +750,7 @@ export function SummaryCards({
             )}
           >
             <div className="d-flex align-items-center justify-content-start gap-2">
-              <div className="position-relative rounded-3 overflow-hidden border border-border bg-white p-1" style={{ width: '45px', height: '45px' }}>
-                <Image
-                  src={getCardLogo(c.nome_cartao)}
-                  alt={c.nome_cartao}
-                  fill
-                  unoptimized
-                  className="object-contain"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+              <CardLogo name={c.nome_cartao} />
               <div>
                 <small className="text-muted d-block text-uppercase fw-bold" style={{ fontSize: '0.7rem' }}>{c.nome_cartao}</small>
                 <div className="text-muted small opacity-75" style={{ fontSize: '0.6rem', marginTop: '-2px' }}>

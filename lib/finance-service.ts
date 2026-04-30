@@ -102,6 +102,43 @@ export function calcularCompetenciaCartao(dataCompra: Date, diaVencimento: numbe
   return formatCompetencia(dataVenc);
 }
 
+export function getProximoFechamento(cartao: CartaoConfig): string {
+  const now = startOfDay(new Date());
+  
+  // Começamos tentando o vencimento do mês atual
+  let dataVenc = new Date(now.getFullYear(), now.getMonth(), cartao.dia_vencimento);
+  let dataFechamento = startOfDay(addDays(dataVenc, -cartao.dia_fechamento));
+
+  // Enquanto o fechamento for hoje ou no passado, procuramos o próximo ciclo
+  while (dataFechamento <= now) {
+    dataVenc = addMonths(dataVenc, 1);
+    dataFechamento = startOfDay(addDays(dataVenc, -cartao.dia_fechamento));
+  }
+
+  return format(dataFechamento, 'dd/MM');
+}
+
+export const getCardLogo = (name: string) => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('nubank')) return 'https://i.ibb.co/rRRmcj5K/Nubank.png';
+  if (lowerName.includes('inter')) return 'https://i.ibb.co/mFSsyhBj/inter.png';
+  if (lowerName.includes('itaú') || lowerName.includes('itau')) return 'https://i.ibb.co/twPnVb6h/itau.avif';
+  if (lowerName.includes('bradesco')) return 'https://i.ibb.co/BH4v1bVJ/Bradesco.png';
+  if (lowerName.includes('santander')) return 'https://i.ibb.co/Pz3tF8yC/Santander.png';
+  if (lowerName.includes('caixa')) return 'https://i.ibb.co/yBk7gxR1/caixa.png';
+  if (lowerName.includes('mercado pago')) return 'https://i.ibb.co/hFkY0VVQ/Mercado-Pago.webp';
+  if (lowerName.includes('sicoob platinum')) return 'https://i.ibb.co/p6knTbFb/Sicoob-Platinum.png';
+  if (lowerName.includes('sicoob clássico')) return 'https://i.ibb.co/m5wswjcc/Sicoob-Cl-ssico.jpg';
+  if (lowerName.includes('eucard')) return 'https://i.ibb.co/93nFRcXn/Eucard.jpg';
+  if (lowerName.includes('cabal')) return 'https://i.ibb.co/fVNSC8Rs/Cabal.png';
+
+  // Fallbacks para outros bancos
+  if (lowerName.includes('bb') || lowerName.includes('brasil')) return 'https://logo.clearbit.com/bb.com.br';
+  if (lowerName.includes('xp')) return 'https://logo.clearbit.com/xpi.com.br';
+  if (lowerName.includes('btg')) return 'https://logo.clearbit.com/btgpactual.com';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&bold=true`;
+};
+
 export function projetarProximoVencimento(
   dataBase: Date, 
   mesesAdicionais: number, 

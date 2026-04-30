@@ -16,9 +16,12 @@ interface KPICardsProps {
     margem: number;
     totalVencido?: number;
   };
+  onViewChange?: (view: string) => void;
 }
 
-export function KPICards({ stats }: KPICardsProps) {
+export function KPICards({ stats, onViewChange }: KPICardsProps) {
+  const [showBalance, setShowBalance] = React.useState(true);
+
   const cards = [
     { label: 'Receitas do Mês', value: stats.totalReceitas, icon: 'fa-wallet', color: 'primary', variant: 'blue' },
     { label: 'Despesas do Mês', value: stats.totalDespesas, icon: 'fa-file-invoice-dollar', color: 'danger', variant: 'red' },
@@ -27,20 +30,53 @@ export function KPICards({ stats }: KPICardsProps) {
   ];
 
   return (
-    <div className="row g-3 mb-4 kpi-grid-mobile">
-      {cards.map((card) => (
-        <div key={card.label} className="col-md-3 col-6">
-          <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100")}>
-            <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-              {card.label}
-            </small>
-            <div className={cn("centered-value h3 fw-bold mb-0", card.variant === 'red' ? "text-danger" : card.variant === 'green' ? "text-success" : card.variant === 'blue' ? "text-primary" : "")}>
-              {formatCurrency(card.value)}
+    <>
+      {/* Sicoob Premium Mobile Balance & Quick Actions - Only visible on small screens */}
+      <div className="d-md-none">
+        <div className="bg-card border border-border rounded-4 p-4 mb-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <span className="text-muted fw-bold" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo do Mês</span>
+            <div className="d-flex gap-2">
+              <i 
+                 className={`fa-solid ${showBalance ? 'fa-eye' : 'fa-eye-slash'} text-muted cursor-pointer`}
+                 onClick={() => setShowBalance(!showBalance)}
+                 style={{ cursor: 'pointer' }}
+              ></i>
+            </div>
+          </div>
+          <div className="h1 fw-bold mb-3 text-foreground">{showBalance ? formatCurrency(stats.margem) : 'R$ •••••'}</div>
+          
+          <div className="d-flex justify-content-between mt-3 pt-3 border-top border-border/60">
+            <div>
+              <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>Receitas</div>
+              <div className="fw-bold text-success" style={{ fontSize: '0.85rem' }}>{showBalance ? formatCurrency(stats.totalReceitas) : 'R$ •••••'}</div>
+            </div>
+            <div className="text-end">
+              <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>Despesas</div>
+              <div className="fw-bold text-danger" style={{ fontSize: '0.85rem' }}>{showBalance ? formatCurrency(stats.totalDespesas) : 'R$ •••••'}</div>
             </div>
           </div>
         </div>
-      ))}
-    </div>
+        
+        {/* Quick Actions Removed */}
+      </div>
+
+      {/* Standard Desktop KPI Cards - Hidden on small screens */}
+      <div className="row g-3 mb-4 d-none d-md-flex">
+        {cards.map((card) => (
+          <div key={card.label} className="col-md-3">
+            <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100")}>
+              <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                {card.label}
+              </small>
+              <div className={cn("centered-value h3 fw-bold mb-0", card.variant === 'red' ? "text-danger" : card.variant === 'green' ? "text-success" : card.variant === 'blue' ? "text-primary" : "")}>
+                {formatCurrency(card.value)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -62,49 +98,105 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
         {despesas.length === 0 ? (
           <div className="p-5 text-center text-muted italic">Nenhuma movimentação identificada</div>
         ) : (
-          <div className="list-group list-group-flush">
-            {despesas.map((d) => {
-              const todayStr = format(new Date(), 'yyyy-MM-dd');
-              const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
+          <>
+            {/* Mobile View - Sicoob Style */}
+            <div className="p-2 p-md-0 d-md-none">
+              {despesas.map((d) => {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
+                
+                const isReceita = (d as any).data_recebimento || d.valor > 0 && d.status === 'Recebido'; // Simplificação
+                const iconClass = isReceita ? "fa-arrow-down text-success" : "fa-arrow-up text-danger";
+                const iconBg = isReceita ? "bg-success bg-opacity-10" : "bg-danger bg-opacity-10";
 
-              return (
-                <div
-                  key={d.id}
-                  onDoubleClick={() => !d.isSummary && onEdit?.(d)}
-                  className="list-group-item list-group-item-action border-0 border-bottom border-border px-3 px-md-4 py-2 cursor-pointer bg-transparent"
-                >
-                  <div className="d-flex justify-content-between align-items-start mb-0">
-                    <div className="fw-bold text-dark text-truncate pr-2" style={{ maxWidth: '65%' }}>
-                      {d.descricao}
+                return (
+                  <div
+                    key={d.id}
+                    onDoubleClick={() => !d.isSummary && onEdit?.(d)}
+                    className="sicoob-list-item cursor-pointer"
+                  >
+                    <div className={cn("sicoob-list-icon", iconBg)}>
+                      <i className={cn("fa-solid", iconClass)}></i>
                     </div>
-                    <div className="fw-bold text-dark whitespace-nowrap">
-                      {formatCurrency(d.valor)}
-                    </div>
-                  </div>
-
-                  <div className="d-flex justify-content-between align-items-end">
-                    <div className="small text-muted flex-column d-flex">
-                      {d.vencimento !== '-' && (
-                        <span className={cn(isVencido ? "text-danger fw-bold" : "text-muted")}>
-                          {isVencido 
-                            ? `Venceu em ${formatDate(d.vencimento)}` 
-                            : `Dia ${parseInt(d.vencimento.split('-')[2] || '0')}`
-                          }
+                    
+                    <div className="sicoob-list-content">
+                      <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.9rem' }}>
+                        {d.descricao}
+                      </div>
+                      <div className="d-flex align-items-center gap-2 mt-1">
+                        {d.vencimento !== '-' && (
+                          <span className={cn("small", isVencido ? "text-danger fw-bold" : "text-muted")}>
+                            {isVencido 
+                              ? `Venceu em ${formatDate(d.vencimento)}` 
+                              : formatDate(d.vencimento)
+                            }
+                          </span>
+                        )}
+                        <span className="text-muted" style={{ fontSize: '10px' }}>•</span>
+                        <span className={cn(
+                          "badge rounded-pill fw-bold",
+                          d.status === 'Pago' ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning"
+                        )} style={{ fontSize: '0.65rem' }}>
+                          {d.status === 'Pago' ? 'Pago' : 'Pendente'}
                         </span>
-                      )}
+                      </div>
                     </div>
-                    <div>
-                      <span className={cn(
-                        d.status === 'Pago' ? "status-pago" : "status-aberto"
-                      )}>
-                        {d.status === 'Pago' ? 'Pago' : 'Em aberto'}
-                      </span>
+                    
+                    <div className="sicoob-list-value">
+                      <div className="fw-bold text-dark">
+                        {formatCurrency(d.valor)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View - Original Table-like List */}
+            <div className="list-group list-group-flush d-none d-md-block">
+              {despesas.map((d) => {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
+
+                return (
+                  <div
+                    key={d.id}
+                    onDoubleClick={() => !d.isSummary && onEdit?.(d)}
+                    className="list-group-item list-group-item-action border-0 border-bottom border-border px-3 px-md-4 py-2 cursor-pointer bg-transparent"
+                  >
+                    <div className="d-flex justify-content-between align-items-start mb-0">
+                      <div className="fw-bold text-dark text-truncate pr-2" style={{ maxWidth: '65%' }}>
+                        {d.descricao}
+                      </div>
+                      <div className="fw-bold text-dark whitespace-nowrap">
+                        {formatCurrency(d.valor)}
+                      </div>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-end">
+                      <div className="small text-muted flex-column d-flex">
+                        {d.vencimento !== '-' && (
+                          <span className={cn(isVencido ? "text-danger fw-bold" : "text-muted")}>
+                            {isVencido 
+                              ? `Venceu em ${formatDate(d.vencimento)}` 
+                              : `Dia ${parseInt(d.vencimento.split('-')[2] || '0')}`
+                            }
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className={cn(
+                          d.status === 'Pago' ? "status-pago" : "status-aberto"
+                        )}>
+                          {d.status === 'Pago' ? 'Pago' : 'Em aberto'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
