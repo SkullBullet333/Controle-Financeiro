@@ -2101,12 +2101,42 @@ export function ExpenseSettingsModal({
   };
 
   return (
-    <div className="modal fade show d-block expense-settings-modal-custom" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
-        <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '700px' }}>
-          <div className="d-flex h-100 flex-column flex-md-row">
-            {/* Sidebar */}
-            <aside className="bg-muted/20 border-end border-border d-flex flex-row flex-md-column overflow-auto p-2 p-md-4 gap-1 no-scrollbar flex-shrink-0" style={{ width: '240px' }}>
+    <div 
+      className={cn(
+        "modal fade show d-block expense-settings-modal-custom",
+        "d-flex flex-column justify-content-end md:justify-content-center"
+      )} 
+      style={{ 
+        backgroundColor: 'rgba(0,0,0,0.6)', 
+        backdropFilter: 'blur(8px)',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 2000
+      }} 
+      onClick={onClose}
+    >
+      <div 
+        className={cn(
+          "modal-dialog modal-xl modal-dialog-centered m-0 md:m-auto w-100",
+          "h-[85vh] md:h-auto"
+        )} 
+        onClick={(e: React.MouseEvent) => e.stopPropagation()} 
+        style={{ maxWidth: '1000px' }}
+      >
+        <div className={cn(
+          "modal-content border-0 shadow-2xl overflow-hidden bg-card h-full flex flex-col",
+          "rounded-t-[2.5rem] md:rounded-[2rem]"
+        )} style={{ height: '100%' }}>
+          
+          {/* Mobile Handle */}
+          <div className="d-md-none w-12 h-1.5 bg-muted rounded-full mx-auto mt-4 mb-2 opacity-50 flex-shrink-0"></div>
+
+          <div className="d-flex h-100 flex-column flex-md-row overflow-hidden">
+            {/* Sidebar / Tabs */}
+            <aside className={cn(
+              "bg-muted/10 border-end border-border d-flex flex-row flex-md-column overflow-auto p-2 p-md-4 gap-1 no-scrollbar flex-shrink-0",
+              "w-100 md:w-[240px] border-bottom md:border-bottom-0"
+            )}>
               <div className="d-none d-md-flex flex-column align-items-start px-3 mb-6">
                 <div className="d-flex align-items-center gap-2 mb-2">
                   <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
@@ -2114,9 +2144,9 @@ export function ExpenseSettingsModal({
                 </div>
               </div>
 
-              <div className="flex-grow-1 d-flex flex-row flex-md-column gap-4">
+              <div className="flex-grow-1 d-flex flex-row flex-md-column gap-2 md:gap-4 px-1">
                 {sections.map((section) => (
-                  <div key={section.title} className="d-flex flex-column gap-1">
+                  <div key={section.title} className="d-flex flex-row flex-md-column gap-1">
                     <div className="px-4 d-none d-md-block">
                       <span className="text-[9px] font-black text-muted-foreground opacity-50 tracking-[.25em] uppercase">{section.title}</span>
                     </div>
@@ -2126,25 +2156,25 @@ export function ExpenseSettingsModal({
                           key={tab.id}
                           onClick={() => setActiveTab(tab.id)}
                           className={cn(
-                            "flex-grow-1 flex-md-grow-0 px-5 py-3 rounded-full transition-all duration-300 d-flex align-items-center justify-content-center gap-3 border-0 mx-2",
+                            "flex-grow-1 flex-md-grow-0 px-3 md:px-5 py-2.5 md:py-3 rounded-full transition-all duration-300 d-flex align-items-center justify-content-center gap-2 md:gap-3 border-0",
                             activeTab === tab.id
                               ? "text-white"
                               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           )}
                           style={{
                             fontSize: '10px',
-                            background: activeTab === tab.id ? '#111827' : 'transparent',
+                            background: activeTab === tab.id ? tab.color : 'transparent',
                             borderRadius: '9999px',
-                            boxShadow: 'none'
+                            boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
                           }}
                         >
                           <span className={cn(
-                            "material-symbols-outlined text-[20px]",
+                            "material-symbols-outlined text-[18px] md:text-[20px]",
                             activeTab === tab.id ? "text-white" : "text-muted-foreground"
                           )} style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}>
                             {tab.icon}
                           </span>
-                          <span className="text-xs font-black uppercase tracking-widest d-none d-md-inline whitespace-nowrap">{tab.label}</span>
+                          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
                         </button>
                       ))}
                     </div>
@@ -2154,17 +2184,31 @@ export function ExpenseSettingsModal({
 
               <button
                 onClick={onClose}
-                className="mt-md-auto text-start px-4 py-3 rounded-2xl text-muted-foreground hover:bg-danger/5 hover:text-danger transition-all d-flex align-items-center gap-3 border-0 bg-transparent"
+                className="d-none d-md-flex mt-md-auto text-start px-4 py-3 rounded-2xl text-muted-foreground hover:bg-danger/5 hover:text-danger transition-all align-items-center gap-3 border-0 bg-transparent"
                 style={{ fontSize: '10px' }}
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
-                <span className="text-xs font-black uppercase tracking-widest d-none d-md-inline">Fechar</span>
+                <span className="text-xs font-black uppercase tracking-widest">Fechar</span>
               </button>
             </aside>
 
             {/* Content Area */}
-            <main className="flex-fill overflow-auto p-6 p-md-10 bg-card relative">
-              {renderContent()}
+            <main className="flex-fill bg-card relative d-flex flex-column h-full overflow-hidden">
+              {/* Scrollable Content */}
+              <div className="flex-grow-1 overflow-y-auto p-4 p-md-10 custom-scrollbar">
+                {renderContent()}
+              </div>
+              
+              {/* Mobile Back Button - Always Visible at bottom */}
+              <div className="d-md-none p-3 border-top border-border/10 bg-card flex-shrink-0">
+                <button 
+                  onClick={onClose}
+                  className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+                  style={{ background: '#003641', fontSize: '11px' }}
+                >
+                  Voltar
+                </button>
+              </div>
             </main>
           </div>
         </div>

@@ -815,8 +815,8 @@ body.dark-mode .table-primary-subtle {
   .sicoob-mobile-header {
     background-color: var(--sicoob-teal);
     color: white;
-    padding: 24px 20px 32px 20px;
-    margin: -15px -15px 15px -15px; /* Added margin-bottom */
+    padding: 24px 12px 32px 12px;
+    margin: -15px -12px 15px -12px; /* Reduced side margins to gain width */
     border-radius: 0 0 24px 24px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     position: relative;
@@ -873,12 +873,12 @@ body.dark-mode .table-primary-subtle {
   .sicoob-list-item {
     background: var(--sicoob-card);
     border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
   
   .sicoob-list-icon {
@@ -1164,7 +1164,7 @@ body.dark-mode .table-primary-subtle {
   }
 
   .SettingsView main {
-    padding: 1rem !important;
+    padding: 0 !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {

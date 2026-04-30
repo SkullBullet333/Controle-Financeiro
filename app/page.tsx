@@ -1048,7 +1048,7 @@ export default function Home() {
           />
         )}
 
-        <div className="content-body p-3 p-md-4">
+        <div className={cn("content-body p-md-4", activeView === 'config' ? "p-0" : "px-1 py-3")}>
           {isLoading ? (
             <div className="d-flex align-items-center justify-content-center h-50 pt-5">
               <div className="spinner-border text-primary" role="status"></div>

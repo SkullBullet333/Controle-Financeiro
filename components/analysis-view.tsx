@@ -35,15 +35,15 @@ export function AnalysisPlan({ projecao }: AnalysisPlanProps) {
       </div>
 
       <div className="overflow-x-auto no-scrollbar">
-        <div className="d-flex flex-nowrap p-3 p-md-4 gap-2">
+        <div className="d-flex flex-nowrap p-2 p-md-4 gap-2">
           {projecao.map((mes, idx) => (
             <div
               key={mes.competencia}
               className={cn(
-                "flex-fill rounded-4 p-2 p-md-3 border transition-all hover:scale-105",
+                "flex-fill rounded-4 p-3 p-md-3 border transition-all hover:scale-105 d-flex flex-column justify-content-between",
                 idx === 0 ? "border-blue-300 bg-primary bg-opacity-10 shadow-sm" : "border-border bg-transparent"
               )}
-              style={{ minWidth: '130px', flexBasis: '0', borderColor: idx === 0 ? '#738cff' : undefined }}
+              style={{ minWidth: 'clamp(140px, 70vw, 160px)', minHeight: '180px', flexBasis: '0', borderColor: idx === 0 ? '#738cff' : undefined }}
             >
               <div className="text-center mb-2">
                 <span className={cn(

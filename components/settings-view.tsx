@@ -100,56 +100,46 @@ export function SettingsView({
   
   const renderHub = () => {
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-5 duration-500 overflow-y-auto overflow-x-hidden custom-scrollbar h-100 flex flex-col">
-        <header className="mb-6 pt-4">
-          <div className="d-flex align-items-center gap-3 mb-2 px-1">
-            <button 
-              onClick={onCloseSettings}
-              className="btn-icon p-2 hover:bg-muted rounded-full bg-muted/20 d-flex align-items-center justify-content-center"
-            >
-              <span className="material-symbols-outlined text-foreground">arrow_back_ios_new</span>
-            </button>
-            <h1 className="text-2xl font-bold text-foreground tracking-tighter m-0">AJUSTES</h1>
+      <div className="animate-in fade-in slide-in-from-bottom-5 duration-500 overflow-y-auto overflow-x-hidden custom-scrollbar h-full d-flex flex-column">
+        <header className="mb-4 pt-4 px-1 flex-shrink-0">
+          <div className="d-flex align-items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center text-primary shadow-sm border border-primary/10">
+              <span className="material-symbols-outlined text-3xl">handyman</span>
+            </div>
+            <h1 className="text-3xl font-black text-foreground tracking-tight m-0 uppercase">Ajustes</h1>
           </div>
-          <p className="text-muted-foreground small ps-1 mt-1">Configure o sistema de acordo com sua preferência.</p>
         </header>
 
-        <div className="mb-6 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
-          <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-4 px-1 opacity-70">O que há de novo?</h3>
-          <div className="d-flex gap-4 overflow-x-auto pb-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-             {[
-               { label: 'Radar Pro', icon: 'auto_graph', color: 'bg-blue-500/10 text-blue-600' },
-               { label: 'Alertas', icon: 'notifications_active', color: 'bg-amber-500/10 text-amber-600' },
-               { label: 'Importar', icon: 'upload_file', color: 'bg-purple-500/10 text-purple-600' },
-               { label: 'Backup', icon: 'cloud_sync', color: 'bg-emerald-500/10 text-emerald-600' }
-             ].map((item, i) => (
-               <div key={i} className="flex-shrink-0 d-flex flex-column align-items-center gap-2" style={{ width: '70px' }}>
-                 <div className={cn("w-14 h-14 rounded-full d-flex align-items-center justify-content-center shadow-sm border border-border/10 bg-card", item.color)}>
-                   <span className="material-symbols-outlined text-2xl">{item.icon}</span>
-                 </div>
-                 <span className="text-[9px] font-black uppercase tracking-tight text-center leading-tight text-foreground/80">{item.label}</span>
-               </div>
-             ))}
+        <div className="flex-grow overflow-y-auto overflow-x-hidden custom-scrollbar pb-4 px-1">
+          <div className="space-y-2">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="sicoob-settings-item bg-card border border-border/40 rounded-2xl p-3 d-flex align-items-center gap-3 transition-all active:bg-muted/50 cursor-pointer shadow-sm"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center flex-shrink-0 text-primary">
+                  <span className="material-symbols-outlined text-2xl">{tab.icon}</span>
+                </div>
+                <div className="flex-grow">
+                  <div className="font-bold text-foreground text-[13px] leading-none mb-1">{tab.label}</div>
+                  <div className="text-muted-foreground text-[10px] leading-tight opacity-80">{tab.desc}</div>
+                </div>
+                <span className="material-symbols-outlined text-muted-foreground/30 text-lg">chevron_right</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex-1 pb-10 space-y-2 px-1">
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="sicoob-settings-item bg-card border border-border/40 rounded-2xl p-3 d-flex align-items-center gap-3 transition-all active:bg-muted/50 cursor-pointer shadow-sm"
-            >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center flex-shrink-0 text-primary">
-                <span className="material-symbols-outlined text-2xl">{tab.icon}</span>
-              </div>
-              <div className="flex-grow">
-                <div className="font-bold text-foreground text-[13px] leading-none mb-1">{tab.label}</div>
-                <div className="text-muted-foreground text-[10px] leading-tight opacity-80">{tab.desc}</div>
-              </div>
-              <span className="material-symbols-outlined text-muted-foreground/30 text-lg">chevron_right</span>
-            </div>
-          ))}
+        {/* Back Button at Bottom - Fixed at bottom of view */}
+        <div className="px-1 py-3 mt-auto border-top border-border/10 flex-shrink-0">
+          <button 
+            onClick={onCloseSettings}
+            className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+            style={{ background: themeColor || '#003641', fontSize: '11px' }}
+          >
+            Voltar
+          </button>
         </div>
       </div>
     );
@@ -723,7 +713,7 @@ export function SettingsView({
         </aside>
       )}
 
-      <main className={cn("flex-fill overflow-y-auto overflow-x-hidden bg-background custom-scrollbar", isMobile ? "px-3 pt-2 pb-20" : "p-5 p-md-10")}>
+      <main className={cn("flex-fill h-full overflow-y-auto overflow-x-hidden bg-background custom-scrollbar", isMobile ? "px-0 pt-0 pb-0" : "p-5 p-md-10")}>
         <div className="max-w-4xl mx-auto h-100 d-flex flex-column">
           <div className="flex-fill">
             {renderContent()}

@@ -33,7 +33,7 @@ export function KPICards({ stats, onViewChange }: KPICardsProps) {
     <>
       {/* Sicoob Premium Mobile Balance & Quick Actions - Only visible on small screens */}
       <div className="d-md-none">
-        <div className="bg-card border border-border rounded-4 p-4 mb-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative">
+        <div className="bg-card border border-border rounded-4 p-4 mb-3 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative" style={{ minHeight: '180px' }}>
           {/* Subtle background decoration */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
           
@@ -65,17 +65,17 @@ export function KPICards({ stats, onViewChange }: KPICardsProps) {
         </div>
 
         {/* Quick Summary Grid */}
-        <div className="row g-2 mb-4">
+        <div className="row g-2 mb-3">
           <div className="col-6">
-            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100">
+            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
               <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Em Aberto</div>
-              <div className="fw-bold text-primary">{formatCurrency(stats.totalAberto)}</div>
+              <div className="fw-bold text-primary fs-5">{formatCurrency(stats.totalAberto)}</div>
             </div>
           </div>
           <div className="col-6">
-            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100">
+            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
               <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Pago</div>
-              <div className="fw-bold text-success">{formatCurrency(stats.totalPago)}</div>
+              <div className="fw-bold text-success fs-5">{formatCurrency(stats.totalPago)}</div>
             </div>
           </div>
         </div>
@@ -109,7 +109,7 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
 
   return (
     <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden flex flex-col h-100">
-      <div className="p-3 p-md-4 border-b border-border d-flex justify-content-between align-items-center">
+      <div className="p-3 p-md-4 border-b border-border d-flex justify-content-between align-items-center bg-muted/5">
         <h5 className="fw-bold m-0 fs-6 fs-md-5"><i className="fa-solid fa-list-ul me-2 text-primary"></i>Extrato Detalhado</h5>
       </div>
       <div className="overflow-y-auto flex-1" style={{ maxHeight: '560px' }}>
@@ -120,7 +120,7 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
         ) : (
           <>
             {/* Mobile View - Sicoob Style */}
-            <div className="p-2 p-md-0 d-md-none">
+            <div className="p-1 p-md-0 d-md-none">
               {despesas.map((d) => {
                 const todayStr = format(new Date(), 'yyyy-MM-dd');
                 const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;

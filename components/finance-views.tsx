@@ -83,7 +83,7 @@ export function FinanceTable({
       <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
         
         {/* Mobile List View - Sicoob Style */}
-        <div className="d-md-none p-2">
+        <div className="d-md-none p-1">
           {(data || []).length === 0 ? (
             <div className="p-5 text-center text-muted italic">Nenhum registro encontrado.</div>
           ) : (
@@ -483,10 +483,10 @@ export function FilterBar({
   actionIcon?: string
 }) {
   return (
-    <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-2 gap-md-3">
-      <div className="d-flex align-items-center gap-2 gap-md-3 w-100 flex-1">
+    <div className="d-flex align-items-center justify-content-between mb-4 gap-2">
+      <div className="d-flex align-items-center gap-2 flex-grow-1">
         {!hideSearch && (
-          <div className="d-flex align-items-center bg-card border border-border rounded-4 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary flex-1" style={{ maxWidth: '400px' }}>
+          <div className="d-flex align-items-center bg-card border border-border rounded-4 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary flex-grow-1" style={{ maxWidth: '400px' }}>
             <div className="px-3 text-muted">
               <i className="fa-solid fa-magnifying-glass fs-6"></i>
             </div>
@@ -519,7 +519,7 @@ export function FilterBar({
         )}
       </div>
 
-      <div className="d-flex align-items-center gap-2 ms-auto">
+      <div className="d-flex align-items-center gap-2 ms-2">
         {onOpenExpenseSettings && (type === 'geral' || type === 'receitas') && (
           <button
             onClick={onOpenExpenseSettings}
@@ -533,7 +533,7 @@ export function FilterBar({
         {!hideAdd && (
           <button
             onClick={onAdd}
-            className="btn btn-primary rounded-4 p-0 d-flex align-items-center justify-content-center shadow-lg hover:scale-110 active:scale-95 transition-all border-0"
+            className="btn btn-primary rounded-4 p-0 d-none d-md-flex align-items-center justify-content-center shadow-lg hover:scale-110 active:scale-95 transition-all border-0"
             style={{ width: '42px', height: '42px' }}
             title="Novo Lançamento"
           >
@@ -663,7 +663,7 @@ export function SummaryCards({
   }, [type, totalsByCard, totalsByTitular]);
 
   return (
-    <div className="row g-3 mb-4">
+    <div className="row g-2 mb-3">
       {/* Card de Total Geral - Apenas para Receitas conforme solicitado */}
       {type === 'receitas' && (
         <div className="col-6 col-sm-6 col-md">
@@ -712,9 +712,10 @@ export function SummaryCards({
             <div
               onClick={() => onFilterChange(t.id)}
               className={cn(
-                "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100",
+                "card p-3 shadow-sm card-click card-segmento-filtro transition-all h-100 d-flex flex-column justify-content-center",
                 isSelected(t.id) ? "border-primary border-2 shadow-md" : "border-border"
               )}
+              style={{ minHeight: '90px' }}
             >
               <div className="d-flex align-items-center justify-content-start gap-2">
                 <div className="position-relative rounded-3 overflow-hidden border border-border" style={{ width: '45px', height: '45px' }}>

@@ -249,7 +249,7 @@ export function Topbar({
                       </button>
                     </div>
                     
-                    <div className="flex-fill overflow-y-auto p-3 custom-scrollbar">
+                    <div className="flex-1 p-2 overflow-y-auto custom-scrollbar">
                       {totalAlertas === 0 ? (
                         <div className="py-10 text-center text-muted-foreground">
                           <span className="material-symbols-outlined text-5xl opacity-20 mb-3">notifications_off</span>
