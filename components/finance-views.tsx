@@ -113,43 +113,47 @@ export function FinanceTable({
               return (
                 <div 
                   key={itemId}
-                  className="sicoob-list-item cursor-pointer mb-2"
+                  className="sicoob-list-item cursor-pointer mb-2 hover:bg-muted/30 transition-all active:scale-[0.98]"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isSummary) onEdit?.(item);
                   }}
                 >
-                  <div className={cn("sicoob-list-icon", iconBg, isCartao ? "p-0 bg-transparent border-0" : "")}>
-                    {iconContent}
+                  <div className={cn("sicoob-list-icon shadow-sm", iconBg, isCartao ? "p-0 bg-transparent border-0" : "")}>
+                    {isCartao && !isSummary ? (
+                       <CardLogo name={getCartaoName((item as any).cartao_id)} size="sm" />
+                    ) : (
+                       <i className={cn("fa-solid", isReceita ? "fa-arrow-down text-success" : (isSummary ? "fa-chart-pie text-primary" : "fa-arrow-up text-danger"), "text-xs")}></i>
+                    )}
                   </div>
                   <div className="sicoob-list-content">
-                    <div className={cn("fw-bold text-dark text-truncate", isSummary ? "text-primary" : "")} style={{ fontSize: '0.9rem' }}>
+                    <div className={cn("fw-bold text-foreground text-truncate leading-tight", isSummary ? "text-primary" : "")} style={{ fontSize: '0.85rem' }}>
                       {title}
                     </div>
-                    <div className="d-flex align-items-center gap-2 mt-1">
+                    <div className="d-flex align-items-center gap-2 mt-0.5">
                       {date !== '-' && (
-                        <span className="small text-muted">{formatDate(date)}</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">{formatDate(date)}</span>
                       )}
                       {!isSummary && status && (
                         <>
-                          <span className="text-muted" style={{ fontSize: '10px' }}>•</span>
+                          <span className="text-muted-foreground/30 text-[8px]">●</span>
                           <span className={cn(
-                            "badge rounded-pill fw-bold",
-                            status === 'Pago' || status === 'Recebido' ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning"
-                          )} style={{ fontSize: '0.65rem' }}>
+                            "font-black text-[8px] tracking-tighter uppercase",
+                            status === 'Pago' || status === 'Recebido' ? "text-success" : "text-warning"
+                          )}>
                             {status}
                           </span>
                         </>
                       )}
                       {!isSummary && isCartao && (item as any).parcela_total > 1 && (
-                        <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill" style={{ fontSize: '0.65rem' }}>
+                        <span className="text-[8px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                           {(item as any).parcela_atual}/{(item as any).parcela_total}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="sicoob-list-value">
-                    <div className={cn("fw-bold", isReceita ? "text-success" : "text-dark")}>
+                    <div className={cn("fw-black text-sm tracking-tight", isReceita ? "text-success" : "text-foreground")}>
                       {isReceita ? '+' : ''}{formatCurrency(valor)}
                     </div>
                   </div>
@@ -479,17 +483,17 @@ export function FilterBar({
   actionIcon?: string
 }) {
   return (
-    <div className="d-flex justify-content-between align-items-center mb-4 gap-3">
-      <div className="d-flex align-items-center gap-3 flex-1">
+    <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-2 gap-md-3">
+      <div className="d-flex align-items-center gap-2 gap-md-3 w-100 flex-1">
         {!hideSearch && (
-          <div className="d-flex align-items-center bg-white border border-border rounded-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary" style={{ maxWidth: '400px', flex: 1 }}>
+          <div className="d-flex align-items-center bg-card border border-border rounded-4 shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary flex-1" style={{ maxWidth: '400px' }}>
             <div className="px-3 text-muted">
-              <i className="fa-solid fa-magnifying-glass"></i>
+              <i className="fa-solid fa-magnifying-glass fs-6"></i>
             </div>
             <input
               type="text"
-              className="form-control border-0 px-0 shadow-none bg-transparent h-100 py-2"
-              style={{ boxShadow: 'none' }}
+              className="form-control border-0 px-0 shadow-none bg-transparent h-100 py-2 font-medium"
+              style={{ boxShadow: 'none', fontSize: '0.85rem' }}
               placeholder="O que você procura?"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -515,25 +519,25 @@ export function FilterBar({
         )}
       </div>
 
-      <div className="d-flex align-items-center gap-2">
+      <div className="d-flex align-items-center gap-2 ms-auto">
         {onOpenExpenseSettings && (type === 'geral' || type === 'receitas') && (
           <button
             onClick={onOpenExpenseSettings}
-            className="btn btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
-            style={{ width: '48px', height: '48px', border: '2px solid rgba(0,0,0,0.05)' }}
+            className="btn btn-outline-secondary rounded-4 p-0 d-flex align-items-center justify-content-center shadow-sm bg-card"
+            style={{ width: '42px', height: '42px', border: '1px solid var(--border)' }}
             title="Configurações"
           >
-            <i className="fa-solid fa-gear text-muted fs-4"></i>
+            <i className="fa-solid fa-gear text-muted fs-5"></i>
           </button>
         )}
         {!hideAdd && (
           <button
             onClick={onAdd}
-            className="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow-lg hover:scale-110 active:scale-95 transition-all border-0"
-            style={{ width: '48px', height: '48px' }}
+            className="btn btn-primary rounded-4 p-0 d-flex align-items-center justify-content-center shadow-lg hover:scale-110 active:scale-95 transition-all border-0"
+            style={{ width: '42px', height: '42px' }}
             title="Novo Lançamento"
           >
-            <i className="fa-solid fa-plus fs-4"></i>
+            <i className="fa-solid fa-plus fs-5"></i>
           </button>
         )}
       </div>
@@ -662,7 +666,7 @@ export function SummaryCards({
     <div className="row g-3 mb-4">
       {/* Card de Total Geral - Apenas para Receitas conforme solicitado */}
       {type === 'receitas' && (
-        <div className="col-12 col-sm-6 col-md">
+        <div className="col-6 col-sm-6 col-md">
           <div
             onClick={() => onFilterChange(null)}
             className={cn(
@@ -685,7 +689,7 @@ export function SummaryCards({
 
 
       {type === 'geral' && totalVencido !== undefined && totalVencido > 0 && (
-        <div className="col-12 col-sm-6 col-md">
+        <div className="col-6 col-sm-6 col-md">
           <div className="card p-3 shadow-sm card-click card-segmento-filtro h-100" style={{ borderLeft: '5px solid var(--danger)' }}>
             <div className="d-flex align-items-center justify-content-start gap-2">
               <div className="bg-danger bg-opacity-10 text-danger rounded-3 p-2 d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }}>
@@ -704,7 +708,7 @@ export function SummaryCards({
         const value = type === 'geral' ? totalsByTitular[t.id]?.despesas : totalsByTitular[t.id]?.receitas;
 
         return (
-          <div key={t.id} className="col-12 col-sm-6 col-md">
+          <div key={t.id} className="col-6 col-sm-6 col-md">
             <div
               onClick={() => onFilterChange(t.id)}
               className={cn(
@@ -738,7 +742,7 @@ export function SummaryCards({
       })}
 
       {type === 'cartoes' && cartoes.map((c) => (
-        <div key={c.id} className="col-12 col-sm-6 col-md relative">
+        <div key={c.id} className="col-6 col-sm-6 col-md relative">
           <div
             onClick={() => onFilterChange(c.id)}
             onMouseEnter={() => setHoveredCardId(c.id)}

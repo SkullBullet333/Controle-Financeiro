@@ -34,8 +34,8 @@ export function AnalysisPlan({ projecao }: AnalysisPlanProps) {
 
       </div>
 
-      <div className="">
-        <div className="d-flex flex-wrap flex-xl-nowrap p-3 p-md-4 gap-2 justify-content-center">
+      <div className="overflow-x-auto no-scrollbar">
+        <div className="d-flex flex-nowrap p-3 p-md-4 gap-2">
           {projecao.map((mes, idx) => (
             <div
               key={mes.competencia}

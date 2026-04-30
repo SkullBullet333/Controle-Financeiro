@@ -567,7 +567,7 @@ export function MobileNav({
               <h4 className="m-0 text-center font-black text-xs tracking-widest text-white uppercase py-2">Extrato</h4>
             </div>
 
-            <div className="d-flex flex-column p-3">
+            <div className="d-flex flex-column p-3 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(85vh - 120px)' }}>
               {[
                 { id: 'geral', label: 'Despesas Fixas', icon: 'fa-clipboard-list' },
                 { id: 'receitas', label: 'Minhas Receitas', icon: 'fa-money-bill-wave' },

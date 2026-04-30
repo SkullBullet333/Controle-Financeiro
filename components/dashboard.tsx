@@ -33,32 +33,52 @@ export function KPICards({ stats, onViewChange }: KPICardsProps) {
     <>
       {/* Sicoob Premium Mobile Balance & Quick Actions - Only visible on small screens */}
       <div className="d-md-none">
-        <div className="bg-card border border-border rounded-4 p-4 mb-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="d-flex justify-content-between align-items-center mb-1">
-            <span className="text-muted fw-bold" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo do Mês</span>
+        <div className="bg-card border border-border rounded-4 p-4 mb-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative">
+          {/* Subtle background decoration */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+          
+          <div className="d-flex justify-content-between align-items-center mb-1 relative z-10">
+            <span className="text-muted font-black text-[10px] tracking-widest text-uppercase">Saldo do Mês</span>
             <div className="d-flex gap-2">
-              <i 
-                 className={`fa-solid ${showBalance ? 'fa-eye' : 'fa-eye-slash'} text-muted cursor-pointer`}
+              <button 
+                 className="btn btn-link p-0 text-muted transition-all active:scale-90"
                  onClick={() => setShowBalance(!showBalance)}
-                 style={{ cursor: 'pointer' }}
-              ></i>
+              >
+                <i className={`fa-solid ${showBalance ? 'fa-eye' : 'fa-eye-slash'} fs-6`}></i>
+              </button>
             </div>
           </div>
-          <div className="h1 fw-bold mb-3 text-foreground">{showBalance ? formatCurrency(stats.margem) : 'R$ •••••'}</div>
+          <div className="h2 fw-bold mb-3 text-foreground tracking-tight relative z-10">
+            {showBalance ? formatCurrency(stats.margem) : 'R$ •••••'}
+          </div>
           
-          <div className="d-flex justify-content-between mt-3 pt-3 border-top border-border/60">
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>Receitas</div>
-              <div className="fw-bold text-success" style={{ fontSize: '0.85rem' }}>{showBalance ? formatCurrency(stats.totalReceitas) : 'R$ •••••'}</div>
+          <div className="row g-2 mt-2 pt-3 border-top border-border/60 relative z-10">
+            <div className="col-6">
+              <div className="text-muted font-black text-[9px] tracking-widest text-uppercase">Receitas</div>
+              <div className="fw-bold text-success text-sm">{showBalance ? formatCurrency(stats.totalReceitas) : 'R$ ••'}</div>
             </div>
-            <div className="text-end">
-              <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>Despesas</div>
-              <div className="fw-bold text-danger" style={{ fontSize: '0.85rem' }}>{showBalance ? formatCurrency(stats.totalDespesas) : 'R$ •••••'}</div>
+            <div className="col-6 text-end">
+              <div className="text-muted font-black text-[9px] tracking-widest text-uppercase">Despesas</div>
+              <div className="fw-bold text-danger text-sm">{showBalance ? formatCurrency(stats.totalDespesas) : 'R$ ••'}</div>
             </div>
           </div>
         </div>
-        
-        {/* Quick Actions Removed */}
+
+        {/* Quick Summary Grid */}
+        <div className="row g-2 mb-4">
+          <div className="col-6">
+            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100">
+              <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Em Aberto</div>
+              <div className="fw-bold text-primary">{formatCurrency(stats.totalAberto)}</div>
+            </div>
+          </div>
+          <div className="col-6">
+            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100">
+              <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Pago</div>
+              <div className="fw-bold text-success">{formatCurrency(stats.totalPago)}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Standard Desktop KPI Cards - Hidden on small screens */}
@@ -112,38 +132,38 @@ export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
                 return (
                   <div
                     key={d.id}
-                    onDoubleClick={() => !d.isSummary && onEdit?.(d)}
-                    className="sicoob-list-item cursor-pointer"
+                    onClick={() => !d.isSummary && onEdit?.(d)}
+                    className="sicoob-list-item cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
                   >
-                    <div className={cn("sicoob-list-icon", iconBg)}>
-                      <i className={cn("fa-solid", iconClass)}></i>
+                    <div className={cn("sicoob-list-icon shadow-sm", iconBg)}>
+                      <i className={cn("fa-solid", iconClass, "text-xs")}></i>
                     </div>
                     
                     <div className="sicoob-list-content">
-                      <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.9rem' }}>
+                      <div className="fw-bold text-foreground text-truncate leading-tight" style={{ fontSize: '0.85rem' }}>
                         {d.descricao}
                       </div>
-                      <div className="d-flex align-items-center gap-2 mt-1">
+                      <div className="d-flex align-items-center gap-2 mt-0.5">
                         {d.vencimento !== '-' && (
-                          <span className={cn("small", isVencido ? "text-danger fw-bold" : "text-muted")}>
+                          <span className={cn("text-[10px] font-medium", isVencido ? "text-danger fw-bold" : "text-muted-foreground")}>
                             {isVencido 
-                              ? `Venceu em ${formatDate(d.vencimento)}` 
+                              ? `Atrasado ${formatDate(d.vencimento)}` 
                               : formatDate(d.vencimento)
                             }
                           </span>
                         )}
-                        <span className="text-muted" style={{ fontSize: '10px' }}>•</span>
+                        <span className="text-muted-foreground/30 text-[8px]">●</span>
                         <span className={cn(
-                          "badge rounded-pill fw-bold",
-                          d.status === 'Pago' ? "bg-success bg-opacity-10 text-success" : "bg-warning bg-opacity-10 text-warning"
-                        )} style={{ fontSize: '0.65rem' }}>
+                          "font-black text-[8px] tracking-tighter uppercase",
+                          d.status === 'Pago' ? "text-success" : "text-warning"
+                        )}>
                           {d.status === 'Pago' ? 'Pago' : 'Pendente'}
                         </span>
                       </div>
                     </div>
                     
                     <div className="sicoob-list-value">
-                      <div className="fw-bold text-dark">
+                      <div className="fw-black text-foreground text-sm tracking-tight">
                         {formatCurrency(d.valor)}
                       </div>
                     </div>

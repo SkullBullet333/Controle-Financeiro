@@ -697,13 +697,7 @@ export function useFinance(activeView: string) {
 
   const filteredDespesas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    return despesas.filter(d => {
-      if (d.competencia === competencia) return true;
-      if (d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr) {
-        return true;
-      }
-      return false;
-    });
+    return despesas.filter(d => d.competencia === competencia);
   }, [despesas, competencia]);
 
   const filteredReceitas = useMemo(() => {
@@ -786,7 +780,7 @@ export function useFinance(activeView: string) {
           const competenciaSortable = competencia.split('/').reverse().join('-');
           const vencStr = format(dataVenc, 'yyyy-MM-dd');
           
-          if (comp === competencia || (vencStr < todayStr)) {
+          if (comp === competencia) {
             virtualLoanInstallments.push({
               id: -20000000 - (loan.id * 1000) - i, // ID virtual único e não sobreposto
               descricao: loan.descricao,
@@ -835,7 +829,7 @@ export function useFinance(activeView: string) {
 
         if (!existeNoBanco) {
           const vencStr = format(dataVenc, 'yyyy-MM-dd');
-          if (comp === competencia || (vencStr < todayStr)) {
+          if (comp === competencia) {
             virtualFixedInstallments.push({
               id: -30000000 - (config.id * 1000) - i, // ID virtual único e não sobreposto
               descricao: config.descricao,
@@ -860,29 +854,97 @@ export function useFinance(activeView: string) {
   const alertas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
-    const vencidas = (avisosConfig.vencidas !== false) 
-      ? consolidatedDespesas.filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
-      : [];
-      
-    const vencendoHoje = (avisosConfig.hoje !== false)
-      ? consolidatedDespesas.filter(d => d.status === 'Em aberto' && d.vencimento === todayStr)
-      : [];
+    // 1. Alertas de itens físicos (qualquer competência)
+    const physicalVencidas = despesas.filter(d => 
+      d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr
+    );
+    const physicalHoje = despesas.filter(d => 
+      d.status === 'Em aberto' && d.vencimento === todayStr
+    );
 
-    const total = vencidas.length + vencendoHoje.length;
-    
-    console.log('Antigravity: Calculando alertas', { 
-      config: avisosConfig, 
-      vencidas: vencidas.length, 
-      hoje: vencendoHoje.length,
-      total 
+    // 2. Alertas de itens virtuais (Empréstimos)
+    const virtualLoanAlerts: Despesa[] = [];
+    emprestimos.forEach(loan => {
+      const dataInicial = parseISO(loan.data_primeiro_vencimento);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+
+      for (let i = 1; i <= loan.total_parcelas; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        const vencStr = format(dataVenc, 'yyyy-MM-dd');
+        
+        // Se já passou ou é hoje, e não está no banco
+        if (vencStr <= todayStr) {
+          const existeNoBanco = despesas.find(d => 
+            Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i
+          );
+          if (!existeNoBanco) {
+            virtualLoanAlerts.push({
+              descricao: loan.descricao,
+              valor: loan.valor_parcela,
+              status: 'Em aberto',
+              vencimento: vencStr,
+              competencia: calcularCompetencia(dataVenc)
+            } as Despesa);
+          }
+        } else {
+          break; // Datas futuras não geram alerta
+        }
+      }
     });
+
+    // 3. Alertas de itens virtuais (Contas Fixas)
+    const virtualFixedAlerts: Despesa[] = [];
+    contasFixas.filter(c => !c.tipo || c.tipo === 'despesa').forEach(config => {
+      const dataInicial = parseISO(config.data_inicio);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+      const limit = config.total_parcelas || 24;
+
+      for (let i = 1; i <= limit; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        const vencStr = format(dataVenc, 'yyyy-MM-dd');
+
+        if (vencStr <= todayStr) {
+          const existeNoBanco = despesas.find(d => 
+            Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i
+          );
+          if (!existeNoBanco) {
+            virtualFixedAlerts.push({
+              descricao: config.descricao,
+              valor: config.valor_mensal,
+              status: 'Em aberto',
+              vencimento: vencStr,
+              competencia: calcularCompetencia(dataVenc)
+            } as Despesa);
+          }
+        } else {
+          break;
+        }
+      }
+    });
+
+    const allVencidas = [
+      ...physicalVencidas, 
+      ...virtualLoanAlerts.filter(d => d.vencimento! < todayStr),
+      ...virtualFixedAlerts.filter(d => d.vencimento! < todayStr)
+    ];
+
+    const allHoje = [
+      ...physicalHoje,
+      ...virtualLoanAlerts.filter(d => d.vencimento === todayStr),
+      ...virtualFixedAlerts.filter(d => d.vencimento === todayStr)
+    ];
+
+    const vencidas = (avisosConfig.vencidas !== false) ? allVencidas : [];
+    const hoje = (avisosConfig.hoje !== false) ? allHoje : [];
 
     return {
       vencidas,
-      vencendoHoje,
-      total
+      vencendoHoje: hoje,
+      total: vencidas.length + hoje.length
     };
-  }, [consolidatedDespesas, avisosConfig]);
+  }, [despesas, emprestimos, contasFixas, avisosConfig]);
 
   const consolidatedReceitas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-01');
@@ -918,7 +980,7 @@ export function useFinance(activeView: string) {
 
         if (!existeNoBanco) {
           const vencStr = format(dataVenc, 'yyyy-MM-dd');
-          if (comp === competencia || (vencStr < todayStr)) {
+          if (comp === competencia) {
             virtualFixedRevenues.push({
               id: -40000000 - (config.id * 1000) - i, 
               descricao: config.descricao,
@@ -1094,11 +1156,15 @@ export function useFinance(activeView: string) {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const toSync = consolidatedReceitas.filter(r => 
       r.id < 0 && 
-      r.data_recebimento <= todayStr
+      r.data_recebimento <= todayStr &&
+      !syncedRevenuesRef.current.has(r.id) // Evitar duplicados
     );
 
     if (toSync.length > 0) {
       console.log('Antigravity: Auto-syncing virtual revenues:', toSync.length);
+      // Marcar como sincronizando
+      toSync.forEach(r => syncedRevenuesRef.current.add(r.id));
+      
       Promise.all(toSync.map(r => {
         const { id, ...dados } = r;
         return salvarReceita({ ...dados, status: 'Recebido' }, user.id, familyId);
@@ -1110,6 +1176,8 @@ export function useFinance(activeView: string) {
   }, [consolidatedReceitas, user, familyId, isLoading, fetchData]);
 
   const lastAutoLaunchRef = useRef<string | null>(null);
+  const syncedRevenuesRef = useRef<Set<number>>(new Set());
+  const syncedExpensesRef = useRef<Set<string>>(new Set());
 
   // Auto-lançamento de despesas projetadas (5 dias antes do fim do mês)
   useEffect(() => {
@@ -1214,14 +1282,34 @@ export function useFinance(activeView: string) {
       }
 
       if (toLaunch.length > 0) {
-        console.log(`Auto-lançando ${toLaunch.length} despesas projetadas.`);
-        lastAutoLaunchRef.current = todayStr; // Marcar como feito
-        const { error } = await supabase.from('despesas').insert(toLaunch);
-        if (error) {
-          console.error('Erro ao auto-lançar despesas:', error);
-          lastAutoLaunchRef.current = null; // Resetar para tentar de novo
-        } else {
-          fetchData();
+        // Filtrar o que já está sendo lançado para evitar duplicidade em disparos rápidos
+        const finalToLaunch = toLaunch.filter(item => {
+          const key = item.emprestimo_id 
+            ? `loan-${item.emprestimo_id}-${item.parcela_atual}`
+            : `fixed-${item.conta_fixa_id}-${item.parcela_atual}`;
+          
+          if (syncedExpensesRef.current.has(key)) return false;
+          syncedExpensesRef.current.add(key);
+          return true;
+        });
+
+        if (finalToLaunch.length > 0) {
+          console.log(`Auto-lançando ${finalToLaunch.length} despesas projetadas.`);
+          lastAutoLaunchRef.current = todayStr; 
+          const { error } = await supabase.from('despesas').insert(finalToLaunch);
+          if (error) {
+            console.error('Erro ao auto-lançar despesas:', error);
+            // Remover do ref se deu erro para permitir tentar de novo
+            finalToLaunch.forEach(item => {
+              const key = item.emprestimo_id 
+                ? `loan-${item.emprestimo_id}-${item.parcela_atual}`
+                : `fixed-${item.conta_fixa_id}-${item.parcela_atual}`;
+              syncedExpensesRef.current.delete(key);
+            });
+            lastAutoLaunchRef.current = null;
+          } else {
+            fetchData();
+          }
         }
       } else {
         // Se não tem nada para lançar, também marcamos como checado para hoje
