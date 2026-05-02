@@ -81,11 +81,9 @@ export function useFinance(activeView: string) {
             setNota(parsed.nota || '');
             setLembretes(parsed.lembretes || []);
             
-            // Sincronizar preferências se existirem
+            // Sincronizar preferências se existirem (agora apenas avisos, pois cores/tema são individuais no profile)
             if (parsed.preferencias) {
               const prefs = parsed.preferencias;
-              if (prefs.darkMode !== undefined) setIsDarkMode(prefs.darkMode);
-              if (prefs.themeColor) setThemeColor(prefs.themeColor);
               if (prefs.avisos) setAvisosConfig(prev => ({ ...prev, ...prefs.avisos }));
             }
           } else {
