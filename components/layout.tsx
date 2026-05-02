@@ -243,14 +243,7 @@ export function Topbar({
         
         {/* Desktop Title & Date Display (Moved into mobile header to save space) */}
         <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-white/10">
-           <div className="d-flex align-items-center gap-2">
-            {showBackButton && (
-              <button onClick={onBack} className="btn btn-link text-white p-0 me-2" title="Voltar">
-                <i className="fa-solid fa-arrow-left"></i>
-              </button>
-            )}
             <h2 className="fw-bold m-0 fs-5 text-white" id="page-title">{getTitle()}</h2>
-           </div>
            
            {title !== 'config' && (
              <div className="controls rounded-pill px-2 py-1 d-flex align-items-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
@@ -347,11 +340,6 @@ export function Topbar({
       {/* Standard Desktop Topbar - Hidden on small screens */}
       <header className="topbar mb-4 d-none d-md-flex">
         <div className="topbar-brand d-flex align-items-center gap-2">
-          {showBackButton && (
-            <button onClick={onBack} className="btn-back-mobile d-md-none" title="Voltar para Home">
-              <i className="fa-solid fa-arrow-left"></i>
-            </button>
-          )}
           <h2 className="fw-bold m-0" id="page-title">{getTitle()}</h2>
         </div>
           <div className="topbar-controls d-flex align-items-center gap-3">

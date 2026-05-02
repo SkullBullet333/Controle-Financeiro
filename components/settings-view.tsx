@@ -663,15 +663,8 @@ export function SettingsView({
       {/* Mobile Top Navigation (only if not in HUB) */}
       {isMobile && activeTab !== 'menu' && (
         <header className="p-4 border-b border-border bg-card/10 sticky-top">
-          <div className="d-flex align-items-center justify-content-between">
-            <button 
-              onClick={() => setActiveTab('menu')}
-              className="btn-icon p-2 hover:bg-muted rounded-full"
-            >
-              <span className="material-symbols-outlined text-foreground">arrow_back_ios_new</span>
-            </button>
+          <div className="d-flex align-items-center justify-content-center">
             <h2 className="m-0 font-bold text-lg tracking-tighter uppercase">{getTabLabel(activeTab)}</h2>
-            <div className="w-10"></div> 
           </div>
         </header>
       )}
@@ -718,6 +711,17 @@ export function SettingsView({
           <div className="flex-fill">
             {renderContent()}
           </div>
+          {isMobile && activeTab !== 'menu' && (
+            <div className="px-4 py-4 mt-auto border-top border-border/10 flex-shrink-0">
+              <button 
+                onClick={() => setActiveTab('menu')}
+                className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+                style={{ background: themeColor || '#003641', fontSize: '11px' }}
+              >
+                Voltar
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>

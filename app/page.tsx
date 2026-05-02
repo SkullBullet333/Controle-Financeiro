@@ -1098,7 +1098,24 @@ export default function Home() {
             <div className="d-flex align-items-center justify-content-center h-50 pt-5">
               <div className="spinner-border text-primary" role="status"></div>
             </div>
-          ) : renderContent()}
+          ) : (
+            <>
+              {renderContent()}
+              
+              {/* Persistent Mobile Back Button at end of content */}
+              <div className="d-md-none px-4 py-8 mt-4 mb-24 border-top border-border/10">
+                {activeView !== 'dashboard' && activeView !== 'config' && (
+                  <button 
+                    onClick={() => setActiveView('dashboard')}
+                    className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+                    style={{ background: themeColor || '#003641', fontSize: '11px' }}
+                  >
+                    Voltar para Início
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {activeView !== 'config' && (
