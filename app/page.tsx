@@ -41,6 +41,47 @@ export default function Home() {
   const searchRef = React.useRef<HTMLDivElement>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
+  // Synchronize activeView and Modals with browser history for system back button
+  React.useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // If any modal is open, close it and stay on same view
+      if (isModalOpen || isSettingsOpen || isExpenseSettingsOpen || isMonthYearModalOpen || isConfirmDeleteOpen) {
+        setIsModalOpen(false);
+        setIsSettingsOpen(false);
+        setIsExpenseSettingsOpen(false);
+        setIsMonthYearModalOpen(false);
+        setIsConfirmDeleteOpen(false);
+        return;
+      }
+
+      // Otherwise, navigate between views
+      if (event.state && event.state.view) {
+        setActiveView(event.state.view);
+      } else {
+        setActiveView('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isModalOpen, isSettingsOpen, isExpenseSettingsOpen, isMonthYearModalOpen, isConfirmDeleteOpen, activeView]);
+
+  // Update history when view changes
+  const lastView = React.useRef(activeView);
+  React.useEffect(() => {
+    if (lastView.current !== activeView) {
+      window.history.pushState({ view: activeView }, '');
+      lastView.current = activeView;
+    }
+  }, [activeView]);
+
+  // Push history state when opening modals so system back button closes them
+  React.useEffect(() => {
+    if (isModalOpen || isSettingsOpen || isExpenseSettingsOpen || isMonthYearModalOpen || isConfirmDeleteOpen) {
+      window.history.pushState({ view: activeView, modal: true }, '');
+    }
+  }, [isModalOpen, isSettingsOpen, isExpenseSettingsOpen, isMonthYearModalOpen, isConfirmDeleteOpen]);
+
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {

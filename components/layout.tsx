@@ -458,6 +458,7 @@ interface MobileNavProps {
   activeSettingsTab: string;
   onSettingsTabChange: (tab: string) => void;
   themeColor?: string;
+  onBack?: () => void;
 }
 
 export function MobileNav({ 
@@ -466,7 +467,8 @@ export function MobileNav({
   onLaunch,
   activeSettingsTab,
   onSettingsTabChange,
-  themeColor
+  themeColor,
+  onBack
 }: MobileNavProps) {
   const [showViewsMenu, setShowViewsMenu] = React.useState(false);
   const viewsMenuRef = React.useRef<HTMLDivElement>(null);
