@@ -237,77 +237,6 @@ export function Topbar({
                 )}
               </button>
 
-              {/* Mobile Notification Dropdown/Sheet */}
-              {showNotifications && (
-                <>
-                  <div className="fixed inset-0 z-[3000] bg-black/20 backdrop-blur-sm" onClick={() => setShowNotifications(false)}></div>
-                  <div className="fixed bottom-0 left-0 w-100 bg-card rounded-t-[2rem] z-[3001] shadow-2xl animate-in slide-in-from-bottom duration-300 flex flex-col max-h-[70vh]">
-                    <div className="p-4 border-b border-border d-flex align-items-center justify-content-between">
-                      <h5 className="m-0 font-black text-xs tracking-widest text-uppercase text-muted-foreground">Notificações</h5>
-                      <button onClick={() => setShowNotifications(false)} className="btn-icon p-1 hover:bg-muted rounded-full">
-                        <span className="material-symbols-outlined text-muted-foreground">close</span>
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 p-2 overflow-y-auto custom-scrollbar">
-                      {totalAlertas === 0 ? (
-                        <div className="py-10 text-center text-muted-foreground">
-                          <span className="material-symbols-outlined text-5xl opacity-20 mb-3">notifications_off</span>
-                          <p className="small font-bold">Nenhum aviso no momento.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {alertas?.vencidas && alertas.vencidas.length > 0 && (
-                            <section>
-                              <div className="d-flex align-items-center gap-2 mb-3">
-                                <span className="w-1.5 h-1.5 rounded-full bg-danger"></span>
-                                <h6 className="m-0 text-danger font-black text-[10px] tracking-widest text-uppercase">Despesas Vencidas</h6>
-                              </div>
-                              <div className="space-y-2">
-                                {alertas.vencidas.map(d => (
-                                  <div key={d.id} className="bg-muted/30 p-3 rounded-2xl border border-danger/10 d-flex align-items-center justify-content-between">
-                                    <div>
-                                      <div className="fw-bold text-sm text-foreground">{d.descricao}</div>
-                                      <div className="text-[10px] text-danger font-bold opacity-80">Venceu em: {d.vencimento}</div>
-                                    </div>
-                                    <div className="text-sm font-black text-foreground">R$ {Number(d.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            </section>
-                          )}
-
-                          {alertas?.vencendoHoje && alertas.vencendoHoje.length > 0 && (
-                            <section>
-                              <div className="d-flex align-items-center gap-2 mb-3">
-                                <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
-                                <h6 className="m-0 text-warning font-black text-[10px] tracking-widest text-uppercase">Vence Hoje</h6>
-                              </div>
-                              <div className="space-y-2">
-                                {alertas.vencendoHoje.map(d => (
-                                  <div key={d.id} className="bg-muted/30 p-3 rounded-2xl border border-warning/10 d-flex align-items-center justify-content-between">
-                                    <div>
-                                      <div className="fw-bold text-sm text-foreground">{d.descricao}</div>
-                                      <div className="text-[10px] text-warning font-bold opacity-80">Vencimento: HOJE</div>
-                                    </div>
-                                    <div className="text-sm font-black text-foreground">R$ {Number(d.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            </section>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="p-3 bg-muted/20 border-t border-border">
-                      <button onClick={() => setShowNotifications(false)} className="btn w-100 py-3 rounded-xl fw-black text-xs text-uppercase tracking-widest bg-card border-border shadow-sm">
-                        Fechar
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -342,6 +271,78 @@ export function Topbar({
            )}
         </div>
       </div>
+
+      {/* Mobile Notification Bottom Sheet - Outside header to avoid stacking context issues */}
+      {showNotifications && (
+        <>
+          <div className="d-md-none fixed inset-0 bg-black/20 backdrop-blur-sm" style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setShowNotifications(false)}></div>
+          <div className="d-md-none" style={{ position: 'fixed', bottom: 0, left: 0, width: '100%', zIndex: 9999, maxHeight: '70vh', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: '2rem 2rem 0 0', boxShadow: '0 -4px 40px rgba(0,0,0,0.18)' }}>
+            <div className="p-4 border-b border-border d-flex align-items-center justify-content-between">
+              <h5 className="m-0 font-black text-xs tracking-widest text-uppercase text-muted-foreground">Notificações</h5>
+              <button onClick={() => setShowNotifications(false)} className="btn-icon p-1 hover:bg-muted rounded-full">
+                <span className="material-symbols-outlined text-muted-foreground">close</span>
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+              {totalAlertas === 0 ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  <span className="material-symbols-outlined text-5xl opacity-20 mb-3">notifications_off</span>
+                  <p className="small font-bold">Nenhum aviso no momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {alertas?.vencidas && alertas.vencidas.length > 0 && (
+                    <section>
+                      <div className="d-flex align-items-center gap-2 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-danger"></span>
+                        <h6 className="m-0 text-danger font-black text-[10px] tracking-widest text-uppercase">Despesas Vencidas</h6>
+                      </div>
+                      <div className="space-y-2">
+                        {alertas.vencidas.map(d => (
+                          <div key={d.id} className="bg-muted/30 p-3 rounded-2xl border border-danger/10 d-flex align-items-center justify-content-between">
+                            <div>
+                              <div className="fw-bold text-sm text-foreground">{d.descricao}</div>
+                              <div className="text-[10px] text-danger font-bold opacity-80">Venceu em: {d.vencimento}</div>
+                            </div>
+                            <div className="text-sm font-black text-foreground">R$ {Number(d.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {alertas?.vencendoHoje && alertas.vencendoHoje.length > 0 && (
+                    <section>
+                      <div className="d-flex align-items-center gap-2 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
+                        <h6 className="m-0 text-warning font-black text-[10px] tracking-widest text-uppercase">Vence Hoje</h6>
+                      </div>
+                      <div className="space-y-2">
+                        {alertas.vencendoHoje.map(d => (
+                          <div key={d.id} className="bg-muted/30 p-3 rounded-2xl border border-warning/10 d-flex align-items-center justify-content-between">
+                            <div>
+                              <div className="fw-bold text-sm text-foreground">{d.descricao}</div>
+                              <div className="text-[10px] text-warning font-bold opacity-80">Vencimento: HOJE</div>
+                            </div>
+                            <div className="text-sm font-black text-foreground">R$ {Number(d.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 border-t border-border" style={{ background: 'var(--card)' }}>
+              <button onClick={() => setShowNotifications(false)} className="btn w-100 py-3 rounded-xl fw-black text-xs text-uppercase tracking-widest bg-card border-border shadow-sm">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Standard Desktop Topbar - Hidden on small screens */}
       <header className="topbar mb-4 d-none d-md-flex">

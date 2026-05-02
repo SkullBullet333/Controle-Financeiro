@@ -1984,44 +1984,46 @@ export function ExpenseSettingsModal({
     switch (activeTab) {
       case 'emprestimos':
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="mb-8">
+          <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <header className="flex-shrink-0 px-10 pt-10 pb-4 bg-card border-bottom border-border/40">
               <h3 className="text-xl font-bold text-foreground m-0">Contratos de Empréstimo</h3>
-              <p className="text-muted-foreground small">Gerencie as configurações mestre de seus empréstimos ativos.</p>
+              <p className="text-muted-foreground small m-0">Gerencie as configurações mestre de seus empréstimos ativos.</p>
             </header>
 
-            <div className="grid gap-4">
-              {emprestimos.length === 0 ? (
-                <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
-                  <span className="material-symbols-outlined text-[48px] mb-4 text-muted-foreground">account_balance</span>
-                  <p className="fw-bold text-uppercase tracking-widest text-xs">Nenhum empréstimo cadastrado</p>
-                </div>
-              ) : (
-                emprestimos.map((loan) => (
-                  <div key={loan.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
-                    <div className="d-flex align-items-center gap-4 flex-grow-1">
-                      <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 d-flex align-items-center justify-content-center">
-                        <span className="material-symbols-outlined">payments</span>
-                      </div>
-                      <div>
-                        <div className="fw-bold text-foreground text-sm tracking-tight">{loan.descricao}</div>
-                        <div className="d-flex align-items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground font-black uppercase tracking-tighter opacity-70">
-                            Parcela: {formatCurrency(loan.valor_parcela)}
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold">
-                            {loan.taxa_mensal_percentual}% juros
-                          </span>
+            <div className="flex-grow-1 overflow-y-auto p-10 pt-6 custom-scrollbar">
+              <div className="grid gap-4">
+                {emprestimos.length === 0 ? (
+                  <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
+                    <span className="material-symbols-outlined text-[48px] mb-4 text-muted-foreground">account_balance</span>
+                    <p className="fw-bold text-uppercase tracking-widest text-xs">Nenhum empréstimo cadastrado</p>
+                  </div>
+                ) : (
+                  emprestimos.map((loan) => (
+                    <div key={loan.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
+                      <div className="d-flex align-items-center gap-4 flex-grow-1">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 d-flex align-items-center justify-content-center">
+                          <span className="material-symbols-outlined">payments</span>
+                        </div>
+                        <div>
+                          <div className="fw-bold text-foreground text-sm tracking-tight">{loan.descricao}</div>
+                          <div className="d-flex align-items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground font-black uppercase tracking-tighter opacity-70">
+                              Parcela: {formatCurrency(loan.valor_parcela)}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold">
+                              {loan.taxa_mensal_percentual}% juros
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="d-flex gap-2">
+                        <button onClick={() => onEditEmprestimo(loan)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
+                        <button onClick={() => onDeleteEmprestimo(loan.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
+                      </div>
                     </div>
-                    <div className="d-flex gap-2">
-                      <button onClick={() => onEditEmprestimo(loan)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
-                      <button onClick={() => onDeleteEmprestimo(loan.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
         );
@@ -2042,20 +2044,21 @@ export function ExpenseSettingsModal({
         const themeColor = isReceitaTab ? '#00995D' : (activeTab === 'parcelados' ? '#01579b' : '#7b1fa2');
 
         return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="mb-8">
+          <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <header className="flex-shrink-0 px-10 pt-10 pb-4 bg-card border-bottom border-border/40">
               <h3 className="text-xl font-bold text-foreground m-0">
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
                   : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s</>)}
               </h3>
-              <p className="text-muted-foreground small">
+              <p className="text-muted-foreground small m-0">
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo (ex: Bônus parcelado).')
                   : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo (ex: Empréstimos pessoais).')}
               </p>
             </header>
 
+            <div className="flex-grow-1 overflow-y-auto p-10 pt-6 custom-scrollbar">
             <div className="grid gap-4">
               {filtered.length === 0 ? (
                 <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
@@ -2094,6 +2097,7 @@ export function ExpenseSettingsModal({
                 ))
               )}
             </div>
+            </div>
           </div>
         );
       default: return null;
@@ -2101,107 +2105,67 @@ export function ExpenseSettingsModal({
   };
 
   return (
-    <div 
-      className={cn(
-        "modal fade show d-block expense-settings-modal-custom",
-        "d-flex flex-column justify-content-end md:justify-content-center"
-      )} 
-      style={{ 
-        backgroundColor: 'rgba(0,0,0,0.6)', 
-        backdropFilter: 'blur(8px)',
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2000
-      }} 
-      onClick={onClose}
-    >
-      <div 
-        className={cn(
-          "modal-dialog modal-xl modal-dialog-centered m-0 md:m-auto w-100",
-          "h-[85vh] md:h-auto"
-        )} 
-        onClick={(e: React.MouseEvent) => e.stopPropagation()} 
-        style={{ maxWidth: '1000px' }}
+    <>
+      {/* ── MOBILE: bottom-sheet ── */}
+      <div
+        className="d-md-none modal fade show d-flex flex-column justify-content-end expense-settings-modal-custom"
+        style={{
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 2000
+        }}
+        onClick={onClose}
       >
-        <div className={cn(
-          "modal-content border-0 shadow-2xl overflow-hidden bg-card h-full flex flex-col",
-          "rounded-t-[2.5rem] md:rounded-[2rem]"
-        )} style={{ height: '100%' }}>
-          
-          {/* Mobile Handle */}
-          <div className="d-md-none w-12 h-1.5 bg-muted rounded-full mx-auto mt-4 mb-2 opacity-50 flex-shrink-0"></div>
+        <div
+          className="w-100"
+          style={{ height: '85vh' }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-t-[2.5rem]">
+            {/* Handle */}
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-4 mb-2 opacity-50 flex-shrink-0"></div>
 
-          <div className="d-flex h-100 flex-column flex-md-row overflow-hidden">
-            {/* Sidebar / Tabs */}
-            <aside className={cn(
-              "bg-muted/10 border-end border-border d-flex flex-row flex-md-column overflow-auto p-2 p-md-4 gap-1 no-scrollbar flex-shrink-0",
-              "w-100 md:w-[240px] border-bottom md:border-bottom-0"
-            )}>
-              <div className="d-none d-md-flex flex-column align-items-start px-3 mb-6">
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
-                  <span className="text-[25px] font-black text-primary uppercase tracking-widest">Ajustes</span>
-                </div>
+            {/* Horizontal Tab Bar */}
+            <aside className="bg-muted/10 border-bottom border-border d-flex flex-row overflow-auto p-2 gap-1 no-scrollbar flex-shrink-0">
+              <div className="d-flex flex-row gap-1 px-1 w-100">
+                {sections.map((section) =>
+                  section.tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        "flex-grow-1 px-3 py-2.5 rounded-full transition-all duration-300 d-flex align-items-center justify-content-center gap-2 border-0",
+                        activeTab === tab.id ? "text-white" : "text-muted-foreground"
+                      )}
+                      style={{
+                        fontSize: '10px',
+                        background: activeTab === tab.id ? tab.color : 'transparent',
+                        borderRadius: '9999px',
+                        boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
+                      }}
+                    >
+                      <span
+                        className={cn("material-symbols-outlined text-[18px]", activeTab === tab.id ? "text-white" : "text-muted-foreground")}
+                        style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
+                      >
+                        {tab.icon}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
+                    </button>
+                  ))
+                )}
               </div>
-
-              <div className="flex-grow-1 d-flex flex-row flex-md-column gap-2 md:gap-4 px-1">
-                {sections.map((section) => (
-                  <div key={section.title} className="d-flex flex-row flex-md-column gap-1">
-                    <div className="px-4 d-none d-md-block">
-                      <span className="text-[9px] font-black text-muted-foreground opacity-50 tracking-[.25em] uppercase">{section.title}</span>
-                    </div>
-                    <div className="d-flex flex-row flex-md-column gap-1">
-                      {section.tabs.map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={cn(
-                            "flex-grow-1 flex-md-grow-0 px-3 md:px-5 py-2.5 md:py-3 rounded-full transition-all duration-300 d-flex align-items-center justify-content-center gap-2 md:gap-3 border-0",
-                            activeTab === tab.id
-                              ? "text-white"
-                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          )}
-                          style={{
-                            fontSize: '10px',
-                            background: activeTab === tab.id ? tab.color : 'transparent',
-                            borderRadius: '9999px',
-                            boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
-                          }}
-                        >
-                          <span className={cn(
-                            "material-symbols-outlined text-[18px] md:text-[20px]",
-                            activeTab === tab.id ? "text-white" : "text-muted-foreground"
-                          )} style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}>
-                            {tab.icon}
-                          </span>
-                          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={onClose}
-                className="d-none d-md-flex mt-md-auto text-start px-4 py-3 rounded-2xl text-muted-foreground hover:bg-danger/5 hover:text-danger transition-all align-items-center gap-3 border-0 bg-transparent"
-                style={{ fontSize: '10px' }}
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-                <span className="text-xs font-black uppercase tracking-widest">Fechar</span>
-              </button>
             </aside>
 
-            {/* Content Area */}
-            <main className="flex-fill bg-card relative d-flex flex-column h-full overflow-hidden">
-              {/* Scrollable Content */}
-              <div className="flex-grow-1 overflow-y-auto p-4 p-md-10 custom-scrollbar">
+            {/* Content */}
+            <main className="flex-fill bg-card d-flex flex-column overflow-hidden">
+              <div className="flex-grow-1 overflow-y-auto p-4 custom-scrollbar">
                 {renderContent()}
               </div>
-              
-              {/* Mobile Back Button - Always Visible at bottom */}
-              <div className="d-md-none p-3 border-top border-border/10 bg-card flex-shrink-0">
-                <button 
+              <div className="p-3 border-top border-border/10 bg-card flex-shrink-0">
+                <button
                   onClick={onClose}
                   className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
                   style={{ background: '#003641', fontSize: '11px' }}
@@ -2213,6 +2177,79 @@ export function ExpenseSettingsModal({
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ── DESKTOP: original centered modal ── */}
+      <div
+        className="d-none d-md-block modal fade show expense-settings-modal-custom"
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+        onClick={onClose}
+      >
+        <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
+          <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '700px' }}>
+            <div className="d-flex h-100">
+              {/* Sidebar */}
+              <aside className="bg-muted/20 border-end border-border d-flex flex-column overflow-auto p-4 gap-1 no-scrollbar flex-shrink-0" style={{ width: '240px' }}>
+                <div className="d-flex flex-column align-items-start px-3 mb-6">
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+                    <span className="text-[25px] font-black text-primary uppercase tracking-widest">Ajustes</span>
+                  </div>
+                </div>
+
+                <div className="flex-grow-1 d-flex flex-column gap-4">
+                  {sections.map((section) => (
+                    <div key={section.title} className="d-flex flex-column gap-1">
+                      <div className="px-4">
+                        <span className="text-[9px] font-black text-muted-foreground opacity-50 tracking-[.25em] uppercase">{section.title}</span>
+                      </div>
+                      <div className="d-flex flex-column gap-1">
+                        {section.tabs.map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={cn(
+                              "px-5 py-3 rounded-full transition-all duration-300 d-flex align-items-center gap-3 border-0",
+                              activeTab === tab.id ? "text-white" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                            style={{
+                              fontSize: '10px',
+                              background: activeTab === tab.id ? tab.color : 'transparent',
+                              borderRadius: '9999px',
+                              boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
+                            }}
+                          >
+                            <span
+                              className={cn("material-symbols-outlined text-[20px]", activeTab === tab.id ? "text-white" : "text-muted-foreground")}
+                              style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
+                            >
+                              {tab.icon}
+                            </span>
+                            <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="mt-auto text-start px-4 py-3 rounded-2xl text-muted-foreground hover:bg-danger/5 hover:text-danger transition-all d-flex align-items-center gap-3 border-0 bg-transparent"
+                  style={{ fontSize: '10px' }}
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                  <span className="text-xs font-black uppercase tracking-widest">Fechar</span>
+                </button>
+              </aside>
+
+              {/* Content Area */}
+              <main className="flex-fill d-flex flex-column overflow-hidden bg-card">
+                {renderContent()}
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
