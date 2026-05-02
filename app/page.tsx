@@ -41,7 +41,7 @@ export default function Home() {
   const searchRef = React.useRef<HTMLDivElement>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  // Synchronize activeView and Modals with browser history for system back button
+  // Synchronize activeView, activeSettingsTab and Modals with browser history for system back button
   React.useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       // If any modal is open, close it and stay on same view
@@ -54,26 +54,30 @@ export default function Home() {
         return;
       }
 
-      // Otherwise, navigate between views
-      if (event.state && event.state.view) {
-        setActiveView(event.state.view);
+      // Otherwise, navigate between views and settings tabs
+      if (event.state) {
+        if (event.state.view) setActiveView(event.state.view);
+        if (event.state.tab) setActiveSettingsTab(event.state.tab);
       } else {
         setActiveView('dashboard');
+        setActiveSettingsTab('geral');
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [isModalOpen, isSettingsOpen, isExpenseSettingsOpen, isMonthYearModalOpen, isConfirmDeleteOpen, activeView]);
+  }, [isModalOpen, isSettingsOpen, isExpenseSettingsOpen, isMonthYearModalOpen, isConfirmDeleteOpen, activeView, activeSettingsTab]);
 
-  // Update history when view changes
-  const lastView = React.useRef(activeView);
+  // Update history when view or settings tab changes
+  const lastPushedView = React.useRef(activeView);
+  const lastPushedTab = React.useRef(activeSettingsTab);
   React.useEffect(() => {
-    if (lastView.current !== activeView) {
-      window.history.pushState({ view: activeView }, '');
-      lastView.current = activeView;
+    if (lastPushedView.current !== activeView || lastPushedTab.current !== activeSettingsTab) {
+      window.history.pushState({ view: activeView, tab: activeSettingsTab }, '');
+      lastPushedView.current = activeView;
+      lastPushedTab.current = activeSettingsTab;
     }
-  }, [activeView]);
+  }, [activeView, activeSettingsTab]);
 
   // Push history state when opening modals so system back button closes them
   React.useEffect(() => {
