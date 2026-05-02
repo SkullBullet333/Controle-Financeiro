@@ -124,6 +124,37 @@ export function useFinance(activeView: string) {
       setUserName(myProfile.nome);
       setUserType(myProfile.tipo as 'titular' | 'membro');
 
+      // Load per-user theme color — profile takes priority over localStorage
+      const userColorKey = `fin_theme_color_${user.id}`;
+      if (myProfile.theme_color) {
+        setThemeColor(myProfile.theme_color);
+        localStorage.setItem(userColorKey, myProfile.theme_color);
+        document.documentElement.style.setProperty('--primary', myProfile.theme_color);
+      } else {
+        const savedColor = localStorage.getItem(userColorKey);
+        if (savedColor) {
+          setThemeColor(savedColor);
+          document.documentElement.style.setProperty('--primary', savedColor);
+        }
+      }
+
+      // Load per-user dark mode — profile takes priority over localStorage
+      const userDarkKey = `fin_dark_${user.id}`;
+      if (myProfile.dark_mode !== undefined && myProfile.dark_mode !== null) {
+        setIsDarkMode(myProfile.dark_mode);
+        localStorage.setItem(userDarkKey, JSON.stringify(myProfile.dark_mode));
+        if (myProfile.dark_mode) document.body.classList.add('dark-mode');
+        else document.body.classList.remove('dark-mode');
+      } else {
+        const savedDark = localStorage.getItem(userDarkKey);
+        if (savedDark) {
+          const dark = JSON.parse(savedDark);
+          setIsDarkMode(dark);
+          if (dark) document.body.classList.add('dark-mode');
+          else document.body.classList.remove('dark-mode');
+        }
+      }
+
       const { data: members } = await supabase.from('profiles')
         .select('*')
         .eq('family_id', myProfile.family_id)
@@ -131,7 +162,6 @@ export function useFinance(activeView: string) {
       if (members) setFamilyMembers(members);
     } else {
       // Se não houver perfil mas o usuário estiver logado, cria um registro padrão
-      // Isso resolve o problema de usuários existentes que perdem o perfil após reset de base
       const { data: createdProfile } = await supabase.from('profiles').insert({
         id: user.id,
         email: user.email,
@@ -222,24 +252,14 @@ export function useFinance(activeView: string) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sync dark mode to localStorage
+  // On mount: apply a neutral default until fetchProfile loads the user's preference
   useEffect(() => {
-    const savedDark = localStorage.getItem('fin_dark');
-    if (savedDark) {
-      const dark = JSON.parse(savedDark);
-      setIsDarkMode(dark);
-      if (dark) document.body.classList.add('dark-mode');
-    }
-    
-    const savedColor = localStorage.getItem('fin_theme_color');
-    if (savedColor) {
-      setThemeColor(savedColor);
-      document.documentElement.style.setProperty('--primary', savedColor);
-    }
+    // No-op: dark mode is loaded per-user inside fetchProfile
+    // This prevents the old shared 'fin_dark' key from overriding user preferences
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('fin_dark', JSON.stringify(isDarkMode));
+    // Apply dark mode class whenever state changes
     if (isDarkMode) document.body.classList.add('dark-mode');
     else document.body.classList.remove('dark-mode');
   }, [isDarkMode]);
@@ -257,8 +277,8 @@ export function useFinance(activeView: string) {
         nota, 
         lembretes: overrides.lembretes || lembretes,
         preferencias: {
-          darkMode: overrides.isDarkMode !== undefined ? overrides.isDarkMode : isDarkMode,
-          themeColor: overrides.themeColor || themeColor,
+          // darkMode and themeColor are now per-user in profiles table
+          // keeping avisos here as they are family-shared notification settings
           avisos: overrides.avisosConfig || avisosConfig
         }
       });
@@ -270,8 +290,10 @@ export function useFinance(activeView: string) {
 
   useEffect(() => {
     if (!isLoading && user) {
-       localStorage.setItem('fin_theme_color', themeColor);
-       document.documentElement.style.setProperty('--primary', themeColor);
+      // Apply theme color to CSS variable whenever it changes
+      document.documentElement.style.setProperty('--primary', themeColor);
+      // Save to user-specific localStorage key
+      localStorage.setItem(`fin_theme_color_${user.id}`, themeColor);
     }
   }, [themeColor, isLoading, user]);
 
@@ -301,13 +323,22 @@ export function useFinance(activeView: string) {
 
   const setAndSyncThemeColor = async (color: string) => {
     setThemeColor(color);
-    await saveSettingsToCloud({ themeColor: color });
+    // Save to profiles table — per user, not shared with family
+    if (user?.id) {
+      localStorage.setItem(`fin_theme_color_${user.id}`, color);
+      document.documentElement.style.setProperty('--primary', color);
+      await supabase.from('profiles').update({ theme_color: color }).eq('id', user.id);
+    }
   };
 
   const toggleAndSyncDarkMode = async () => {
     const newVal = !isDarkMode;
     setIsDarkMode(newVal);
-    await saveSettingsToCloud({ isDarkMode: newVal });
+    // Save to profiles table — per user, not shared with family
+    if (user?.id) {
+      localStorage.setItem(`fin_dark_${user.id}`, JSON.stringify(newVal));
+      await supabase.from('profiles').update({ dark_mode: newVal }).eq('id', user.id);
+    }
   };
 
   const competencia = useMemo(() => {

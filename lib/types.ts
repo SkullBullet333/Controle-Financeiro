@@ -13,6 +13,8 @@ export interface Profile {
   tipo: 'titular' | 'membro';
   foto?: string;
   family_id: string;
+  theme_color?: string;
+  dark_mode?: boolean;
 }
 
 export interface Categoria {
