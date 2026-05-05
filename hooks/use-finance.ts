@@ -14,7 +14,8 @@ export function useFinance(activeView: string) {
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [contasFixas, setContasFixas] = useState<ContaFixaConfig[]>([]);
   const [nota, setNota] = useState<string>('');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'black'>('light');
+  const isDarkMode = themeMode !== 'light';
   const [themeColor, setThemeColor] = useState<string>('#4361ee');
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -136,20 +137,20 @@ export function useFinance(activeView: string) {
         }
       }
 
-      // Load per-user dark mode — profile takes priority over localStorage
-      const userDarkKey = `fin_dark_${user.id}`;
-      if (myProfile.dark_mode !== undefined && myProfile.dark_mode !== null) {
-        setIsDarkMode(myProfile.dark_mode);
-        localStorage.setItem(userDarkKey, JSON.stringify(myProfile.dark_mode));
-        if (myProfile.dark_mode) document.body.classList.add('dark-mode');
-        else document.body.classList.remove('dark-mode');
+      // Load per-user theme mode — profile takes priority over localStorage
+      const userThemeKey = `fin_theme_mode_${user.id}`;
+      if (myProfile.theme_mode) {
+        setThemeMode(myProfile.theme_mode);
+        localStorage.setItem(userThemeKey, myProfile.theme_mode);
+      } else if (myProfile.dark_mode !== undefined && myProfile.dark_mode !== null) {
+        // Fallback to legacy dark_mode boolean
+        const mode = myProfile.dark_mode ? 'dark' : 'light';
+        setThemeMode(mode);
+        localStorage.setItem(userThemeKey, mode);
       } else {
-        const savedDark = localStorage.getItem(userDarkKey);
-        if (savedDark) {
-          const dark = JSON.parse(savedDark);
-          setIsDarkMode(dark);
-          if (dark) document.body.classList.add('dark-mode');
-          else document.body.classList.remove('dark-mode');
+        const savedTheme = localStorage.getItem(userThemeKey) as any;
+        if (savedTheme) {
+          setThemeMode(savedTheme);
         }
       }
 
@@ -257,10 +258,11 @@ export function useFinance(activeView: string) {
   }, []);
 
   useEffect(() => {
-    // Apply dark mode class whenever state changes
-    if (isDarkMode) document.body.classList.add('dark-mode');
-    else document.body.classList.remove('dark-mode');
-  }, [isDarkMode]);
+    // Apply theme classes whenever state changes
+    document.body.classList.remove('dark-mode', 'black-mode');
+    if (themeMode === 'dark') document.body.classList.add('dark-mode');
+    else if (themeMode === 'black') document.body.classList.add('black-mode');
+  }, [themeMode]);
 
   const [lembretes, setLembretes] = useState<{id: number, texto: string, concluido: boolean, data?: string}[]>([]);
   const [avisosConfig, setAvisosConfig] = useState({
@@ -329,14 +331,22 @@ export function useFinance(activeView: string) {
     }
   };
 
-  const toggleAndSyncDarkMode = async () => {
-    const newVal = !isDarkMode;
-    setIsDarkMode(newVal);
-    // Save to profiles table — per user, not shared with family
+  const setThemeModeAndSync = async (mode: 'light' | 'dark' | 'black') => {
+    setThemeMode(mode);
     if (user?.id) {
-      localStorage.setItem(`fin_dark_${user.id}`, JSON.stringify(newVal));
-      await supabase.from('profiles').update({ dark_mode: newVal }).eq('id', user.id);
+      localStorage.setItem(`fin_theme_mode_${user.id}`, mode);
+      await supabase.from('profiles').update({ 
+        theme_mode: mode,
+        dark_mode: mode !== 'light' // Keep legacy field in sync
+      }).eq('id', user.id);
     }
+  };
+
+  const toggleAndSyncDarkMode = async () => {
+    // Cycles through themes
+    const modes: ('light' | 'dark' | 'black')[] = ['light', 'dark', 'black'];
+    const nextIdx = (modes.indexOf(themeMode) + 1) % modes.length;
+    await setThemeModeAndSync(modes[nextIdx]);
   };
 
   const competencia = useMemo(() => {
@@ -722,7 +732,7 @@ export function useFinance(activeView: string) {
     }
   };
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
 
   const filteredDespesas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -1378,6 +1388,8 @@ export function useFinance(activeView: string) {
     setMonth,
     setYear,
     toggleDarkMode: toggleAndSyncDarkMode,
+    setThemeMode: setThemeModeAndSync,
+    themeMode,
     updateNota,
     signIn,
     signUp,

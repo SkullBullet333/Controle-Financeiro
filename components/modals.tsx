@@ -116,7 +116,7 @@ export function UniversalFinanceForm({
             </h1>
             <span
               className="font-headline font-bold uppercase tracking-[0.2em] text-[10px] md:text-[13px] transition-all duration-300 ml-0.5 leading-none"
-              style={{ color: `${typeColors[activeType]}bf` }}
+              style={{ color: typeColors[activeType], opacity: 0.75 }}
             >
               {typeLabels[activeType]}
             </span>
@@ -617,9 +617,9 @@ export function FinanceForm({
                 <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-9 md:h-[44px] relative border border-slate-200/50 shadow-inner">
                   {isRecorrente ? (
                     isIndefinite ? (
-                      <div className="flex-1 rounded-full bg-white/50 text-slate-400 flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
+                      <div className="flex-1 rounded-full bg-white/20 text-muted-foreground flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
                         <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter">Tempo Indeterminado</span>
+                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter text-foreground">Indeterminado</span>
                       </div>
                     ) : (
                       <div className="flex-1 rounded-full bg-navy text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full w-full">
@@ -831,9 +831,9 @@ export function FinanceForm({
                 <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                   {isRecorrente ? (
                     isIndefinite ? (
-                      <div className="flex-1 rounded-full bg-white/50 text-slate-400 flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
+                      <div className="flex-1 rounded-full bg-white/20 text-muted-foreground flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
                         <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter">Tempo Indeterminado</span>
+                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter text-foreground">Indeterminado</span>
                       </div>
                     ) : (
                       <div
@@ -1008,11 +1008,13 @@ export function FinanceForm({
 export function TitularForm({
   onSubmit,
   initialData,
-  onCancel
+  onCancel,
+  themeColor
 }: {
   onSubmit: (data: Omit<Titular, 'id'>) => void,
   initialData?: Titular,
-  onCancel?: () => void
+  onCancel?: () => void,
+  themeColor?: string
 }) {
   const [formData, setFormData] = useState({
     nome: initialData?.nome || '',
@@ -1124,7 +1126,11 @@ export function TitularForm({
         )}
         <button
           disabled={isUploading}
-          className="btn btn-primary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
+          className={cn(
+            "btn w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm",
+            !themeColor ? "btn-primary" : "text-white"
+          )}
+          style={{ backgroundColor: themeColor }}
         >
           <i className="fa-solid fa-check me-2"></i>Salvar Titular
         </button>
@@ -1156,12 +1162,14 @@ export function CartaoForm({
   onSubmit,
   titulares,
   initialData,
-  onCancel
+  onCancel,
+  themeColor
 }: {
   onSubmit: (data: Omit<CartaoConfig, 'id'>) => void,
   titulares: Titular[],
   initialData?: CartaoConfig,
-  onCancel?: () => void
+  onCancel?: () => void,
+  themeColor?: string
 }) {
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
@@ -1224,7 +1232,13 @@ export function CartaoForm({
             Cancelar
           </button>
         )}
-        <button className="btn btn-primary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm">
+        <button 
+          className={cn(
+            "btn w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm",
+            !themeColor ? "btn-primary" : "text-white"
+          )}
+          style={{ backgroundColor: themeColor }}
+        >
           <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
         </button>
       </div>
@@ -1947,7 +1961,9 @@ export function ExpenseSettingsModal({
   onEditEmprestimo,
   onEditContaFixa,
   onDeleteEmprestimo,
-  onDeleteContaFixa
+  onDeleteContaFixa,
+  themeColor,
+  isDarkMode
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -1957,6 +1973,8 @@ export function ExpenseSettingsModal({
   onEditContaFixa: (config: ContaFixaConfig) => void;
   onDeleteEmprestimo: (id: number) => void;
   onDeleteContaFixa: (id: number) => void;
+  themeColor: string;
+  isDarkMode: boolean;
 }) {
   const [activeTab, setActiveTab] = useState('emprestimos');
 
@@ -1966,16 +1984,16 @@ export function ExpenseSettingsModal({
     {
       title: 'DESPESAS',
       tabs: [
-        { id: 'emprestimos', label: 'Empréstimos', icon: 'account_balance', color: '#ff9800' },
-        { id: 'parcelados', label: 'Parcelados', icon: 'inventory_2', color: '#01579b' },
-        { id: 'recorrentes', label: 'Recorrentes', icon: 'event_repeat', color: '#7b1fa2' },
+        { id: 'emprestimos', label: 'Empréstimos', icon: 'account_balance' },
+        { id: 'parcelados', label: 'Parcelados', icon: 'inventory_2' },
+        { id: 'recorrentes', label: 'Recorrentes', icon: 'event_repeat' },
       ]
     },
     {
       title: 'RECEITAS',
       tabs: [
-        { id: 'rec_recorrentes', label: 'Recorrentes', icon: 'autorenew', color: '#00995D' },
-        { id: 'rec_parceladas', label: 'Fixas / Parc.', icon: 'layers', color: '#00995D' },
+        { id: 'rec_recorrentes', label: 'Recorrentes', icon: 'autorenew' },
+        { id: 'rec_parceladas', label: 'Fixas / Parc.', icon: 'layers' },
       ]
     }
   ];
@@ -1985,9 +2003,9 @@ export function ExpenseSettingsModal({
       case 'emprestimos':
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-10 pt-10 pb-4 bg-card border-bottom border-border/40">
+            <header className="flex-shrink-0 px-6 md:px-10 pt-2 md:pt-10 pb-4 bg-card border-bottom border-border/40">
               <h3 className="text-xl font-bold text-foreground m-0">Contratos de Empréstimo</h3>
-              <p className="text-muted-foreground small m-0">Gerencie as configurações mestre de seus empréstimos ativos.</p>
+              <p className="hidden md:block text-muted-foreground small m-0">Gerencie as configurações mestre de seus empréstimos ativos.</p>
             </header>
 
             <div className="flex-grow-1 overflow-y-auto p-10 pt-6 custom-scrollbar">
@@ -2001,7 +2019,7 @@ export function ExpenseSettingsModal({
                   emprestimos.map((loan) => (
                     <div key={loan.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
                       <div className="d-flex align-items-center gap-4 flex-grow-1">
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 d-flex align-items-center justify-content-center">
+                        <div className="w-12 h-12 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: isDarkMode ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)', color: isDarkMode ? '#fbbf24' : '#d97706' }}>
                           <span className="material-symbols-outlined">payments</span>
                         </div>
                         <div>
@@ -2041,17 +2059,17 @@ export function ExpenseSettingsModal({
           return typeMatch && recurrenceMatch;
         });
 
-        const themeColor = isReceitaTab ? '#00995D' : (activeTab === 'parcelados' ? '#01579b' : '#7b1fa2');
+        const activeThemeColor = themeColor;
 
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-10 pt-10 pb-4 bg-card border-bottom border-border/40">
+            <header className="flex-shrink-0 px-6 md:px-10 pt-2 md:pt-10 pb-4 bg-card border-bottom border-border/40">
               <h3 className="text-xl font-bold text-foreground m-0">
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
                   : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s</>)}
               </h3>
-              <p className="text-muted-foreground small m-0">
+              <p className="hidden md:block text-muted-foreground small m-0">
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo (ex: Bônus parcelado).')
                   : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo (ex: Empréstimos pessoais).')}
@@ -2071,7 +2089,7 @@ export function ExpenseSettingsModal({
                 filtered.map((config) => (
                   <div key={config.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
                     <div className="d-flex align-items-center gap-4 flex-grow-1">
-                      <div className="w-12 h-12 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
+                      <div className="w-12 h-12 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : `${activeThemeColor}15`, color: isDarkMode ? 'var(--text)' : activeThemeColor }}>
                         <span className="material-symbols-outlined">{isRecorrenteTab ? 'autorenew' : 'layers'}</span>
                       </div>
                       <div>
@@ -2119,13 +2137,10 @@ export function ExpenseSettingsModal({
         onClick={onClose}
       >
         <div
-          className="w-100"
-          style={{ height: '85vh' }}
+          className="w-100 h-100"
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
-          <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-t-[2.5rem]">
-            {/* Handle */}
-            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-4 mb-2 opacity-50 flex-shrink-0"></div>
+          <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-0">
 
             {/* Horizontal Tab Bar */}
             <aside className="bg-muted/10 border-bottom border-border d-flex flex-row overflow-auto p-2 gap-1 no-scrollbar flex-shrink-0">
@@ -2136,23 +2151,25 @@ export function ExpenseSettingsModal({
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={cn(
-                        "flex-grow-1 px-3 py-2.5 rounded-full transition-all duration-300 d-flex align-items-center justify-content-center gap-2 border-0",
-                        activeTab === tab.id ? "text-white" : "text-muted-foreground"
+                        "flex-grow-1 px-1 py-2 rounded-2xl transition-all duration-300 d-flex flex-column align-items-center justify-content-center border-0",
+                        activeTab === tab.id ? "text-white shadow-lg" : "text-muted-foreground"
                       )}
                       style={{
-                        fontSize: '10px',
-                        background: activeTab === tab.id ? tab.color : 'transparent',
-                        borderRadius: '9999px',
-                        boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
+                        background: activeTab === tab.id ? themeColor : 'transparent',
+                        boxShadow: activeTab === tab.id ? `0 4px 12px ${themeColor}40` : 'none',
+                        borderRadius: '16px'
                       }}
                     >
                       <span
-                        className={cn("material-symbols-outlined text-[18px]", activeTab === tab.id ? "text-white" : "text-muted-foreground")}
+                        className={cn("material-symbols-outlined text-[20px] md:text-[18px]", activeTab === tab.id ? "text-white" : (isDarkMode ? "text-white/60" : "text-muted-foreground"))}
                         style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
                       >
                         {tab.icon}
                       </span>
-                      <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
+                      <span className="md:hidden text-[7px] font-black uppercase tracking-tighter whitespace-nowrap opacity-80 mt-0.5">
+                        {section.title === 'DESPESAS' ? 'Despesas' : 'Receitas'}
+                      </span>
+                      <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest whitespace-nowrap ml-2">{tab.label}</span>
                     </button>
                   ))
                 )}
@@ -2164,13 +2181,13 @@ export function ExpenseSettingsModal({
               <div className="flex-grow-1 overflow-y-auto p-4 custom-scrollbar">
                 {renderContent()}
               </div>
-              <div className="p-3 border-top border-border/10 bg-card flex-shrink-0">
+              <div className="p-4 bg-card border-top border-border/10 flex-shrink-0">
                 <button
                   onClick={onClose}
-                  className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
-                  style={{ background: '#003641', fontSize: '11px' }}
+                  className="btn w-100 py-3 rounded-2xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg border-0"
+                  style={{ backgroundColor: themeColor, fontSize: '12px' }}
                 >
-                  Voltar
+                  Fechar Ajustes
                 </button>
               </div>
             </main>
@@ -2188,18 +2205,18 @@ export function ExpenseSettingsModal({
           <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '700px' }}>
             <div className="d-flex h-100">
               {/* Sidebar */}
-              <aside className="bg-muted/20 border-end border-border d-flex flex-column overflow-auto p-4 gap-1 no-scrollbar flex-shrink-0" style={{ width: '240px' }}>
-                <div className="d-flex flex-column align-items-start px-3 mb-6">
+              <aside className="bg-muted/20 border-end border-border d-flex flex-column overflow-auto py-4 px-2 gap-1 no-scrollbar flex-shrink-0" style={{ width: '220px' }}>
+                <div className="d-flex flex-column align-items-start px-3 mb-8">
                   <div className="d-flex align-items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
-                    <span className="text-[25px] font-black text-primary uppercase tracking-widest">Ajustes</span>
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", color: isDarkMode ? '#f8fafc' : themeColor }}>receipt_long</span>
+                    <span className="text-[25px] font-black uppercase tracking-widest" style={{ color: isDarkMode ? '#f8fafc' : themeColor }}>Ajustes</span>
                   </div>
                 </div>
 
                 <div className="flex-grow-1 d-flex flex-column gap-4">
                   {sections.map((section) => (
                     <div key={section.title} className="d-flex flex-column gap-1">
-                      <div className="px-4">
+                      <div className="px-3 mb-2">
                         <span className="text-[9px] font-black text-muted-foreground opacity-50 tracking-[.25em] uppercase">{section.title}</span>
                       </div>
                       <div className="d-flex flex-column gap-1">
@@ -2208,18 +2225,18 @@ export function ExpenseSettingsModal({
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
-                              "px-5 py-3 rounded-full transition-all duration-300 d-flex align-items-center gap-3 border-0",
+                              "px-4 py-3 rounded-2xl transition-all duration-300 d-flex align-items-center gap-3 border-0",
                               activeTab === tab.id ? "text-white" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             )}
                             style={{
                               fontSize: '10px',
-                              background: activeTab === tab.id ? tab.color : 'transparent',
-                              borderRadius: '9999px',
-                              boxShadow: activeTab === tab.id ? `0 4px 12px ${tab.color}40` : 'none'
+                              background: activeTab === tab.id ? themeColor : 'transparent',
+                              boxShadow: activeTab === tab.id ? `0 4px 12px ${themeColor}40` : 'none',
+                              borderRadius: '16px'
                             }}
                           >
                             <span
-                              className={cn("material-symbols-outlined text-[20px]", activeTab === tab.id ? "text-white" : "text-muted-foreground")}
+                              className={cn("material-symbols-outlined text-[20px]", activeTab === tab.id ? "text-white" : (isDarkMode ? "text-white/60" : "text-muted-foreground"))}
                               style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
                             >
                               {tab.icon}
@@ -2232,14 +2249,7 @@ export function ExpenseSettingsModal({
                   ))}
                 </div>
 
-                <button
-                  onClick={onClose}
-                  className="mt-auto text-start px-4 py-3 rounded-2xl text-muted-foreground hover:bg-danger/5 hover:text-danger transition-all d-flex align-items-center gap-3 border-0 bg-transparent"
-                  style={{ fontSize: '10px' }}
-                >
-                  <span className="material-symbols-outlined text-[20px]">close</span>
-                  <span className="text-xs font-black uppercase tracking-widest">Fechar</span>
-                </button>
+                <div className="mt-auto"></div>
               </aside>
 
               {/* Content Area */}
@@ -2247,6 +2257,15 @@ export function ExpenseSettingsModal({
                 {renderContent()}
               </main>
             </div>
+            {/* Botão de Fechar no topo direito */}
+            <button 
+              type="button" 
+              className="btn-icon position-absolute top-0 end-0 m-4 z-50 d-flex align-items-center justify-content-center transition-all hover:bg-muted/20 rounded-circle border-0 bg-transparent text-foreground"
+              style={{ width: '40px', height: '40px' }}
+              onClick={onClose}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>close</span>
+            </button>
           </div>
         </div>
       </div>

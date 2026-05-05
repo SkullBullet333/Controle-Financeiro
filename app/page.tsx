@@ -125,6 +125,8 @@ export default function Home() {
     projecaoSemestral,
     isLoading,
     isDarkMode,
+    themeMode,
+    setThemeMode,
     toggleDarkMode,
     themeColor,
     setThemeColor,
@@ -1021,7 +1023,9 @@ export default function Home() {
           <SettingsView
             user={userProfile}
             isDarkMode={isDarkMode}
+            themeMode={themeMode}
             toggleDarkMode={toggleDarkMode}
+            setThemeMode={setThemeMode}
             familyMembers={familyMembers}
             onInvite={handleInvite}
             userType={userType}
@@ -1294,7 +1298,9 @@ export default function Home() {
           onClose={() => setIsSettingsOpen(false)}
           user={userProfile}
           isDarkMode={isDarkMode}
+          themeMode={themeMode}
           toggleDarkMode={toggleDarkMode}
+          setThemeMode={setThemeMode}
           themeColor={themeColor}
           setThemeColor={setThemeColor}
           familyMembers={familyMembers}
@@ -1325,6 +1331,8 @@ export default function Home() {
         <ExpenseSettingsModal
           isOpen={isExpenseSettingsOpen}
           onClose={() => setIsExpenseSettingsOpen(false)}
+          themeColor={themeColor}
+          isDarkMode={isDarkMode}
           emprestimos={emprestimos}
           contasFixas={contasFixas}
           onEditEmprestimo={(loan: Emprestimo) => {

@@ -64,8 +64,10 @@ export function Sidebar({
       onMouseLeave={() => onHoverChange?.(false)}
     >
       <div className="logo mt-4 mb-2 px-0 w-100 d-flex justify-content-center">
-        <i className="fa-solid fa-chart-pie text-primary flex-shrink-0" style={{ fontSize: '1.8rem' }}></i>
-        <span className="fw-bold sidebar-text">Financeiro</span>
+        <div className="d-flex align-items-center justify-content-center" style={{ width: '20px' }}>
+          <i className="fa-solid fa-chart-pie text-primary flex-shrink-0" style={{ fontSize: '1.4rem' }}></i>
+        </div>
+        <span className="fw-bold sidebar-text" style={{ marginLeft: '15px' }}>Financeiro</span>
       </div>
       
       <ul className="menu">
@@ -138,10 +140,10 @@ export function Sidebar({
         )}
 
         <div 
-          className="user-profile-btn rounded-4 cursor-pointer hover:bg-light transition-all d-flex justify-content-center"
+          className="user-profile-btn rounded-4 cursor-pointer hover:bg-light transition-all d-flex align-items-center"
           onClick={() => setShowPopup(!showPopup)}
         >
-          <div className="position-relative flex-shrink-0 mx-auto" style={{ width: '40px', height: '40px', minWidth: '40px' }}>
+          <div className="position-relative flex-shrink-0" style={{ width: '40px', height: '40px', minWidth: '40px' }}>
             <Image
               src={user.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=4361ee&color=fff&bold=true`}
               fill
@@ -201,6 +203,18 @@ export function Topbar({
     }
   };
 
+  const getTitleIcon = () => {
+    switch (title) {
+      case 'dashboard': return 'fa-house';
+      case 'geral': return 'fa-clipboard-list';
+      case 'cartoes': return 'fa-credit-card';
+      case 'receitas': return 'fa-money-bill-wave';
+      case 'radar': return 'fa-wand-magic-sparkles';
+      case 'config': return 'fa-gear';
+      default: return 'fa-chart-pie';
+    }
+  };
+
   return (
     <>
       {/* Sicoob Premium Mobile Header - Only visible on small screens */}
@@ -210,7 +224,10 @@ export function Topbar({
       >
         <div className="d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center">
-            <h2 className="fw-bold m-0 fs-5 text-white" id="page-title">{getTitle()}</h2>
+            <h2 className="fw-bold m-0 fs-5 text-white d-flex align-items-center gap-2" id="page-title">
+              <i className={cn("fa-solid", getTitleIcon(), "opacity-80")} style={{ fontSize: '1.1rem' }}></i>
+              <span>{getTitle()}</span>
+            </h2>
           </div>
           
           <div className="d-flex align-items-center gap-1">
@@ -515,8 +532,8 @@ export function MobileNav({
             onViewChange('config');
           }}
         >
-          <i className="fa-solid fa-ellipsis"></i>
-          <span>Menu</span>
+          <i className="fa-solid fa-gears"></i>
+          <span>Definições</span>
         </div>
       </div>
 

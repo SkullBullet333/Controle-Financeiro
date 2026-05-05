@@ -9,7 +9,9 @@ import { TitularForm, CartaoForm } from './modals';
 interface SettingsViewProps {
   user: Profile | null;
   isDarkMode: boolean;
+  themeMode: 'light' | 'dark' | 'black';
   toggleDarkMode: () => void;
+  setThemeMode: (mode: 'light' | 'dark' | 'black') => void;
   themeColor?: string;
   setThemeColor?: (color: string) => void;
   familyMembers: Profile[];
@@ -40,7 +42,9 @@ import { CardLogo } from './card-ui';
 export function SettingsView({
   user,
   isDarkMode,
+  themeMode,
   toggleDarkMode,
+  setThemeMode,
   themeColor = '#4361ee',
   setThemeColor,
   familyMembers,
@@ -93,7 +97,7 @@ export function SettingsView({
     { id: 'geral', label: 'Geral', icon: 'settings', desc: 'Dados e segurança da conta' },
     { id: 'titulares', label: 'Titulares', icon: 'person_add', desc: 'Gerencie as pessoas da família' },
     { id: 'cartoes', label: 'Cartões', icon: 'credit_card', desc: 'Configure seus cartões de crédito' },
-    { id: 'familia', label: 'Dados', icon: 'database', desc: 'Exportação e backup de dados' },
+    { id: 'familia', label: 'Família', icon: 'family_restroom', desc: 'Gerencie os membros da família' },
     { id: 'notificacoes', label: 'Avisos', icon: 'notifications', desc: 'Central de notificações e alertas' },
     { id: 'personalizacao', label: 'Visual', icon: 'palette', desc: 'Cores e temas do aplicativo' },
   ];
@@ -104,9 +108,9 @@ export function SettingsView({
         <header className="mb-4 pt-4 px-1 flex-shrink-0">
           <div className="d-flex align-items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 d-flex align-items-center justify-content-center text-primary shadow-sm border border-primary/10">
-              <span className="material-symbols-outlined text-3xl">handyman</span>
+              <span className="material-symbols-outlined text-3xl">settings</span>
             </div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight m-0 uppercase">Ajustes</h1>
+            <h1 className="text-3xl font-black text-foreground tracking-tight m-0 uppercase">Definições</h1>
           </div>
         </header>
 
@@ -155,7 +159,7 @@ export function SettingsView({
             {!isMobile && (
               <header className="mb-6 md:mb-10">
                 <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <div className="w-2 h-8 rounded-full" style={{ backgroundColor: themeColor || 'var(--primary)' }}></div>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Geral</h1>
                 </div>
                 <p className="text-muted-foreground small">Personalize a sua experiência e segurança da conta.</p>
@@ -167,7 +171,7 @@ export function SettingsView({
               <div className="bg-card p-4 rounded-2xl border border-border">
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center text-primary">
+                    <div className="w-10 h-10 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: themeColor ? `${themeColor}20` : 'rgba(67, 97, 238, 0.1)', color: themeColor || 'var(--primary)' }}>
                       <span className="material-symbols-outlined">verified_user</span>
                     </div>
                     <div>
@@ -176,7 +180,14 @@ export function SettingsView({
                     </div>
                   </div>
                   <div className="form-check form-switch m-0 p-0 d-flex align-items-center">
-                    <input className="form-check-input ms-0 cursor-pointer" type="checkbox" role="switch" checked={true} readOnly />
+                    <input 
+                      className="form-check-input ms-0 cursor-pointer" 
+                      type="checkbox" 
+                      role="switch" 
+                      checked={true} 
+                      readOnly 
+                      style={{ backgroundColor: themeColor, borderColor: themeColor }}
+                    />
                   </div>
                 </div>
               </div>
@@ -189,7 +200,7 @@ export function SettingsView({
             {!isMobile && (
               <header className="mb-6 md:mb-10">
                 <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <div className="w-2 h-8 rounded-full" style={{ backgroundColor: themeColor || 'var(--primary)' }}></div>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Visual</h1>
                 </div>
                 <p className="text-muted-foreground small">Personalize as cores e o tema do seu aplicativo.</p>
@@ -198,39 +209,44 @@ export function SettingsView({
 
             <section className="space-y-6">
               <h3 className="text-lg font-bold text-foreground mb-1">Aparência</h3>
-              <div className="row g-3 g-md-4">
-                <div className="col-6 col-md-6">
+              <div className="row g-3">
+                {/* CLARO */}
+                <div className="col-4">
                   <div
-                    onClick={() => isDarkMode && toggleDarkMode()}
+                    onClick={() => setThemeMode('light')}
                     className={cn(
                       "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300",
-                      !isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
+                      themeMode === 'light' ? "bg-primary/5 shadow-md" : "border-border bg-card/50"
                     )}
+                    style={themeMode === 'light' ? { borderColor: themeColor, backgroundColor: themeColor ? `${themeColor}10` : undefined } : {}}
                   >
-                    <div className="aspect-[16/9] rounded-xl bg-slate-100 mb-2 overflow-hidden border border-border/50 relative">
-                      <div className="absolute inset-0 p-2">
-                        <div className="w-full h-2 bg-white rounded shadow-sm mb-1"></div>
-                        <div className="row g-1">
-                          <div className="col-4"><div className="h-10 bg-white rounded shadow-sm"></div></div>
-                          <div className="col-8"><div className="h-10 bg-white rounded shadow-sm"></div></div>
+                    <div className="aspect-[16/9] rounded-xl bg-slate-100 mb-2 overflow-hidden border border-border/50 relative no-dark">
+                      <div className="absolute inset-0 p-2 no-dark">
+                        <div className="w-full h-2 bg-white rounded shadow-sm mb-1 no-dark"></div>
+                        <div className="row g-1 no-dark">
+                          <div className="col-4 no-dark"><div className="h-10 bg-white rounded shadow-sm no-dark"></div></div>
+                          <div className="col-8 no-dark"><div className="h-10 bg-white rounded shadow-sm no-dark"></div></div>
                         </div>
                       </div>
                     </div>
-                    <div className="px-2 pb-1 d-flex align-items-center justify-content-between">
-                      <span className="font-bold text-[10px] md:text-sm">Claro</span>
-                      {!isDarkMode && <span className="material-symbols-outlined text-primary text-sm md:text-lg">check_circle</span>}
+                    <div className="px-1 pb-1 d-flex align-items-center justify-content-between">
+                      <span className="font-bold text-[9px] md:text-xs text-foreground uppercase tracking-tight">Claro</span>
+                      {themeMode === 'light' && <span className="material-symbols-outlined text-sm" style={{ color: themeColor }}>check_circle</span>}
                     </div>
                   </div>
                 </div>
-                <div className="col-6 col-md-6">
+
+                {/* ESCURO (AZUL) */}
+                <div className="col-4">
                   <div
-                    onClick={() => !isDarkMode && toggleDarkMode()}
+                    onClick={() => setThemeMode('dark')}
                     className={cn(
                       "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300",
-                      isDarkMode ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card/50"
+                      themeMode === 'dark' ? "bg-primary/5 shadow-md" : "border-border bg-card/50"
                     )}
+                    style={themeMode === 'dark' ? { borderColor: themeColor, backgroundColor: themeColor ? `${themeColor}10` : undefined } : {}}
                   >
-                    <div className="aspect-[16/9] rounded-xl bg-slate-900 mb-2 overflow-hidden border border-border/50 relative">
+                    <div className="aspect-[16/9] rounded-xl bg-[#0f172a] mb-2 overflow-hidden border border-border/50 relative">
                       <div className="absolute inset-0 p-2">
                         <div className="w-full h-2 bg-slate-800 rounded shadow-sm mb-1"></div>
                         <div className="row g-1">
@@ -239,9 +255,35 @@ export function SettingsView({
                         </div>
                       </div>
                     </div>
-                    <div className="px-2 pb-1 d-flex align-items-center justify-content-between">
-                      <span className="font-bold text-[10px] md:text-sm">Escuro</span>
-                      {isDarkMode && <span className="material-symbols-outlined text-primary text-sm md:text-lg">check_circle</span>}
+                    <div className="px-1 pb-1 d-flex align-items-center justify-content-between">
+                      <span className="font-bold text-[9px] md:text-xs text-foreground uppercase tracking-tight">Azul</span>
+                      {themeMode === 'dark' && <span className="material-symbols-outlined text-sm" style={{ color: themeColor }}>check_circle</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PRETO */}
+                <div className="col-4">
+                  <div
+                    onClick={() => setThemeMode('black')}
+                    className={cn(
+                      "cursor-pointer rounded-2xl border-2 p-1 transition-all duration-300",
+                      themeMode === 'black' ? "bg-primary/5 shadow-md" : "border-border bg-card/50"
+                    )}
+                    style={themeMode === 'black' ? { borderColor: themeColor, backgroundColor: themeColor ? `${themeColor}10` : undefined } : {}}
+                  >
+                    <div className="aspect-[16/9] rounded-xl bg-[#000000] mb-2 overflow-hidden border border-border/50 relative">
+                      <div className="absolute inset-0 p-2">
+                        <div className="w-full h-2 bg-neutral-900 rounded shadow-sm mb-1"></div>
+                        <div className="row g-1">
+                          <div className="col-4"><div className="h-10 bg-neutral-900 rounded shadow-sm"></div></div>
+                          <div className="col-8"><div className="h-10 bg-neutral-900 rounded shadow-sm"></div></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-1 pb-1 d-flex align-items-center justify-content-between">
+                      <span className="font-bold text-[9px] md:text-xs text-foreground uppercase tracking-tight">Preto</span>
+                      {themeMode === 'black' && <span className="material-symbols-outlined text-sm" style={{ color: themeColor }}>check_circle</span>}
                     </div>
                   </div>
                 </div>
@@ -282,27 +324,20 @@ export function SettingsView({
         return (
           <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {!isMobile ? (
-              <header className="mb-6 d-flex justify-content-between align-items-center">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground m-0">Titulares</h1>
-                  <p className="text-muted-foreground small m-0">Pessoas da família.</p>
-                </div>
-                {internalView === 'list' && (
-                  <button
-                    onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                    className="btn btn-primary rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0"
-                  >
-                    <span className="material-symbols-outlined text-sm">add</span>
-                    NOVO
-                  </button>
-                )}
+              <header className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground m-0">Titulares</h1>
+                <p className="text-muted-foreground small m-0">Pessoas da família.</p>
               </header>
             ) : (
               internalView === 'list' && (
                 <div className="mb-4 d-flex justify-content-end">
                   <button
                     onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                    className="btn btn-primary rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0"
+                    className={cn(
+                      "btn rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0",
+                      !themeColor ? "btn-primary" : "text-white"
+                    )}
+                    style={{ backgroundColor: themeColor }}
                   >
                     <span className="material-symbols-outlined text-sm">add</span>
                     NOVO
@@ -322,16 +357,33 @@ export function SettingsView({
                       <div className="fw-bold text-foreground">{t.nome}</div>
                     </div>
                     <div className="d-flex gap-1">
-                      <button onClick={() => { setEditingItem(t); setInternalView('edit'); }} className="btn-icon p-2 hover:bg-primary/10 rounded-lg"><span className="material-symbols-outlined text-primary">edit</span></button>
+                      <button onClick={() => { setEditingItem(t); setInternalView('edit'); }} className="btn-icon p-2 hover:bg-primary/10 rounded-lg"><span className="material-symbols-outlined" style={{ color: isDarkMode ? 'var(--text)' : (themeColor || 'var(--primary)') }}>edit</span></button>
                       <button onClick={() => onDeleteTitular(t.id)} className="btn-icon p-2 hover:bg-danger/10 rounded-lg"><span className="material-symbols-outlined text-danger">delete</span></button>
                     </div>
                   </div>
                 ))}
+                
+                {!isMobile && (
+                  <div className="mt-6 d-flex justify-content-center">
+                    <button
+                      onClick={() => { setEditingItem(null); setInternalView('add'); }}
+                      className={cn(
+                        "btn rounded-2xl px-10 py-3 fw-bold d-flex align-items-center gap-3 shadow-lg border-0 transition-all active:scale-95",
+                        !themeColor ? "btn-primary" : "text-white"
+                      )}
+                      style={{ backgroundColor: themeColor }}
+                    >
+                      <span className="material-symbols-outlined">add</span>
+                      ADICIONAR NOVO TITULAR
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-card p-4 rounded-2xl border border-border border-dashed">
                 <TitularForm
                   initialData={editingItem}
+                  themeColor={themeColor}
                   onCancel={() => { setInternalView('list'); setEditingItem(null); }}
                   onSubmit={(data) => {
                     if (editingItem) onUpdateTitular(editingItem.id, data);
@@ -348,27 +400,20 @@ export function SettingsView({
         return (
           <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {!isMobile ? (
-              <header className="mb-6 d-flex justify-content-between align-items-center">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground m-0">Cartões</h1>
-                  <p className="text-muted-foreground small m-0">Gerencie seus cartões.</p>
-                </div>
-                {internalView === 'list' && (
-                  <button
-                    onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                    className="btn btn-primary rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0"
-                  >
-                    <span className="material-symbols-outlined text-sm">add_card</span>
-                    NOVO
-                  </button>
-                )}
+              <header className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground m-0">Cartões</h1>
+                <p className="text-muted-foreground small m-0">Gerencie seus cartões.</p>
               </header>
             ) : (
               internalView === 'list' && (
                 <div className="mb-4 d-flex justify-content-end">
                   <button
                     onClick={() => { setEditingItem(null); setInternalView('add'); }}
-                    className="btn btn-primary rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0"
+                    className={cn(
+                      "btn rounded-xl px-4 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm border-0",
+                      !themeColor ? "btn-primary" : "text-white"
+                    )}
+                    style={{ backgroundColor: themeColor }}
                   >
                     <span className="material-symbols-outlined text-sm">add_card</span>
                     NOVO
@@ -378,7 +423,8 @@ export function SettingsView({
             )}
 
             {internalView === 'list' ? (
-              <div className="row g-3">
+              <>
+                <div className="row g-3">
                 {cartoes.map((c) => (
                   <div key={c.id} className="col-12 col-md-6">
                     <div className="bg-card p-4 rounded-2xl border border-border relative overflow-hidden">
@@ -388,7 +434,7 @@ export function SettingsView({
                           <div className="fw-bold text-foreground">{c.nome_cartao}</div>
                         </div>
                         <div className="d-flex gap-1">
-                          <button onClick={() => { setEditingItem(c); setInternalView('edit'); }} className="btn-icon p-2 hover:bg-primary/10 rounded-lg"><span className="material-symbols-outlined text-primary text-sm">edit</span></button>
+                          <button onClick={() => { setEditingItem(c); setInternalView('edit'); }} className="btn-icon p-2 hover:bg-primary/10 rounded-lg"><span className="material-symbols-outlined text-sm" style={{ color: isDarkMode ? 'var(--text)' : (themeColor || 'var(--primary)') }}>edit</span></button>
                           <button onClick={() => onDeleteCartao(c.id)} className="btn-icon p-2 hover:bg-danger/10 rounded-lg"><span className="material-symbols-outlined text-danger text-sm">delete</span></button>
                         </div>
                       </div>
@@ -400,11 +446,29 @@ export function SettingsView({
                   </div>
                 ))}
               </div>
-            ) : (
+
+              {!isMobile && (
+                <div className="mt-8 d-flex justify-content-center">
+                  <button
+                    onClick={() => { setEditingItem(null); setInternalView('add'); }}
+                    className={cn(
+                      "btn rounded-2xl px-10 py-3 fw-bold d-flex align-items-center gap-3 shadow-lg border-0 transition-all active:scale-95",
+                      !themeColor ? "btn-primary" : "text-white"
+                    )}
+                    style={{ backgroundColor: themeColor }}
+                  >
+                    <span className="material-symbols-outlined">add_card</span>
+                    ADICIONAR NOVO CARTÃO
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
               <div className="bg-card p-4 rounded-2xl border border-border border-dashed">
                 <CartaoForm
                   initialData={editingItem}
                   titulares={titulares}
+                  themeColor={themeColor}
                   onCancel={() => { setInternalView('list'); setEditingItem(null); }}
                   onSubmit={async (data) => {
                     if (editingItem) await onUpdateCartao(editingItem.id, data);
@@ -439,7 +503,11 @@ export function SettingsView({
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />
                   <button
-                    className="btn btn-primary rounded-xl px-4 fw-bold text-xs"
+                    className={cn(
+                      "btn rounded-xl px-4 fw-bold text-xs",
+                      !themeColor ? "btn-primary" : "text-white"
+                    )}
+                    style={{ backgroundColor: themeColor }}
                     onClick={() => { onInvite(inviteEmail); setInviteEmail(''); }}
                   >
                     CONVIDAR
@@ -462,8 +530,10 @@ export function SettingsView({
                   </div>
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
-                    member.tipo === 'titular' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                  )}>
+                    member.tipo === 'titular' ? "" : "bg-muted text-muted-foreground"
+                  )}
+                  style={member.tipo === 'titular' ? { backgroundColor: themeColor ? `${themeColor}20` : 'rgba(67, 97, 238, 0.1)', color: isDarkMode ? '#a5b4fc' : (themeColor || 'var(--primary)') } : {}}
+                  >
                     {member.tipo === 'titular' ? 'Admin' : 'Membro'}
                   </span>
                 </div>
@@ -477,7 +547,7 @@ export function SettingsView({
             {!isMobile && (
               <header className="mb-6 md:mb-10">
                 <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className="w-2 h-8 bg-primary rounded-full"></div>
+                  <div className="w-2 h-8 rounded-full" style={{ backgroundColor: themeColor || 'var(--primary)' }}></div>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight m-0">Avisos</h1>
                 </div>
                 <p className="text-muted-foreground small">Configure alertas e lembretes importantes.</p>
@@ -504,6 +574,10 @@ export function SettingsView({
                       role="switch" 
                       checked={avisosConfig.vencidas} 
                       onChange={(e) => onUpdateAvisosConfig?.('vencidas', e.target.checked)} 
+                      style={{ 
+                        backgroundColor: avisosConfig.vencidas ? themeColor : undefined, 
+                        borderColor: avisosConfig.vencidas ? themeColor : undefined 
+                      }}
                     />
                   </div>
                 </div>
@@ -525,13 +599,17 @@ export function SettingsView({
                       role="switch" 
                       checked={avisosConfig.hoje} 
                       onChange={(e) => onUpdateAvisosConfig?.('hoje', e.target.checked)} 
+                      style={{ 
+                        backgroundColor: avisosConfig.hoje ? themeColor : undefined, 
+                        borderColor: avisosConfig.hoje ? themeColor : undefined 
+                      }}
                     />
                   </div>
                 </div>
 
                 <div className="p-4 d-flex align-items-center justify-content-between hover:bg-muted/30 transition-colors">
                   <div className="d-flex align-items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 d-flex align-items-center justify-content-center text-primary">
+                    <div className="w-10 h-10 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: themeColor ? `${themeColor}20` : 'rgba(67, 97, 238, 0.1)', color: themeColor || 'var(--primary)' }}>
                       <span className="material-symbols-outlined">insights</span>
                     </div>
                     <div>
@@ -546,6 +624,10 @@ export function SettingsView({
                       role="switch" 
                       checked={avisosConfig.radar} 
                       onChange={(e) => onUpdateAvisosConfig?.('radar', e.target.checked)} 
+                      style={{ 
+                        backgroundColor: avisosConfig.radar ? themeColor : undefined, 
+                        borderColor: avisosConfig.radar ? themeColor : undefined 
+                      }}
                     />
                   </div>
                 </div>
@@ -557,7 +639,11 @@ export function SettingsView({
                 <h3 className="text-lg font-bold text-foreground m-0">Meus Lembretes</h3>
                 <button 
                   onClick={() => setShowAddReminder(!showAddReminder)}
-                  className="btn btn-primary btn-sm rounded-xl px-3 py-1.5 font-bold text-[10px] tracking-widest uppercase border-0 shadow-sm"
+                  className={cn(
+                    "btn btn-sm rounded-xl px-3 py-1.5 font-bold text-[10px] tracking-widest uppercase border-0 shadow-sm",
+                    !themeColor ? "btn-primary" : "text-white"
+                  )}
+                  style={{ backgroundColor: themeColor }}
                 >
                   {showAddReminder ? 'CANCELAR' : 'ADICIONAR'}
                 </button>
@@ -588,7 +674,11 @@ export function SettingsView({
                     </div>
                     <div className="col-5 d-flex align-items-end">
                       <button 
-                        className="btn btn-primary rounded-xl px-3 w-100 py-2 font-bold text-xs"
+                        className={cn(
+                          "btn rounded-xl px-3 w-100 py-2 font-bold text-xs",
+                          !themeColor ? "btn-primary" : "text-white"
+                        )}
+                        style={{ backgroundColor: themeColor }}
                         disabled={!newReminderText.trim()}
                         onClick={handleAddReminder}
                       >
@@ -685,13 +775,21 @@ export function SettingsView({
                 type="button"
                 key={tab.id}
                 className={cn(
-                  "d-flex align-items-center gap-2 border-0 transition-all duration-300 rounded-xl",
+                  "d-flex align-items-center gap-2 border-0 transition-all duration-300 rounded-2xl",
                   activeTab === tab.id
-                    ? (isMobile ? "bg-primary text-white px-3 py-2" : "bg-primary text-white px-4 py-3 shadow-lg shadow-primary/20")
+                    ? (isMobile ? "text-white px-3 py-2" : "text-white px-4 py-3 shadow-lg shadow-primary/20")
                     : (isMobile ? "bg-transparent text-muted-foreground px-3 py-2" : "bg-transparent text-muted-foreground px-4 py-3 hover:bg-muted hover:text-foreground"),
-                  !isMobile && "w-100 mb-1"
+                  !isMobile && "w-100 mb-1",
+                  activeTab === tab.id && !themeColor && "bg-primary"
                 )}
-                style={!isMobile ? { fontSize: '10px', textAlign: 'left' } : { fontSize: '11px', whiteSpace: 'nowrap' }}
+                style={{
+                  ...(isMobile 
+                    ? { fontSize: '11px', whiteSpace: 'nowrap' } 
+                    : { fontSize: '10px', textAlign: 'left' }
+                  ),
+                  backgroundColor: activeTab === tab.id && themeColor ? themeColor : undefined,
+                  borderRadius: '16px'
+                }}
                 onClick={() => setActiveTab(tab.id)}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: isMobile ? '16px' : '18px' }}>{tab.icon}</span>
@@ -729,6 +827,8 @@ export function SettingsModal({
   onClose,
   user,
   isDarkMode,
+  themeMode,
+  setThemeMode,
   toggleDarkMode,
   themeColor,
   setThemeColor,
@@ -754,7 +854,9 @@ export function SettingsModal({
   onClose: () => void,
   user: Profile | null,
   isDarkMode: boolean,
+  themeMode: 'light' | 'dark' | 'black',
   toggleDarkMode: () => void,
+  setThemeMode: (mode: 'light' | 'dark' | 'black') => void,
   themeColor: string,
   setThemeColor: (color: string) => void,
   familyMembers: Profile[],
@@ -784,7 +886,9 @@ export function SettingsModal({
           <SettingsView
             user={user}
             isDarkMode={isDarkMode}
+            themeMode={themeMode}
             toggleDarkMode={toggleDarkMode}
+            setThemeMode={setThemeMode}
             themeColor={themeColor}
             setThemeColor={setThemeColor}
             familyMembers={familyMembers}
@@ -806,12 +910,15 @@ export function SettingsModal({
             avisosConfig={avisosConfig}
             onUpdateAvisosConfig={onUpdateAvisosConfig}
           />
-          {/* Footer fixo para o Modal */}
-          <div className="absolute bottom-0 right-0 p-6 z-50">
-            <button type="button" className="px-10 py-3 rounded-pill btn btn-light border-0 fw-bold text-sm text-uppercase tracking-wide transition-colors" onClick={onClose}>
-              Fechar
-            </button>
-          </div>
+          {/* Botão de Fechar no topo direito */}
+          <button 
+            type="button" 
+            className="btn-icon position-absolute top-0 end-0 m-4 z-50 d-flex align-items-center justify-content-center transition-all hover:bg-muted/20 rounded-circle border-0 bg-transparent text-foreground"
+            style={{ width: '40px', height: '40px' }}
+            onClick={onClose}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>close</span>
+          </button>
         </div>
       </div>
     </div>

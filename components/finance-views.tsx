@@ -600,7 +600,7 @@ export function CardProjectionChart({
 
   return (
     <div className={cn(
-      "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-4",
+      "bg-card border border-border shadow-2xl rounded-2xl p-4",
       inline ? "w-100 shadow-sm border-border mb-3" : "w-[500px] h-[260px]"
     )}>
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -609,7 +609,7 @@ export function CardProjectionChart({
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 25, right: 20, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.3} />
           <XAxis 
             dataKey="mes" 
             fontSize={11} 
@@ -620,7 +620,7 @@ export function CardProjectionChart({
           <YAxis hide />
           <RechartsTooltip 
             formatter={(value: number) => [formatCurrency(value), 'Fatura']}
-            contentStyle={{ backgroundColor: 'white', borderColor: '#e2e8f0', borderRadius: '12px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+            contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '11px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
           />
           <Bar dataKey="valor" radius={[6, 6, 0, 0]} barSize={40}>
             <LabelList 
@@ -632,7 +632,7 @@ export function CardProjectionChart({
               fill="var(--text)"
             />
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#cbd5e1'} />
+              <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : 'var(--border)'} />
             ))}
           </Bar>
         </BarChart>
@@ -690,7 +690,7 @@ export function SummaryCards({
         <div className="d-md-none d-flex gap-2 mb-2">
           <div className="bg-primary/10 text-primary rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 flex-grow-1 border border-primary/20">
             <i className="fa-regular fa-calendar-check text-sm opacity-70"></i>
-            <span className="font-black text-[9px] tracking-widest text-uppercase">Este Mês: {months[currentMonth-1]} {currentYear}</span>
+            <span className="font-black text-[9px] tracking-widest text-uppercase text-foreground">Este Mês: {months[currentMonth-1]} {currentYear}</span>
           </div>
           <button 
             onClick={onOpenPeriodModal}

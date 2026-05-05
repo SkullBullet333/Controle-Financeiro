@@ -13,7 +13,7 @@ export function CardLogo({ name, size = 'md' }: { name: string, size?: 'sm' | 'm
   };
 
   return (
-    <div className={`${sizeClasses[size]} relative overflow-hidden bg-white border border-slate-100 flex-shrink-0 shadow-sm`}>
+    <div className={`${sizeClasses[size]} relative overflow-hidden bg-white no-dark border border-slate-100 flex-shrink-0 shadow-sm`}>
       <Image 
         src={url} 
         alt={name} 

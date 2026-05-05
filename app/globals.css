@@ -45,7 +45,7 @@
   -webkit-backdrop-filter: blur(30px);
 }
 
-body:not(.dark-mode) .glass-panel {
+body:not(.dark-mode):not(.black-mode) .glass-panel {
   background: rgba(255, 255, 255, 0.6) !important;
 }
 
@@ -113,33 +113,47 @@ body.dark-mode {
   --navy: #3b82f6;
 }
 
-body.dark-mode .card,
-body.dark-mode .modal-content,
-body.dark-mode .sidebar,
-body.dark-mode .kpi-card,
-body.dark-mode .projecao-container,
-body.dark-mode .chart-container,
-body.dark-mode .box-input,
-body.dark-mode .topbar-profile {
+body.black-mode {
+  --bg: #0f0f0f;
+  --card: #1f1f1f;
+  --border: #2a2a2a;
+  --text: #f8fafc;
+  --gray: #9CA3AF;
+  --light: #1f1f1f;
+  --sicoob-bg: #0f0f0f;
+  --sicoob-card: #1f1f1f;
+  --sicoob-text: #f8fafc;
+  --on-surface: #f8fafc;
+  --on-surface-variant: #9CA3AF;
+  --navy: #3b82f6;
+}
+
+body.dark-mode .card, body.black-mode .card,
+body.dark-mode .modal-content, body.black-mode .modal-content,
+body.dark-mode .sidebar, body.black-mode .sidebar,
+body.dark-mode .projecao-container, body.black-mode .projecao-container,
+body.dark-mode .chart-container, body.black-mode .chart-container,
+body.dark-mode .box-input, body.black-mode .box-input,
+body.dark-mode .topbar-profile, body.black-mode .topbar-profile {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .table,
-body.dark-mode .table tr,
-body.dark-mode .table td {
+body.dark-mode .table, body.black-mode .table,
+body.dark-mode .table tr, body.black-mode .table tr,
+body.dark-mode .table td, body.black-mode .table td {
   background-color: transparent !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .table-hover tbody tr:hover {
+body.dark-mode .table-hover tbody tr:hover, body.black-mode .table-hover tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.05) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode th {
+body.dark-mode th, body.black-mode th {
   background-color: var(--card) !important;
   color: var(--gray) !important;
   border-bottom: 2px solid var(--border) !important;
@@ -148,127 +162,188 @@ body.dark-mode th {
   z-index: 10;
 }
 
-body.dark-mode h1,
-body.dark-mode h2,
-body.dark-mode h3,
-body.dark-mode h4,
-body.dark-mode h5,
-body.dark-mode h6,
-body.dark-mode small,
-body.dark-mode strong,
-body.dark-mode .section-title,
-body.dark-mode .menu li {
+
+body.dark-mode h1, body.black-mode h1, body.dark-mode .h1, body.black-mode .h1,
+body.dark-mode h2, body.black-mode h2, body.dark-mode .h2, body.black-mode .h2,
+body.dark-mode h3, body.black-mode h3, body.dark-mode .h3, body.black-mode .h3,
+body.dark-mode h4, body.black-mode h4, body.dark-mode .h4, body.black-mode .h4,
+body.dark-mode h5, body.black-mode h5, body.dark-mode .h5, body.black-mode .h5,
+body.dark-mode h6, body.black-mode h6, body.dark-mode .h6, body.black-mode .h6,
+body.dark-mode small, body.black-mode small, body.dark-mode .small, body.black-mode .small,
+body.dark-mode strong, body.black-mode strong,
+body.dark-mode .section-title, body.black-mode .section-title,
+body.dark-mode .menu li, body.black-mode .menu li {
   color: var(--text) !important;
 }
 
-body.dark-mode .text-muted {
+body.dark-mode .text-muted, body.black-mode .text-muted {
   color: var(--gray) !important;
 }
 
 /* Controles de Formulario, Dropdowns e Utilitarios de Fundo para Dark Mode */
-body.dark-mode .form-control::placeholder,
-body.dark-mode input::placeholder,
-body.dark-mode textarea::placeholder {
+body.dark-mode .form-control::placeholder, body.black-mode .form-control::placeholder,
+body.dark-mode input::placeholder, body.black-mode input::placeholder,
+body.dark-mode textarea::placeholder, body.black-mode textarea::placeholder {
   color: var(--gray) !important;
   opacity: 0.7 !important;
 }
 
-body.dark-mode .form-control,
-body.dark-mode .form-select,
-body.dark-mode .input-group-text,
-body.dark-mode .dropdown-menu,
-body.dark-mode .dropdown-item {
+body.dark-mode .form-control, body.black-mode .form-control,
+body.dark-mode .form-select, body.black-mode .form-select,
+body.dark-mode .input-group-text, body.black-mode .input-group-text,
+body.dark-mode .dropdown-menu, body.black-mode .dropdown-menu,
+body.dark-mode .dropdown-item, body.black-mode .dropdown-item {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .dropdown-item:hover,
-body.dark-mode .dropdown-item:focus {
+body.dark-mode .dropdown-item:hover, body.black-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus, body.black-mode .dropdown-item:focus {
   background-color: var(--border) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode .form-control:focus,
-body.dark-mode .form-select:focus {
+body.dark-mode .form-control:focus, body.black-mode .form-control:focus,
+body.dark-mode .form-select:focus, body.black-mode .form-select:focus {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--primary) !important;
 }
 
-body.dark-mode select option {
+body.dark-mode select option, body.black-mode select option {
   background-color: var(--card);
   color: var(--text);
 }
 
 /* Forçar visibilidade de inputs de data e selects que usam bg-transparent */
-body.dark-mode input[type="date"].text-on-surface,
-body.dark-mode select.text-on-surface {
+body.dark-mode input[type="date"].text-on-surface, body.black-mode input[type="date"].text-on-surface,
+body.dark-mode select.text-on-surface, body.black-mode select.text-on-surface {
   color: var(--text) !important;
 }
 
-body.dark-mode .bg-white,
-body.dark-mode .bg-light,
-body.dark-mode .bg-surface-container-lowest,
-body.dark-mode .bg-\[\#F8FAFC\],
-body.dark-mode .bg-\[\#F1F5F9\] {
+body.dark-mode .bg-white:not(.no-dark), body.black-mode .bg-white:not(.no-dark),
+body.dark-mode .bg-light:not(.no-dark), body.black-mode .bg-light:not(.no-dark),
+body.dark-mode .bg-primary-subtle:not(.no-dark), body.black-mode .bg-primary-subtle:not(.no-dark),
+body.dark-mode .bg-secondary-subtle:not(.no-dark), body.black-mode .bg-secondary-subtle:not(.no-dark),
+body.dark-mode .bg-surface-container-lowest:not(.no-dark), body.black-mode .bg-surface-container-lowest:not(.no-dark),
+body.dark-mode .bg-surface-container-low:not(.no-dark), body.black-mode .bg-surface-container-low:not(.no-dark),
+body.dark-mode .bg-\[\#F8FAFC\]:not(.no-dark), body.black-mode .bg-\[\#F8FAFC\]:not(.no-dark),
+body.dark-mode .bg-\[\#F1F5F9\]:not(.no-dark), body.black-mode .bg-\[\#F1F5F9\]:not(.no-dark) {
   background-color: var(--card) !important;
 }
 
-body.dark-mode .bg-slate-50,
-body.dark-mode .bg-slate-100 {
+body.dark-mode .bg-slate-50:not(.no-dark), body.black-mode .bg-slate-50:not(.no-dark),
+body.dark-mode .bg-slate-100:not(.no-dark), body.black-mode .bg-slate-100:not(.no-dark) {
   background-color: var(--bg) !important;
 }
 
 /* Utilitários globais de texto para garantir compatibilidade 100% no Dark Mode */
-body.dark-mode .text-dark,
-body.dark-mode .text-slate-900,
-body.dark-mode .text-slate-800,
-body.dark-mode .text-slate-700,
-body.dark-mode .text-navy,
-body.dark-mode .text-on-surface,
-body.dark-mode .text-foreground,
-body.dark-mode .text-\[\#1e293b\] {
+body.dark-mode .text-dark:not(.no-dark), body.black-mode .text-dark:not(.no-dark),
+body.dark-mode .text-slate-900:not(.no-dark), body.black-mode .text-slate-900:not(.no-dark),
+body.dark-mode .text-slate-800:not(.no-dark), body.black-mode .text-slate-800:not(.no-dark),
+body.dark-mode .text-slate-700:not(.no-dark), body.black-mode .text-slate-700:not(.no-dark),
+body.dark-mode .text-on-surface:not(.no-dark), body.black-mode .text-on-surface:not(.no-dark),
+body.dark-mode .text-foreground:not(.no-dark), body.black-mode .text-foreground:not(.no-dark),
+body.dark-mode .text-\[\#1e293b\]:not(.no-dark), body.black-mode .text-\[\#1e293b\]:not(.no-dark),
+body.dark-mode .sicoob-list-item *, body.black-mode .sicoob-list-item *,
+body.dark-mode .sicoob-list-content *, body.black-mode .sicoob-list-content *,
+body.dark-mode .date-display span, body.black-mode .date-display span,
+body.dark-mode .user-profile-btn div, body.black-mode .user-profile-btn div,
+body.dark-mode .text-foreground, body.black-mode .text-foreground,
+body.dark-mode .SettingsView h1, body.black-mode .SettingsView h1,
+body.dark-mode .SettingsView h2, body.black-mode .SettingsView h2,
+body.dark-mode .SettingsView h3, body.black-mode .SettingsView h3,
+body.dark-mode .SettingsView h4, body.black-mode .SettingsView h4,
+body.dark-mode .SettingsView .fw-bold, body.black-mode .SettingsView .fw-bold {
   color: var(--text) !important;
 }
 
-body.dark-mode .text-slate-600,
-body.dark-mode .text-slate-500,
-body.dark-mode .text-slate-400,
-body.dark-mode .text-on-surface-variant,
-body.dark-mode .text-[#64748b] {
+/* Mantendo os acentos azuis em modo dark conforme solicitado */
+body.dark-mode .text-primary:not(.text-white):not(.no-dark), 
+body.black-mode .text-primary:not(.text-white):not(.no-dark),
+body.dark-mode .text-navy:not(.no-dark), 
+body.black-mode .text-navy:not(.no-dark) {
+  color: var(--navy) !important;
+}
+
+body.dark-mode .text-muted-foreground, body.black-mode .text-muted-foreground,
+body.dark-mode .text-muted, body.black-mode .text-muted,
+body.dark-mode .SettingsView p, body.black-mode .SettingsView p,
+body.dark-mode .SettingsView .text-muted-foreground, body.black-mode .SettingsView .text-muted-foreground {
   color: var(--gray) !important;
 }
 
-body.dark-mode .text-navy\/20,
-body.dark-mode .text-navy\/40,
-body.dark-mode .text-slate-900\/20 {
+body.dark-mode .text-slate-600, body.black-mode .text-slate-600,
+body.dark-mode .text-slate-500, body.black-mode .text-slate-500,
+body.dark-mode .text-slate-400, body.black-mode .text-slate-400,
+body.dark-mode .text-on-surface-variant, body.black-mode .text-on-surface-variant,
+body.dark-mode .text-\[\#64748b\], body.black-mode .text-\[\#64748b\] {
+  color: var(--gray) !important;
+}
+
+body.dark-mode .text-navy\/20, body.black-mode .text-navy\/20,
+body.dark-mode .text-navy\/40, body.black-mode .text-navy\/40,
+body.dark-mode .text-slate-900\/20, body.black-mode .text-slate-900\/20 {
   color: rgba(248, 250, 252, 0.4) !important;
 }
 
+/* Forçar cores claras para elementos marcados como no-dark (previews) */
+body.dark-mode .no-dark, body.black-mode .no-dark {
+  color: #1e293b !important;
+}
+
+body.dark-mode .no-dark .text-primary, body.black-mode .no-dark .text-primary {
+  color: var(--primary) !important;
+}
+
+body.dark-mode .badge.bg-primary-subtle, body.black-mode .badge.bg-primary-subtle {
+  background-color: rgba(67, 97, 238, 0.2) !important;
+  color: #a5b4fc !important;
+}
+
+body.dark-mode .badge.bg-light, body.black-mode .badge.bg-light {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--gray) !important;
+}
+
 /* Ícone de calendário nos inputs do tipo date */
-body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator, body.black-mode input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.7);
 }
 
 /* Utilitários globais de borda para Dark Mode */
-body.dark-mode .border-slate-100,
-body.dark-mode .border-slate-200,
-body.dark-mode .border-gray-200,
-body.dark-mode .border-outline-variant\/30 {
+body.dark-mode .border-slate-100, body.black-mode .border-slate-100,
+body.dark-mode .border-slate-200, body.black-mode .border-slate-200,
+body.dark-mode .border-gray-200, body.black-mode .border-gray-200,
+body.dark-mode .border-outline-variant\/30, body.black-mode .border-outline-variant\/30 {
   border-color: var(--border) !important;
 }
 
 /* Recharts Tooltip override para Dark Mode */
-body.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
+body.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip, body.black-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
   background-color: var(--card) !important;
   border-color: var(--border) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode .recharts-tooltip-item,
-body.dark-mode .recharts-tooltip-label {
+body.dark-mode .sidebar, body.black-mode .sidebar {
+  background-color: var(--card) !important;
+  border-right-color: var(--border) !important;
   color: var(--text) !important;
+}
+
+body.dark-mode .recharts-tooltip-item, body.black-mode .recharts-tooltip-item,
+body.dark-mode .recharts-tooltip-label, body.black-mode .recharts-tooltip-label {
+  color: var(--text) !important;
+}
+
+body.dark-mode .recharts-legend-item-text, body.black-mode .recharts-legend-item-text {
+  color: var(--text) !important;
+}
+
+body.dark-mode .recharts-cartesian-axis-tick-value, body.black-mode .recharts-cartesian-axis-tick-value {
+  fill: var(--gray) !important;
 }
 
 html {
@@ -413,6 +488,12 @@ body {
   background: rgba(67, 97, 238, 0.1);
 }
 
+body.dark-mode .menu li:hover, body.black-mode .menu li:hover,
+body.dark-mode .menu li.active, body.black-mode .menu li.active {
+  color: #738cff !important;
+  background: rgba(115, 140, 255, 0.15) !important;
+}
+
 .sidebar-footer {
   width: 100%;
   display: flex;
@@ -437,8 +518,8 @@ body {
   border-color: var(--border);
   background: var(--light);
   justify-content: flex-start;
-  gap: 1rem !important;
-  padding: 10px 15px !important;
+  gap: 0.75rem !important;
+  padding: 10px 12px !important;
 }
 
 .user-profile-btn .sidebar-user-info {
@@ -476,6 +557,11 @@ body {
 
 body.dark-mode .user-profile-popup {
   background: rgba(30, 41, 59, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.black-mode .user-profile-popup {
+  background: rgba(15, 15, 15, 0.9) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -531,48 +617,70 @@ body.dark-mode .user-profile-popup {
   margin-bottom: 15px; /* Reduced from 30px */
 }
 
+
+
 .kpi-card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
-  min-height: 120px;
+  position: relative;
+  padding: 1.5rem 1.5rem 1.5rem 2.5rem;
+  border-radius: 1.25rem !important;
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  font-size: 0.9rem;
-  font-weight: 600;
-  opacity: 0.8;
+  min-height: 120px;
 }
 
-.kpi-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.kpi-card::before {
+.kpi-card::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: 0.5s;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 8px;
+  border-radius: 0 100px 100px 0;
+  transition: all 0.3s ease;
 }
 
-.kpi-card:hover::before {
-  left: 100%;
+.kpi-card-blue::after { background-color: var(--primary); }
+.kpi-card-red::after { background-color: var(--danger); }
+.kpi-card-green::after { background-color: var(--success); }
+.kpi-card-purple::after { background-color: var(--faturas); }
+
+.kpi-card-blue, .kpi-card-red, .kpi-card-green, .kpi-card-purple { border-left: none !important; }
+
+/* Dark & Black Mode Specific Overrides */
+body.dark-mode .kpi-card, body.black-mode .kpi-card {
+  background-color: var(--card) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.kpi-card-blue { border-left: 4px solid var(--primary); }
-.kpi-card-red { border-left: 4px solid var(--danger); }
-.kpi-card-green { border-left: 4px solid var(--success); }
-.kpi-card-purple { border-left: 4px solid var(--faturas); }
+body.dark-mode .kpi-card .text-muted, body.black-mode .kpi-card .text-muted,
+body.dark-mode .kpi-card small, body.black-mode .kpi-card small { 
+  color: #8899a6 !important; 
+  opacity: 1 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+body.dark-mode .kpi-card .centered-value, body.black-mode .kpi-card .centered-value,
+body.dark-mode .kpi-card h3, body.black-mode .kpi-card h3 { 
+  color: #ffffff !important; 
+}
+
+/* Ensure no text-color utility overrides the white color in dark mode cards */
+body.dark-mode .kpi-card .text-danger, body.black-mode .kpi-card .text-danger,
+body.dark-mode .kpi-card .text-success, body.black-mode .kpi-card .text-success,
+body.dark-mode .kpi-card .text-primary, body.black-mode .kpi-card .text-primary,
+body.dark-mode .kpi-card .text-faturas, body.black-mode .kpi-card .text-faturas {
+  color: #ffffff !important;
+}
+
+.text-faturas { color: var(--faturas) !important; }
+body.dark-mode .text-faturas, body.black-mode .text-faturas { color: #c084fc !important; }
+
 
 .card-click:hover {
   transform: translateY(-3px);
@@ -672,7 +780,7 @@ td {
   font-size: 0.75rem;
 }
 
-body.dark-mode .status-pago {
+body.dark-mode .status-pago, body.black-mode .status-pago {
   background: rgba(46, 196, 182, 0.2) !important;
   color: #2ec4b6 !important;
 }
@@ -686,7 +794,7 @@ body.dark-mode .status-pago {
   font-size: 0.75rem;
 }
 
-body.dark-mode .status-aberto {
+body.dark-mode .status-aberto, body.black-mode .status-aberto {
   background: rgba(255, 159, 28, 0.2) !important;
   color: #ff9f1c !important;
 }
@@ -701,7 +809,7 @@ body.dark-mode .status-aberto {
   animation: pulse-danger 2s infinite;
 }
 
-body.dark-mode .status-vencida {
+body.dark-mode .status-vencida, body.black-mode .status-vencida {
   background: rgba(231, 29, 54, 0.2) !important;
   color: #e71d36 !important;
 }
@@ -721,7 +829,7 @@ body.dark-mode .status-vencida {
   font-weight: 700;
 }
 
-body.dark-mode .status-hoje {
+body.dark-mode .status-hoje, body.black-mode .status-hoje {
   background: rgba(67, 97, 238, 0.2) !important;
   color: #4361ee !important;
 }
@@ -736,7 +844,7 @@ body.dark-mode .status-hoje {
   border: 1px dashed #cbd5e1;
 }
 
-body.dark-mode .status-simulado {
+body.dark-mode .status-simulado, body.black-mode .status-simulado {
   background: rgba(148, 163, 184, 0.1) !important;
   color: #94a3b8 !important;
   border-color: rgba(148, 163, 184, 0.2) !important;
@@ -754,7 +862,7 @@ body.dark-mode .status-simulado {
   border-left: 4px solid var(--primary) !important;
 }
 
-body.dark-mode .table-primary-subtle {
+body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   background-color: rgba(67, 97, 238, 0.15) !important;
 }
 
@@ -1296,50 +1404,60 @@ body.dark-mode .table-primary-subtle {
   display: flex;
   align-items: center;
   background: var(--card);
-  padding: 6px;
-  border-radius: 100px;
+  padding: 4px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+body.dark-mode .controls, body.black-mode .controls {
+  background: var(--card);
+  border-color: var(--border);
+}
+
 .controls button {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--gray);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  transition: all 0.2s;
   cursor: pointer;
+}
+
+body.dark-mode .controls button, body.black-mode .controls button {
+  color: #ffffff;
 }
 
 .controls button:hover {
-  background: rgba(67, 97, 238, 0.1);
-  color: var(--primary);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .controls button:hover, body.black-mode .controls button:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .date-display {
-  padding: 8px 20px;
+  padding: 0 15px;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  border-radius: 100px;
-  transition: all 0.2s ease;
-  user-select: none;
+  gap: 8px;
 }
 
-.date-display:hover {
-  background: rgba(67, 97, 238, 0.05);
+body.dark-mode .date-display, body.black-mode .date-display {
+  color: #ffffff;
 }
 
-.date-display span {
-  font-weight: 800;
-  font-size: 1.1rem;
-}
 .btn-icon {
   width: 32px;
   height: 32px;
@@ -1359,7 +1477,7 @@ body.dark-mode .table-primary-subtle {
   background-color: var(--light) !important;
 }
 
-body.dark-mode .bg-muted {
+body.dark-mode .bg-muted, body.black-mode .bg-muted {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
@@ -1393,7 +1511,7 @@ html {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-body.dark-mode {
+body.dark-mode, body.black-mode {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
@@ -1417,10 +1535,10 @@ body.dark-mode {
   background: rgba(0, 0, 0, 0.4);
 }
 
-body.dark-mode ::-webkit-scrollbar-thumb {
+body.dark-mode ::-webkit-scrollbar-thumb, body.black-mode ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
 }
 
-body.dark-mode ::-webkit-scrollbar-thumb:hover {
+body.dark-mode ::-webkit-scrollbar-thumb:hover, body.black-mode ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }

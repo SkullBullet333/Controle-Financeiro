@@ -15,6 +15,7 @@ export interface Profile {
   family_id: string;
   theme_color?: string;
   dark_mode?: boolean;
+  theme_mode?: 'light' | 'dark' | 'black';
 }
 
 export interface Categoria {

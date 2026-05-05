@@ -28,7 +28,7 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
   const [showBalance, setShowBalance] = React.useState(true);
 
   const cards = [
-    { label: 'Receitas do Mês', value: stats.totalReceitas, icon: 'fa-wallet', color: 'primary', variant: 'blue' },
+    { label: 'Receitas do Mês', value: stats.totalReceitas, icon: 'fa-wallet', color: 'success', variant: 'green' },
     { label: 'Despesas do Mês', value: stats.totalDespesas, icon: 'fa-file-invoice-dollar', color: 'danger', variant: 'red' },
     { label: 'Saldo (Margem)', value: stats.margem, icon: 'fa-scale-balanced', color: stats.margem >= 0 ? 'success' : 'danger', variant: stats.margem >= 0 ? 'green' : 'red' },
     { label: 'Total em Aberto', value: stats.totalAberto, icon: 'fa-clock-rotate-left', color: 'faturas', variant: 'purple' },
@@ -43,7 +43,7 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
           <div className="d-flex gap-2 mb-2">
             <div className="bg-primary/10 text-primary rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 flex-grow-1 border border-primary/20">
               <i className="fa-regular fa-calendar-check text-sm opacity-70"></i>
-              <span className="font-black text-[9px] tracking-widest text-uppercase">Este Mês: {months[month-1]} {year}</span>
+              <span className="font-black text-[9px] tracking-widest text-uppercase text-foreground">Este Mês: {months[month-1]} {year}</span>
             </div>
             <button 
               onClick={onOpenPeriodModal}
@@ -111,7 +111,12 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
               <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
                 {card.label}
               </small>
-              <div className={cn("centered-value h3 fw-bold mb-0", card.variant === 'red' ? "text-danger" : card.variant === 'green' ? "text-success" : card.variant === 'blue' ? "text-primary" : "")}>
+              <div className={cn("centered-value h3 fw-bold mb-0", 
+                card.variant === 'red' ? "text-danger" : 
+                card.variant === 'green' ? "text-success" : 
+                card.variant === 'blue' ? "text-primary" : 
+                card.variant === 'purple' ? "text-faturas" : ""
+              )}>
                 {formatCurrency(card.value)}
               </div>
             </div>
