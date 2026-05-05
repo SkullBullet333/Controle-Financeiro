@@ -17,9 +17,14 @@ interface KPICardsProps {
     totalVencido?: number;
   };
   onViewChange?: (view: string) => void;
+  month?: number;
+  year?: number;
+  onOpenPeriodModal?: () => void;
 }
 
-export function KPICards({ stats, onViewChange }: KPICardsProps) {
+const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }: KPICardsProps) {
   const [showBalance, setShowBalance] = React.useState(true);
 
   const cards = [
@@ -33,6 +38,23 @@ export function KPICards({ stats, onViewChange }: KPICardsProps) {
     <>
       {/* Sicoob Premium Mobile Balance & Quick Actions - Only visible on small screens */}
       <div className="d-md-none">
+        {/* New Mobile Period Selector Pill */}
+        {month && year && onOpenPeriodModal && (
+          <div className="d-flex gap-2 mb-2">
+            <div className="bg-primary/10 text-primary rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 flex-grow-1 border border-primary/20">
+              <i className="fa-regular fa-calendar-check text-sm opacity-70"></i>
+              <span className="font-black text-[9px] tracking-widest text-uppercase">Este Mês: {months[month-1]} {year}</span>
+            </div>
+            <button 
+              onClick={onOpenPeriodModal}
+              className="bg-card border border-border text-muted-foreground rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+            >
+              <span className="font-black text-[9px] tracking-widest text-uppercase">Escolha Mês</span>
+              <i className="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
+            </button>
+          </div>
+        )}
+
         <div className="bg-card border border-border rounded-4 p-4 mb-3 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative" style={{ minHeight: '180px' }}>
           {/* Subtle background decoration */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>

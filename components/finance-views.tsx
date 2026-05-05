@@ -152,10 +152,24 @@ export function FinanceTable({
                       )}
                     </div>
                   </div>
-                  <div className="sicoob-list-value">
+                  <div className="sicoob-list-value d-flex align-items-center gap-2">
                     <div className={cn("fw-black text-sm tracking-tight", isReceita ? "text-success" : "text-foreground")}>
                       {isReceita ? '+' : ''}{formatCurrency(valor)}
                     </div>
+                    {(type === 'geral' || (type === 'cartoes' && isSummary)) && !isReceita && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleStatus?.(itemId, status);
+                        }}
+                        className={cn(
+                          "btn btn-sm p-1 border-0 shadow-none",
+                          status === 'Pago' ? "text-success" : "text-muted-foreground opacity-30"
+                        )}
+                      >
+                        <i className={cn("fa-solid", status === 'Pago' ? "fa-circle-check" : "fa-circle", "fs-5")}></i>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -545,16 +559,18 @@ export function FilterBar({
   );
 }
 
-function CardProjectionTooltip({ 
+export function CardProjectionChart({ 
   cardId, 
   allTransacoes, 
   currentMonth, 
-  currentYear 
+  currentYear,
+  inline = false
 }: { 
-  cardId: number, 
+  cardId: number | null, 
   allTransacoes: CartaoTransacao[],
   currentMonth: number,
-  currentYear: number
+  currentYear: number,
+  inline?: boolean
 }) {
   const data = React.useMemo(() => {
     const projection = [];
@@ -564,7 +580,7 @@ function CardProjectionTooltip({
     for (let i = 0; i < 8; i++) {
       const comp = `${String(tMonth).padStart(2, '0')}/${tYear}`;
       const total = allTransacoes
-        .filter(c => Number(c.cartao_id) === Number(cardId) && c.competencia === comp)
+        .filter(c => (cardId === null || Number(c.cartao_id) === Number(cardId)) && c.competencia === comp)
         .reduce((acc, c) => acc + Number(c.valor), 0);
       
       const date = new Date(tYear, tMonth - 1, 1);
@@ -583,7 +599,10 @@ function CardProjectionTooltip({
   }, [cardId, allTransacoes, currentMonth, currentYear]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-4" style={{ width: '500px', height: '260px' }}>
+    <div className={cn(
+      "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-4",
+      inline ? "w-100 shadow-sm border-border mb-3" : "w-[500px] h-[260px]"
+    )}>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h6 className="text-xs font-bold text-slate-500 uppercase tracking-wider m-0">Projeção de Fatura (8 Meses)</h6>
         <span className="text-[10px] bg-primary bg-opacity-10 text-primary px-2 py-0.5 rounded-full font-bold">Estimado</span>
@@ -596,7 +615,7 @@ function CardProjectionTooltip({
             fontSize={11} 
             tickLine={false} 
             axisLine={false}
-            tick={{ fill: '#64748b', fontWeight: 600 }}
+            tick={{ fill: 'var(--gray)', fontWeight: 600 }}
           />
           <YAxis hide />
           <RechartsTooltip 
@@ -610,7 +629,7 @@ function CardProjectionTooltip({
               fontSize={9} 
               fontWeight={700}
               formatter={(val: number) => val > 0 ? formatCurrency(val).replace('R$', '').trim() : ''} 
-              fill="#334155"
+              fill="var(--text)"
             />
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#cbd5e1'} />
@@ -634,7 +653,8 @@ export function SummaryCards({
   onFilterChange,
   allCartaoTransacoes = [],
   currentMonth = new Date().getMonth() + 1,
-  currentYear = new Date().getFullYear()
+  currentYear = new Date().getFullYear(),
+  onOpenPeriodModal
 }: {
   type: 'geral' | 'cartoes' | 'receitas' | 'radar',
   cartoes: any[],
@@ -647,11 +667,12 @@ export function SummaryCards({
   onFilterChange: (id: number | null) => void,
   allCartaoTransacoes?: CartaoTransacao[],
   currentMonth?: number,
-  currentYear?: number
+  currentYear?: number,
+  onOpenPeriodModal?: () => void
 }) {
   const [hoveredCardId, setHoveredCardId] = React.useState<number | null>(null);
   const [mousePos, setMousePos] = React.useState({ x: 0, y: 0 });
-
+  const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
   const isSelected = (id: number | null) => activeFilterId === id;
 
@@ -663,7 +684,25 @@ export function SummaryCards({
   }, [type, totalsByCard, totalsByTitular]);
 
   return (
-    <div className="row g-2 mb-3">
+    <div className="flex flex-col gap-2 mb-3">
+      {/* Mobile Period Selector Pill - Fallback for non-dashboard views */}
+      {currentMonth && currentYear && onOpenPeriodModal && (
+        <div className="d-md-none d-flex gap-2 mb-2">
+          <div className="bg-primary/10 text-primary rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 flex-grow-1 border border-primary/20">
+            <i className="fa-regular fa-calendar-check text-sm opacity-70"></i>
+            <span className="font-black text-[9px] tracking-widest text-uppercase">Este Mês: {months[currentMonth-1]} {currentYear}</span>
+          </div>
+          <button 
+            onClick={onOpenPeriodModal}
+            className="bg-card border border-border text-muted-foreground rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+          >
+            <span className="font-black text-[9px] tracking-widest text-uppercase">Escolha Mês</span>
+            <i className="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
+          </button>
+        </div>
+      )}
+
+      <div className="row g-2">
       {/* Card de Total Geral - Apenas para Receitas conforme solicitado */}
       {type === 'receitas' && (
         <div className="col-6 col-sm-6 col-md">
@@ -766,10 +805,10 @@ export function SummaryCards({
             </div>
           </div>
 
-          {/* Tooltip Projeção */}
+          {/* Tooltip Projeção - Oculto no Mobile */}
           {hoveredCardId === c.id && (
             <div 
-              className="fixed z-50 pointer-events-none transition-opacity"
+              className="d-none d-md-block fixed z-50 pointer-events-none transition-opacity"
               style={{ 
                 left: mousePos.x + 520 > (typeof window !== 'undefined' ? window.innerWidth : 1000) 
                   ? `${mousePos.x - 515}px` 
@@ -778,7 +817,7 @@ export function SummaryCards({
                 display: 'block'
               }}
             >
-              <CardProjectionTooltip 
+              <CardProjectionChart 
                 cardId={c.id} 
                 allTransacoes={allCartaoTransacoes} 
                 currentMonth={currentMonth}
@@ -833,6 +872,20 @@ export function SummaryCards({
           </div>
         );
       })}
+      </div>
+
+      {/* Gráfico de Projeção Direto no Mobile para Cartões */}
+      {type === 'cartoes' && (
+        <div className="d-md-none mt-3">
+          <CardProjectionChart 
+            cardId={activeFilterId} 
+            allTransacoes={allCartaoTransacoes} 
+            currentMonth={currentMonth}
+            currentYear={currentYear}
+            inline={true}
+          />
+        </div>
+      )}
     </div>
   );
 }

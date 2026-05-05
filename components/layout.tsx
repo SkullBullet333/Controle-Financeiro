@@ -175,14 +175,15 @@ interface TopbarProps {
   onOpenPeriodModal: () => void;
   onBack?: () => void;
   showBackButton?: boolean;
-  user?: Profile | null;
+  user: Profile | null;
   themeColor?: string;
   alertas?: { vencidas: Despesa[], vencendoHoje: Despesa[] };
+  onOpenModal?: (type: 'profile' | 'settings' | 'titular' | 'cartao' | 'emprestimo') => void;
 }
 
 export function Topbar({ 
   title, month, year, onChangeMonth, onLogout, onOpenPeriodModal, onBack, 
-  showBackButton, user, themeColor, alertas 
+  showBackButton, user, themeColor, alertas, onOpenModal 
 }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const totalAlertas = (alertas?.vencidas?.length || 0) + (alertas?.vencendoHoje?.length || 0);
@@ -207,23 +208,12 @@ export function Topbar({
         className="d-md-none sicoob-mobile-header" 
         style={themeColor ? { backgroundColor: themeColor } : {}}
       >
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <div className="d-flex align-items-center gap-3">
-            <div className="position-relative" style={{ width: '45px', height: '45px' }}>
-              <Image
-                src={user?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nome || 'Usuário')}&background=4361ee&color=fff&bold=true`}
-                fill
-                unoptimized
-                className="rounded-circle object-fit-cover ring-2 ring-white/20"
-                alt={user?.nome || 'User'}
-              />
-            </div>
-            <div>
-              <div className="text-white/80" style={{ fontSize: '0.75rem' }}>Olá,</div>
-              <div className="user-greeting text-white leading-none">{user?.nome?.split(' ')[0] || 'Usuário'}</div>
-            </div>
+        <div className="d-flex justify-content-between align-items-center">
+          <div className="d-flex align-items-center">
+            <h2 className="fw-bold m-0 fs-5 text-white" id="page-title">{getTitle()}</h2>
           </div>
-          <div className="d-flex gap-2">
+          
+          <div className="d-flex align-items-center gap-1">
             <div className="position-relative">
               <button 
                 className="btn btn-link text-white p-2"
@@ -236,32 +226,22 @@ export function Topbar({
                   </span>
                 )}
               </button>
-
+            </div>
+            
+            <div 
+              className="position-relative cursor-pointer active:scale-95 transition-transform" 
+              style={{ width: '36px', height: '36px' }}
+              onClick={() => onOpenModal?.('profile')}
+            >
+              <Image
+                src={user?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nome || 'Usuário')}&background=4361ee&color=fff&bold=true`}
+                fill
+                unoptimized
+                className="rounded-circle object-fit-cover ring-2 ring-white/20 shadow-sm"
+                alt={user?.nome || 'User'}
+              />
             </div>
           </div>
-        </div>
-        
-        {/* Desktop Title & Date Display (Moved into mobile header to save space) */}
-        <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-white/10">
-            <h2 className="fw-bold m-0 fs-5 text-white" id="page-title">{getTitle()}</h2>
-           
-           {title !== 'config' && (
-             <div className="controls rounded-pill px-2 py-1 d-flex align-items-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
-               <button onClick={() => onChangeMonth(-1)} className="btn btn-link text-white p-1" style={{ width: '24px', height: '24px' }}>
-                 <i className="fa-solid fa-chevron-left" style={{ fontSize: '0.7rem' }}></i>
-               </button>
-               <div 
-                 className="date-display text-white fw-bold px-2 cursor-pointer" 
-                 onClick={onOpenPeriodModal}
-                 style={{ fontSize: '0.8rem' }}
-               >
-                 <span>{months[month - 1]}</span> <span className="opacity-75">{year}</span>
-               </div>
-               <button onClick={() => onChangeMonth(1)} className="btn btn-link text-white p-1" style={{ width: '24px', height: '24px' }}>
-                 <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.7rem' }}></i>
-               </button>
-             </div>
-           )}
         </div>
       </div>
 

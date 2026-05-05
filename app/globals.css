@@ -105,6 +105,12 @@ body.dark-mode {
   --text: #f8fafc;
   --gray: #9CA3AF;
   --light: #1e293b;
+  --sicoob-bg: #0f172a;
+  --sicoob-card: #1e293b;
+  --sicoob-text: #f8fafc;
+  --on-surface: #f8fafc;
+  --on-surface-variant: #9CA3AF;
+  --navy: #3b82f6;
 }
 
 body.dark-mode .card,
@@ -159,8 +165,118 @@ body.dark-mode .text-muted {
   color: var(--gray) !important;
 }
 
+/* Controles de Formulario, Dropdowns e Utilitarios de Fundo para Dark Mode */
+body.dark-mode .form-control::placeholder,
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: var(--gray) !important;
+  opacity: 0.7 !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode .input-group-text,
+body.dark-mode .dropdown-menu,
+body.dark-mode .dropdown-item {
+  background-color: var(--card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+  background-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background-color: var(--card) !important;
+  color: var(--text) !important;
+  border-color: var(--primary) !important;
+}
+
+body.dark-mode select option {
+  background-color: var(--card);
+  color: var(--text);
+}
+
+/* Forçar visibilidade de inputs de data e selects que usam bg-transparent */
+body.dark-mode input[type="date"].text-on-surface,
+body.dark-mode select.text-on-surface {
+  color: var(--text) !important;
+}
+
+body.dark-mode .bg-white,
+body.dark-mode .bg-light,
+body.dark-mode .bg-surface-container-lowest,
+body.dark-mode .bg-\[\#F8FAFC\],
+body.dark-mode .bg-\[\#F1F5F9\] {
+  background-color: var(--card) !important;
+}
+
+body.dark-mode .bg-slate-50,
+body.dark-mode .bg-slate-100 {
+  background-color: var(--bg) !important;
+}
+
+/* Utilitários globais de texto para garantir compatibilidade 100% no Dark Mode */
+body.dark-mode .text-dark,
+body.dark-mode .text-slate-900,
+body.dark-mode .text-slate-800,
+body.dark-mode .text-slate-700,
+body.dark-mode .text-navy,
+body.dark-mode .text-on-surface,
+body.dark-mode .text-foreground,
+body.dark-mode .text-\[\#1e293b\] {
+  color: var(--text) !important;
+}
+
+body.dark-mode .text-slate-600,
+body.dark-mode .text-slate-500,
+body.dark-mode .text-slate-400,
+body.dark-mode .text-on-surface-variant,
+body.dark-mode .text-[#64748b] {
+  color: var(--gray) !important;
+}
+
+body.dark-mode .text-navy\/20,
+body.dark-mode .text-navy\/40,
+body.dark-mode .text-slate-900\/20 {
+  color: rgba(248, 250, 252, 0.4) !important;
+}
+
+/* Ícone de calendário nos inputs do tipo date */
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.7);
+}
+
+/* Utilitários globais de borda para Dark Mode */
+body.dark-mode .border-slate-100,
+body.dark-mode .border-slate-200,
+body.dark-mode .border-gray-200,
+body.dark-mode .border-outline-variant\/30 {
+  border-color: var(--border) !important;
+}
+
+/* Recharts Tooltip override para Dark Mode */
+body.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+body.dark-mode .recharts-tooltip-item,
+body.dark-mode .recharts-tooltip-label {
+  color: var(--text) !important;
+}
+
+html {
+  background-color: var(--bg) !important;
+}
+
 body {
-  background: var(--bg);
+  background: var(--bg) !important;
   color: var(--text);
   font-family: 'Inter', sans-serif;
   margin: 0;
@@ -412,7 +528,7 @@ body.dark-mode .user-profile-popup {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 15px; /* Reduced from 30px */
 }
 
 .kpi-card {
@@ -815,10 +931,10 @@ body.dark-mode .table-primary-subtle {
   .sicoob-mobile-header {
     background-color: var(--sicoob-teal);
     color: white;
-    padding: 24px 12px 32px 12px;
-    margin: -15px -12px 15px -12px; /* Reduced side margins to gain width */
-    border-radius: 0 0 24px 24px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    padding: 8px 15px 10px 15px; /* Shorter padding */
+    margin: -15px -15px 12px -15px; /* Full width edge-to-edge */
+    border-radius: 0; /* Straight edge for "de fora a fora" look */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     position: relative;
     z-index: 10;
   }
@@ -1265,4 +1381,46 @@ body.dark-mode .bg-muted {
 
 .bg-background {
   background-color: var(--bg) !important;
+}
+
+/* ==========================================================================
+   Custom Scrollbars (Discreet & Dark Mode Compatible)
+   ========================================================================== */
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+body.dark-mode {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

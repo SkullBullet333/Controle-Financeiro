@@ -252,21 +252,17 @@ export function SettingsView({
               <h3 className="text-lg font-bold text-foreground mb-4">Cor de Destaque</h3>
               <div className="d-flex align-items-center gap-3 flex-wrap">
                 {[
-                  '#4361ee', // Azul
-                  '#10b981', // Verde
-                  '#003641', // Sicoob Deep Teal
-                  '#f43f5e', // Rosa/Vermelho
-                  '#f59e0b', // Amarelo/Laranja
-                  '#8b5cf6', // Roxo
-                  '#d946ef', // Magenta
+                  '#4361ee', // Azul Royal
+                  '#003641', // Azul Sicoob (Original)
+                  '#1e1b4b', // Azul Noturno (O preferido do usuário)
+                  '#10b981', // Verde Esmeralda
                   '#06b6d4', // Ciano
-                  '#f97316', // Coral
-                  '#64748b', // Grafite
-                  '#171717', // Charcoal
-                  '#000000', // Preto Puro
-                  '#1e1b4b', // Midnight Blue
-                  '#064e3b', // Deep Forest
-                  '#2e1065'  // Deep Night
+                  '#f43f5e', // Rosa
+                  '#f97316', // Laranja Coral
+                  '#f59e0b', // Âmbar
+                  '#8b5cf6', // Roxo Violeta
+                  '#d946ef', // Magenta
+                  '#64748b'  // Cinza Aço
                 ].map((color) => (
                   <div
                     key={color}

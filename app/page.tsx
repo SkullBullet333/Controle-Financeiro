@@ -339,7 +339,13 @@ export default function Home() {
       case 'dashboard':
         return (
           <div className="space-y-4">
-            <KPICards stats={stats} onViewChange={setActiveView} />
+            <KPICards 
+              stats={stats} 
+              onViewChange={setActiveView} 
+              month={currentMonth}
+              year={currentYear}
+              onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
+            />
             <div className="row g-3 mt-1">
               <div className="col-lg-6">
                 <ExtratoTable 
@@ -420,6 +426,7 @@ export default function Home() {
               allCartaoTransacoes={cartaoTransacoes}
               currentMonth={currentMonth}
               currentYear={currentYear}
+              onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
             />
             <FilterBar
               onAdd={() => {
@@ -446,7 +453,7 @@ export default function Home() {
                 setIsConfirmDeleteOpen(true);
               }}
               onToggleStatus={(id, currentVal) => {
-                if (activeView === 'geral') updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
+                if (activeView === 'geral' || activeView === 'cartoes') updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
                 if (activeView === 'receitas') updateReceita(id, { status: currentVal === 'Recebido' ? 'Pendente' : 'Recebido' });
               }}
               onEdit={(item) => {
@@ -773,6 +780,9 @@ export default function Home() {
               totalVencido={0}
               activeFilterId={activeFilterId}
               onFilterChange={(id) => { setActiveFilterId(id); setSelectedRadarIds([]); }}
+              currentMonth={currentMonth}
+              currentYear={currentYear}
+              onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
             />
 
             {/* KPIs Principais de Dívida - Agora no TOPO */}
@@ -1085,11 +1095,12 @@ export default function Home() {
             onChangeMonth={changeMonth}
             onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
             onLogout={signOut}
-            showBackButton={activeView !== 'dashboard'}
+            showBackButton={false}
             onBack={() => setActiveView('dashboard')}
             user={userProfile}
             themeColor={themeColor}
             alertas={alertas}
+            onOpenModal={(type) => { setModalType(type as any); setIsModalOpen(true); }}
           />
         )}
 
@@ -1103,8 +1114,13 @@ export default function Home() {
               {renderContent()}
               
               {/* Persistent Mobile Back Button at end of content */}
-              <div className="d-md-none px-4 py-8 mt-4 mb-24 border-top border-border/10">
-                {activeView !== 'dashboard' && activeView !== 'config' && (
+              {activeView !== 'dashboard' && 
+               activeView !== 'geral' && 
+               activeView !== 'cartoes' && 
+               activeView !== 'receitas' && 
+               activeView !== 'radar' && 
+               activeView !== 'config' && (
+                <div className="d-md-none px-4 py-6 mt-4 mb-8 border-top border-border/10">
                   <button 
                     onClick={() => setActiveView('dashboard')}
                     className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
@@ -1112,8 +1128,8 @@ export default function Home() {
                   >
                     Voltar para Início
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>

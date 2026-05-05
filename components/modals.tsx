@@ -76,8 +76,8 @@ export function UniversalFinanceForm({
   }, [initialData, isEditing]);
 
   const typeColors = {
-    despesa: '#1e293b',
-    despesa_cartao: '#00343d',
+    despesa: activeType === 'despesa' ? 'var(--navy)' : '#1e293b',
+    despesa_cartao: 'var(--sicoob-teal)',
     receita: '#00995D',
     emprestimo: '#D97706'
   };
@@ -536,7 +536,7 @@ export function FinanceForm({
                   )}
                   style={{
                     borderRadius: '9999px',
-                    backgroundColor: isRevenue ? '#00995D' : '#1e293b'
+                    backgroundColor: isRevenue ? '#00995D' : 'var(--navy)'
                   }}
                 />
 
@@ -1270,7 +1270,7 @@ export function MonthYearModal({
             <span className="material-symbols-outlined text-xl">chevron_left</span>
           </button>
           
-          <h2 className="text-2xl font-black text-[#1e293b] m-0">{viewYear}</h2>
+          <h2 className="text-2xl font-black text-foreground m-0">{viewYear}</h2>
           
           <button
             type="button"
@@ -1294,7 +1294,7 @@ export function MonthYearModal({
                   "py-3.5 px-4 flex items-center justify-center font-black text-xs tracking-tight transition-all border",
                   isSelected
                     ? "text-white shadow-lg shadow-primary/20"
-                    : "bg-white text-[#1e293b] border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+                    : "bg-card text-foreground border-border hover:bg-muted"
                 )}
                 style={{ 
                   borderRadius: '20px',
@@ -1315,7 +1315,7 @@ export function MonthYearModal({
         {/* Botão Fechar */}
         <button
           type="button"
-          className="w-100 py-3.5 bg-slate-50 hover:bg-slate-100 text-[#1e293b] font-bold text-base transition-all border border-transparent active:scale-95"
+          className="w-100 py-3.5 bg-muted hover:bg-muted/80 text-foreground font-bold text-base transition-all border border-transparent active:scale-95"
           style={{ borderRadius: '20px' }}
           onClick={onClose}
         >
@@ -1634,7 +1634,7 @@ export function EmprestimoForm({
             <input
               required
               type="date"
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm h-[44px]"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm h-[44px] text-on-surface"
               value={formData.data_primeiro_vencimento}
               onChange={e => setFormData({ ...formData, data_primeiro_vencimento: e.target.value })}
             />
