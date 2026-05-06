@@ -1753,9 +1753,9 @@ export function PayoffModal({
       // Só incluímos se for posterior à data de referência E não estiver paga no banco
       if (vencStr > refDate) {
         const jaPaga = installments.find(inst =>
-          inst.parcela_atual === i &&
-          inst.status === 'Pago' &&
-          (isLoan ? inst.emprestimo_id === loan.id : inst.conta_fixa_id === (item as any)?.conta_fixa_id)
+          Number(inst.parcela_atual) === Number(i) &&
+          (inst.status === 'Pago' || inst.status === 'Recebido') &&
+          (isLoan ? Number(inst.emprestimo_id) === Number(loan.id) : Number(inst.conta_fixa_id) === Number((item as any)?.conta_fixa_id))
         );
 
         if (!jaPaga) {

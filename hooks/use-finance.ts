@@ -38,6 +38,7 @@ export function useFinance(activeView: string) {
       const results = await Promise.all([
         supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('despesas').select('*').not('emprestimo_id', 'is', null).order('id', { ascending: true }),
+        supabase.from('despesas').select('*').not('conta_fixa_id', 'is', null).order('id', { ascending: true }),
         supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
         supabase.from('titulares').select('*'),
@@ -53,18 +54,22 @@ export function useFinance(activeView: string) {
       }
 
       // Merge and deduplicate despesas
-      const rawDespesas = [...(results[0].data || []), ...(results[1].data || [])];
+      const rawDespesas = [
+        ...(results[0].data || []), 
+        ...(results[1].data || []),
+        ...(results[2].data || [])
+      ];
       const uniqueDespesasMap = new Map();
       rawDespesas.forEach(d => uniqueDespesasMap.set(d.id, d));
       const despesasData = Array.from(uniqueDespesasMap.values());
 
-      const receitasData = results[2].data;
-      const cartaoTransacoesData = results[3].data;
-      const titularesData = results[4].data;
-      const cartoesConfigData = results[5].data;
-      const notaData = results[6].data as any;
-      const emprestimosData = results[7].data;
-      const contasFixasData = results[8].data;
+      const receitasData = results[3].data;
+      const cartaoTransacoesData = results[4].data;
+      const titularesData = results[5].data;
+      const cartoesConfigData = results[6].data;
+      const notaData = results[7].data as any;
+      const emprestimosData = results[8].data;
+      const contasFixasData = results[9].data;
 
       if (despesasData) {
         setDespesas(despesasData.map(d => ({
@@ -810,7 +815,7 @@ export function useFinance(activeView: string) {
 
         // Verifica se essa parcela já foi paga (existe no banco)
         const existeNoBanco = despesas.find(d => 
-          Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i
+          Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i)
         );
 
         if (!existeNoBanco) {
@@ -863,7 +868,7 @@ export function useFinance(activeView: string) {
 
         // Verifica se essa parcela já foi paga (existe no banco)
         const existeNoBanco = despesas.find(d => 
-          Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i
+          Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i)
         );
 
         if (!existeNoBanco) {
@@ -915,7 +920,7 @@ export function useFinance(activeView: string) {
         // Se já passou ou é hoje, e não está no banco
         if (vencStr <= todayStr) {
           const existeNoBanco = despesas.find(d => 
-            Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i
+            Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i)
           );
           if (!existeNoBanco) {
             virtualLoanAlerts.push({
@@ -946,7 +951,7 @@ export function useFinance(activeView: string) {
 
         if (vencStr <= todayStr) {
           const existeNoBanco = despesas.find(d => 
-            Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i
+            Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i)
           );
           if (!existeNoBanco) {
             virtualFixedAlerts.push({
@@ -1257,7 +1262,7 @@ export function useFinance(activeView: string) {
           }
 
           if (targetComps.includes(comp)) {
-            const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i);
+            const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i));
             if (!exists) {
               const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
               toLaunch.push({
@@ -1298,7 +1303,7 @@ export function useFinance(activeView: string) {
           }
 
           if (targetComps.includes(comp)) {
-            const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i);
+            const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i));
             if (!exists) {
               const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
               toLaunch.push({

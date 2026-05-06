@@ -533,7 +533,7 @@ export default function Home() {
              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
              const vStr = format(dataVenc, 'yyyy-MM-dd');
              
-             const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === i);
+             const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i));
              
              let comp = '';
              if (loan.competencia_inicial) {
@@ -578,7 +578,7 @@ export default function Home() {
              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
              const vStr = format(dataVenc, 'yyyy-MM-dd');
              
-             const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === i);
+             const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i));
              
              let comp = '';
              if (config.competencia_inicial) {
@@ -1246,8 +1246,8 @@ export default function Home() {
               loan={selectedLoan!}
               item={selectedFixed!}
               installments={despesas.filter(d => 
-                (selectedLoan && d.emprestimo_id === selectedLoan.id) || 
-                (selectedFixed && d.conta_fixa_id === selectedFixed.conta_fixa_id)
+                (selectedLoan && Number(d.emprestimo_id) === Number(selectedLoan.id)) || 
+                (selectedFixed && Number(d.conta_fixa_id) === Number(selectedFixed.conta_fixa_id))
               )}
               onConfirmPayoff={quitarParcelas}
               onClose={() => {
