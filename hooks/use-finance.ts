@@ -144,19 +144,21 @@ export function useFinance(activeView: string) {
 
       // Load per-user theme mode — profile takes priority over localStorage
       const userThemeKey = `fin_theme_mode_${user.id}`;
+      const savedTheme = localStorage.getItem(userThemeKey) as any;
+
       if (myProfile.theme_mode) {
         setThemeMode(myProfile.theme_mode);
         localStorage.setItem(userThemeKey, myProfile.theme_mode);
+      } else if (savedTheme === 'black' && myProfile.dark_mode === true) {
+        // Fallback: Se local diz 'black' e DB diz 'dark_mode: true', mantém 'black'
+        setThemeMode('black');
       } else if (myProfile.dark_mode !== undefined && myProfile.dark_mode !== null) {
         // Fallback to legacy dark_mode boolean
         const mode = myProfile.dark_mode ? 'dark' : 'light';
         setThemeMode(mode);
         localStorage.setItem(userThemeKey, mode);
-      } else {
-        const savedTheme = localStorage.getItem(userThemeKey) as any;
-        if (savedTheme) {
-          setThemeMode(savedTheme);
-        }
+      } else if (savedTheme) {
+        setThemeMode(savedTheme);
       }
 
       const { data: members } = await supabase.from('profiles')

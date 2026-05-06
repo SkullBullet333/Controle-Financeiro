@@ -180,6 +180,14 @@ body.dark-mode .text-muted, body.black-mode .text-muted {
   color: var(--gray) !important;
 }
 
+body.dark-mode .text-amber-600, body.black-mode .text-amber-600 {
+  color: #ffffff !important; 
+}
+
+body.dark-mode .hover\:text-amber-700:hover, body.black-mode .hover\:text-amber-700:hover {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
 /* Controles de Formulario, Dropdowns e Utilitarios de Fundo para Dark Mode */
 body.dark-mode .form-control::placeholder, body.black-mode .form-control::placeholder,
 body.dark-mode input::placeholder, body.black-mode input::placeholder,

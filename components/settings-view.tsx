@@ -304,7 +304,8 @@ export function SettingsView({
                   '#f59e0b', // Âmbar
                   '#8b5cf6', // Roxo Violeta
                   '#d946ef', // Magenta
-                  '#64748b'  // Cinza Aço
+                  '#64748b', // Cinza Aço
+                  '#000000'  // Preto Absoluto
                 ].map((color) => (
                   <div
                     key={color}

@@ -791,30 +791,30 @@ export default function Home() {
             <div className="row g-3 mb-2">
               <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-red flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🔴 Dívida Nominal</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">🔴 Dívida Nominal</span>
                   <div className="text-2xl font-black text-danger mb-1">{formatCurrency(rStats.totalDividaAberto)}</div>
-                  <span className="text-[10px] text-gray mt-1">Soma das parcelas</span>
+                  <span className="text-[10px] text-muted mt-1">Soma das parcelas</span>
                 </div>
               </div>
               <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💰 V. Presente (Hoje)</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">💰 V. Presente (Hoje)</span>
                   <div className="text-2xl font-black text-primary mb-1">{formatCurrency(rStats.totalVP)}</div>
-                  <span className="text-[10px] text-gray mt-1">Pagando tudo hoje</span>
+                  <span className="text-[10px] text-muted mt-1">Pagando tudo hoje</span>
                 </div>
               </div>
               <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-green flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💸 Desconto Ganho</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">💸 Desconto Ganho</span>
                   <div className="text-2xl font-black text-success mb-1">{formatCurrency(rStats.totalDiscount)}</div>
                   <span className="text-[10px] text-success mt-1 fw-bold opacity-80">Economia de {discountPercentage.toFixed(1)}%</span>
                 </div>
               </div>
               <div className="col-6 col-lg-3">
                 <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100 py-4">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📅 Parcelas</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">📅 Parcelas</span>
                   <div className="text-2xl font-black text-faturas mb-1">{rStats.qtdParcelasRestante}</div>
-                  <span className="text-[10px] text-gray mt-1">Lançamentos pendentes</span>
+                  <span className="text-[10px] text-muted mt-1">Lançamentos pendentes</span>
                 </div>
               </div>
             </div>
@@ -941,7 +941,7 @@ export default function Home() {
               {/* Saúde Financeira - Agora nesta linha detalhada */}
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-blue flex flex-col items-center justify-center text-center h-100">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">🛡️ Saúde Financeira</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">🛡️ Saúde Financeira</span>
                   <div className="text-4xl font-black text-primary mb-2">{healthScore}%</div>
                   <div className="w-full bg-light h-2 rounded-full overflow-hidden">
                     <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${healthScore}%` }} />
@@ -950,16 +950,16 @@ export default function Home() {
               </div>
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-green flex flex-col items-center justify-center text-center h-100">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">💡 Potencial de Economia</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">💡 Potencial de Economia</span>
                   <div className="text-3xl font-black text-success">{formatCurrency(totalDespesasMes * 0.15)}</div>
-                  <span className="text-[10px] text-gray mt-1">Baseado em gastos não essenciais</span>
+                  <span className="text-[10px] text-muted mt-1">Baseado em gastos não essenciais</span>
                 </div>
               </div>
               <div className="col-md-4">
                 <div className="kpi-card kpi-card-purple flex flex-col items-center justify-center text-center h-100">
-                  <span className="text-[10px] font-black text-gray uppercase tracking-widest mb-2">📉 Limite de Gastos</span>
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest mb-2">📉 Limite de Gastos</span>
                   <div className="text-3xl font-black text-faturas">{Math.round((totalDespesasMes / (totalReceitasMes * 0.8 || 1)) * 100)}%</div>
-                  <span className="text-[10px] text-gray mt-1">Do orçamento utilizado</span>
+                  <span className="text-[10px] text-muted mt-1">Do orçamento utilizado</span>
                 </div>
               </div>
             </div>

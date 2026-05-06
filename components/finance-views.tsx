@@ -116,7 +116,15 @@ export function FinanceTable({
                   className="sicoob-list-item cursor-pointer mb-2 hover:bg-muted/30 transition-all active:scale-[0.98]"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!isSummary) onEdit?.(item);
+                    if (isSummary) return;
+
+                    const isPayable = ((item as any).emprestimo_id || ((item as any).conta_fixa_id && (item as any).parcela_total > 0)) && (item as any).status !== 'Pago';
+                    
+                    if (isPayable && onPayoff) {
+                      onPayoff(itemId);
+                    } else {
+                      onEdit?.(item);
+                    }
                   }}
                 >
                   <div className={cn("sicoob-list-icon shadow-sm", iconBg, isCartao ? "p-0 bg-transparent border-0" : "")}>
@@ -410,7 +418,7 @@ export function FinanceTable({
                               <i className={cn("fa-solid", (item as any).status === 'Pago' ? "fa-circle-check" : "fa-circle")}></i>
                             </button>
                             
-                            {((item as any).emprestimo_id || (item as any).conta_fixa_id) && (item as any).status !== 'Pago' && (
+                            {((item as any).emprestimo_id || ((item as any).conta_fixa_id && (item as any).parcela_total > 0)) && (item as any).status !== 'Pago' && (
                               <button
                                 onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation();

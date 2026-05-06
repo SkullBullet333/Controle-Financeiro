@@ -1834,35 +1834,36 @@ export function PayoffModal({
       </header>
 
       <div className="space-y-6">
-        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-          <label className="text-[11px] font-bold uppercase text-primary mb-2 block">Referência de hoje</label>
+        <div className="bg-primary/5 p-3 rounded-2xl border border-primary/10 d-flex align-items-center justify-content-between gap-3">
+          <div className="flex-grow-1">
+            <label className="text-[11px] font-bold uppercase text-primary mb-0 block">Referência de Hoje</label>
+            {loan && (
+              <div className="text-[9px] text-muted opacity-75 font-medium">Juros: {loan.taxa_mensal_percentual}% ao mês</div>
+            )}
+          </div>
           <input
             type="date"
-            className="w-full bg-white border-none ring-1 ring-primary/20 rounded-xl px-4 py-2 font-bold text-navy focus:ring-primary focus:outline-none"
+            className="bg-white border-none ring-1 ring-primary/20 rounded-pill px-3 py-1.5 font-bold text-navy focus:ring-primary focus:outline-none text-xs"
+            style={{ minWidth: '150px' }}
             value={refDate}
             onChange={e => setRefDate(e.target.value)}
           />
-          {loan && (
-            <p className="text-[10px] text-muted mt-2 leading-relaxed">
-              * O cálculo utiliza a taxa mensal de <strong>{loan.taxa_mensal_percentual}%</strong> com capitalização composta baseada em dias corridos (base 30).
-            </p>
-          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-card border border-border rounded-xl p-3 text-center">
-            <div className="text-[10px] font-bold text-muted uppercase">Selecionado (Nominal)</div>
+            <div className="text-[10px] font-bold text-muted uppercase">Selecionado</div>
             <div className="text-lg font-black text-navy">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
-            <div className="text-[9px] text-muted">{selectedParcelas.length} parcelas selecionadas</div>
+            <div className="text-[9px] text-muted">{selectedParcelas.length} itens</div>
           </div>
           <div className="bg-navy rounded-xl p-3 text-center text-white shadow-lg">
             <div className="text-[10px] font-bold text-white/60 uppercase">Valor a Pagar</div>
             <div className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
-            {totalDiscount > 0 && <div className="text-[9px] text-success font-bold">Economia de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>}
+            {totalDiscount > 0 && <div className="text-[9px] text-success font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>}
           </div>
         </div>
 
-        <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar border rounded-xl overflow-hidden">
+        <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar border rounded-xl overflow-hidden">
           <table className="table table-hover align-middle mb-0">
             <thead className="sticky top-0 bg-slate-50 z-10">
               <tr className="border-b">
@@ -1878,8 +1879,8 @@ export function PayoffModal({
                   />
                 </th>
                 <th className="text-[9px] font-black uppercase text-muted text-center">Parc.</th>
-                <th className="text-[9px] font-black uppercase text-muted text-center">Venc. Original</th>
-                <th className="text-[9px] font-black uppercase text-muted text-center">Comp.</th>
+                <th className="text-[9px] font-black uppercase text-muted text-center">Venc.</th>
+                <th className="text-[9px] font-black uppercase text-muted text-center d-none d-md-table-cell">Comp.</th>
                 <th className="text-[9px] font-black uppercase text-muted text-end">V. Presente</th>
                 <th className="text-[9px] font-black uppercase text-muted text-end">Desconto</th>
               </tr>
@@ -1902,8 +1903,8 @@ export function PayoffModal({
                     />
                   </td>
                   <td className="py-2 text-[11px] font-bold text-navy text-center">{i.parcela_atual}/{i.parcela_total}</td>
-                  <td className="py-2 text-[11px] text-muted text-center">{i.vencimento.split('-').reverse().join('/')}</td>
-                  <td className="py-2 text-[11px] text-muted text-center">{i.competencia}</td>
+                  <td className="py-2 text-[10px] text-muted text-center">{i.vencimento.split('-').reverse().join('/')}</td>
+                  <td className="py-2 text-[11px] text-muted text-center d-none d-md-table-cell">{i.competencia}</td>
                   <td className="py-2 text-[11px] font-black text-navy text-end">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</td>
                   <td className="py-2 text-[10px] font-bold text-success text-end">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</td>
                 </tr>
@@ -1911,37 +1912,34 @@ export function PayoffModal({
             </tbody>
           </table>
           {simulation.length === 0 && (
-            <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada para este contrato.</div>
+            <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada.</div>
           )}
         </div>
 
-        <div className="pt-2 space-y-3">
+        <div className="pt-4 d-flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-grow-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-3 rounded-pill transition-all text-xs uppercase tracking-widest border-0"
+          >
+            Sair
+          </button>
           <button
             onClick={handleConfirm}
             disabled={selectedIds.length === 0 || isSubmitting}
             className={cn(
-              "w-full h-[64px] font-black rounded-xl transition-all flex items-center justify-center gap-2",
+              "flex-grow-1 font-black rounded-pill transition-all d-flex align-items-center justify-content-center gap-2 text-xs uppercase tracking-widest border-0",
               selectedIds.length === 0
-                ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300"
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                 : "bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20"
             )}
+            style={{ height: '48px' }}
           >
             {isSubmitting ? (
               <span className="spinner-border spinner-border-sm"></span>
             ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]">done_all</span>
-                CONFIRMAR PAGAMENTO AGORA
-              </>
+              "Pagar"
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold py-3 rounded-xl transition-colors text-sm"
-          >
-            Sair sem Pagar
           </button>
         </div>
       </div>
