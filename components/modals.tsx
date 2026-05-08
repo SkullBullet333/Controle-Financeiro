@@ -71,6 +71,7 @@ export function UniversalFinanceForm({
     if (isEditing) {
       if ((initialData as any).taxa_mensal_percentual !== undefined) setActiveType('emprestimo');
       else if ((initialData as any).data_recebimento !== undefined || (initialData as any).tipo === 'receita') setActiveType('receita');
+      else if ((initialData as any).cartao_id || (initialData as any).cartao_vencimento_id) setActiveType('despesa_cartao');
       else setActiveType('despesa');
     }
   }, [initialData, isEditing]);
@@ -985,10 +986,20 @@ export function FinanceForm({
             type="button"
             onClick={(e) => {
               if (isProcessing) return;
-              if (!formData.valor || parseFloat(formData.valor) <= 0) {
-                setValidationError('Por favor, informe um valor válido para o lançamento.');
+              
+              if (!formData.descricao || formData.descricao.trim() === '') {
+                setValidationError('Por favor, informe uma descrição.');
                 return;
               }
+              if (!formData.valor || parseFloat(formData.valor) <= 0) {
+                setValidationError('Por favor, informe um valor válido.');
+                return;
+              }
+              if (type === 'despesa' && subType === 'cartao' && !formData.cartao_vencimento_id) {
+                setValidationError('Por favor, selecione um cartão.');
+                return;
+              }
+              
               handleSubmit(e as any);
             }}
             disabled={isProcessing}

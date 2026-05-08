@@ -341,18 +341,32 @@ export function Topbar({
         </div>
           <div className="topbar-controls d-flex align-items-center gap-3">
             {title !== 'config' && (
-              <div className="controls">
-                <button onClick={() => onChangeMonth(-1)}><i className="fa-solid fa-chevron-left"></i></button>
+              <div className="d-flex align-items-center bg-muted/20 hover:bg-muted/30 transition-colors rounded-pill p-1 border border-border/50 shadow-sm backdrop-blur-sm">
+                <button 
+                  onClick={() => onChangeMonth(-1)}
+                  className="w-8 h-8 rounded-circle d-flex align-items-center justify-content-center hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground border-0 bg-transparent active:scale-95"
+                >
+                  <i className="fa-solid fa-chevron-left text-[11px]"></i>
+                </button>
+                
                 <div 
-                  className="date-display" 
+                  className="d-flex align-items-center gap-2 px-4 cursor-pointer hover:scale-105 transition-transform user-select-none" 
                   title="Clique para selecionar o período"
                   onClick={onOpenPeriodModal}
                 >
-                  <i className="fa-regular fa-calendar-check text-primary opacity-75"></i>
-                  <span id="lblMes">{months[month - 1]}</span> 
-                  <span id="lblAno">{year}</span>
+                  <i className="fa-regular fa-calendar text-muted-foreground opacity-60"></i>
+                  <div className="d-flex align-items-center gap-1.5 font-black tracking-widest uppercase text-[11px]">
+                    <span id="lblMes" style={{ color: themeColor }}>{months[month - 1]}</span> 
+                    <span id="lblAno" className="text-foreground">{year}</span>
+                  </div>
                 </div>
-                <button onClick={() => onChangeMonth(1)}><i className="fa-solid fa-chevron-right"></i></button>
+                
+                <button 
+                  onClick={() => onChangeMonth(1)}
+                  className="w-8 h-8 rounded-circle d-flex align-items-center justify-content-center hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground border-0 bg-transparent active:scale-95"
+                >
+                  <i className="fa-solid fa-chevron-right text-[11px]"></i>
+                </button>
               </div>
             )}
 

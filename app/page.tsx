@@ -85,10 +85,7 @@ function LoadingScreen({ themeColor }: { themeColor: string }) {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="text-center"
         >
-          <h1 className="text-2xl font-black text-white tracking-tighter mb-2 d-flex align-items-center justify-content-center gap-2">
-            <Image src="/icons/icon-16.png" width={20} height={20} alt="" className="opacity-80" />
-            Controle Financeiro
-          </h1>
+          <h1 className="text-2xl font-black text-white tracking-tighter mb-2">Controle Financeiro</h1>
           <div className="flex items-center justify-center gap-2">
             <motion.div
               animate={{ width: ["0%", "100%", "0%"], left: ["0%", "0%", "100%"] }}
