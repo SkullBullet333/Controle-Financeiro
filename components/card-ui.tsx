@@ -4,9 +4,10 @@ import React from 'react';
 import Image from 'next/image';
 import { getCardLogo as getCardLogoUrl } from '@/lib/finance-service';
 
-export function CardLogo({ name, size = 'md' }: { name: string, size?: 'sm' | 'md' | 'lg' }) {
+export function CardLogo({ name, size = 'md' }: { name: string, size?: 'xs' | 'sm' | 'md' | 'lg' }) {
   const url = getCardLogoUrl(name);
   const sizeClasses = {
+    xs: 'w-5 h-5 rounded p-0.5',
     sm: 'w-6 h-6 rounded-md p-0.5',
     md: 'w-[45px] h-[45px] rounded-xl p-1',
     lg: 'w-14 h-14 rounded-2xl p-1.5'

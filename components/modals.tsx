@@ -58,9 +58,9 @@ export function UniversalFinanceForm({
   cartoes: CartaoConfig[],
   competencia: string,
   onClose: () => void,
-  onSubmitFinance: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => void,
-  onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => void,
-  onSubmitEmprestimo: (data: Partial<Emprestimo>) => void,
+  onSubmitFinance: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => Promise<void> | void,
+  onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => Promise<void> | void,
+  onSubmitEmprestimo: (data: Partial<Emprestimo>) => Promise<void> | void,
   subType?: 'cartao' | 'boleto' | 'fixa'
 }) {
   const [activeType, setActiveType] = useState<'despesa' | 'receita' | 'emprestimo' | 'despesa_cartao'>(initialType);
@@ -266,10 +266,10 @@ function CardSelectDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-premium border border-slate-100 z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-premium border border-slate-100 z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="max-h-[180px] overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
             {cartoes.length === 0 ? (
-              <div className="p-4 text-center text-slate-400 text-xs">Nenhum cartão configurado</div>
+              <div className="p-4 text-center text-slate-400 text-xs italic">Nenhum cartão configurado</div>
             ) : (
               cartoes.map(c => (
                 <button
@@ -280,25 +280,108 @@ function CardSelectDropdown({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between p-2.5 rounded-xl transition-all hover:bg-slate-50",
-                    Number(value) === c.id ? "bg-slate-50 border border-slate-200" : "border border-transparent"
+                    "w-full flex items-center justify-between p-2 rounded-lg transition-all hover:bg-slate-50",
+                    Number(value) === c.id ? "bg-slate-50 border border-slate-100" : "border border-transparent"
                   )}
                 >
-                  <div className="flex items-center gap-3 text-left">
-                      <div className="flex items-center gap-3">
-                    <CardLogo name={c.nome_cartao} size="sm" />
+                  <div className="flex items-center gap-2.5 text-left">
+                    <CardLogo name={c.nome_cartao} size="xs" />
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900">{c.nome_cartao}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">Próximo fechamento: {getProximoFechamento(c)}</span>
+                      <span className="text-[13px] font-bold text-slate-900 leading-tight">{c.nome_cartao}</span>
+                      <span className="text-[9px] text-slate-400 font-medium">Fecha: {getProximoFechamento(c)}</span>
                     </div>
                   </div>
- </div>
                   <div className="text-right">
-                     <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-black uppercase">Vence {c.dia_vencimento}</span>
+                    <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Vence {c.dia_vencimento}</span>
                   </div>
                 </button>
               ))
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TitularSelectDropdown({ 
+  value, 
+  onChange, 
+  titulares 
+}: { 
+  value: number, 
+  onChange: (id: number) => void, 
+  titulares: Titular[]
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedTitular = titulares.find(t => t.id === value);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface flex items-center justify-between min-h-[44px]"
+      >
+        {selectedTitular ? (
+          <div className="flex items-center gap-3">
+            {selectedTitular.foto ? (
+              <img src={selectedTitular.foto} alt={selectedTitular.nome} className="w-6 h-6 rounded-full object-cover border border-slate-200" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                {selectedTitular.nome.charAt(0)}
+              </div>
+            )}
+            <span className="font-bold text-slate-900">{selectedTitular.nome}</span>
+          </div>
+        ) : (
+          <span className="text-slate-400 font-medium">Selecione um responsável</span>
+        )}
+        <span className="material-symbols-outlined text-slate-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>expand_more</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-premium border border-slate-100 z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="max-h-[180px] overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+            {titulares.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  onChange(t.id);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "w-full flex items-center justify-between p-2 rounded-lg transition-all hover:bg-slate-50",
+                  value === t.id ? "bg-slate-50 border border-slate-100" : "border border-transparent"
+                )}
+              >
+                <div className="flex items-center gap-3 text-left">
+                  {t.foto ? (
+                    <img src={t.foto} alt={t.nome} className="w-7 h-7 rounded-full object-cover border border-slate-100" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400">
+                      {t.nome.charAt(0)}
+                    </div>
+                  )}
+                  <span className="text-[13px] font-bold text-slate-900">{t.nome}</span>
+                </div>
+                {value === t.id && <span className="material-symbols-outlined text-navy text-sm">check</span>}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -321,13 +404,13 @@ export function FinanceForm({
 }: {
   type: 'despesa' | 'receita',
   subType?: 'cartao' | 'boleto' | 'fixa',
-  onSubmit: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => void,
+  onSubmit: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => Promise<void> | void,
   initialData?: Despesa | Receita | ContaFixaConfig,
   titulares: Titular[],
   cartoes: CartaoConfig[],
   competencia: string,
   onClose: () => void,
-  onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => void,
+  onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => Promise<void> | void,
   hideHeader?: boolean,
   themeColor?: string
 }) {
@@ -340,7 +423,7 @@ export function FinanceForm({
     status: (initialData as any)?.status || 'Em aberto',
     parcela_atual: (initialData as any)?.parcela_atual || 1,
     parcela_total: (initialData as any)?.total_parcelas || (initialData as any)?.parcela_total || 1,
-    cartao_vencimento_id: (initialData as any)?.cartao_vencimento_id || '',
+    cartao_vencimento_id: (initialData as any)?.cartao_vencimento_id || (initialData as any)?.cartao_id?.toString() || '',
   });
 
   const isRevenue = (type as string) === 'receita';
@@ -352,6 +435,7 @@ export function FinanceForm({
 
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (validationError) {
@@ -360,10 +444,11 @@ export function FinanceForm({
     }
   }, [validationError]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    let finalDate = formData.vencimento;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsProcessing(true);
+    try {
+      let finalDate = formData.vencimento;
 
     let titularId = formData.titular_id;
     if (type === 'despesa' && subType === 'cartao' && formData.cartao_vencimento_id) {
@@ -379,7 +464,7 @@ export function FinanceForm({
     };
 
     if (type === 'despesa') {
-      data.categoria = formData.categoria || categorizar(formData.descricao);
+      data.categoria = formData.categoria || (subType === 'cartao' ? 'cartoes' : categorizar(formData.descricao));
       data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
@@ -401,24 +486,30 @@ export function FinanceForm({
       data.parcela_total = formData.parcela_total;
     }
 
-    if ((type === 'despesa' && subType === 'fixa' && isRecorrente) || (type === 'receita' && isRecorrente)) {
+    if ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente)) {
       if (onSubmitContaFixa) {
-        onSubmitContaFixa({
+        await onSubmitContaFixa({
           descricao: formData.descricao,
           valor_mensal: parseFloat(formData.valor),
-          total_parcelas: isIndefinite ? null : formData.parcela_total,
-          parcela_atual: formData.parcela_atual,
+          total_parcelas: isIndefinite ? null : parseInt(formData.parcela_total as any),
+          parcela_atual: 1,
           data_inicio: finalDate,
-          competencia_inicial: type === 'receita' ? calcularCompetenciaReceita(parseISO(finalDate)) : calcularCompetencia(parseISO(finalDate)),
+          competencia_inicial: type === 'receita' 
+            ? calcularCompetenciaReceita(ajustarDataReceita(parseISO(finalDate))) 
+            : (subType === 'cartao' ? (data.competencia || competencia) : calcularCompetencia(parseISO(finalDate))),
           titular_id: titularId,
-          categoria: formData.categoria || categorizar(formData.descricao),
-          tipo: type
+          categoria: subType === 'cartao' ? 'cartoes' : (formData.categoria || categorizar(formData.descricao)),
+          cartao_id: subType === 'cartao' && formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined,
+          tipo: type as 'despesa' | 'receita'
         });
         return;
       }
     }
 
-    onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
+    await onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -479,7 +570,18 @@ export function FinanceForm({
             />
           </div>
 
-          {type === 'despesa' && subType === 'cartao' ? (
+          {(type === 'receita' || subType !== 'cartao') && (
+            <div className="md:col-span-2">
+              <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
+              <TitularSelectDropdown
+                value={formData.titular_id}
+                onChange={id => setFormData({ ...formData, titular_id: id })}
+                titulares={titulares}
+              />
+            </div>
+          )}
+
+          {type === 'despesa' && subType === 'cartao' && (
             <div className="md:col-span-2">
               <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Cartão / Vencimento</label>
               <CardSelectDropdown
@@ -488,33 +590,9 @@ export function FinanceForm({
                 cartoes={cartoes}
               />
             </div>
-          ) : (
-            <>
-              <div>
-                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
-                <select
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
-                  value={formData.titular_id}
-                  onChange={e => setFormData({ ...formData, titular_id: parseInt(e.target.value) })}
-                >
-                  {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Categoria</label>
-                <input
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
-                  placeholder="Ex: Mercado, Saúde..."
-                  type="text"
-                  value={formData.categoria}
-                  onChange={e => setFormData({ ...formData, categoria: e.target.value })}
-                />
-              </div>
-            </>
           )}
 
-          {(isRevenue || (isExpense && subType === 'fixa')) && (
+          {(isRevenue || (isExpense && (subType === 'fixa' || subType === 'cartao'))) && (
             <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 mb-1">
               <div className="space-y-0.5">
                 <span className="text-[10px] md:text-xs font-bold text-navy uppercase tracking-wider">
@@ -565,9 +643,9 @@ export function FinanceForm({
             <>
               <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-3 items-start">
             <div>
-              <div className="flex items-center h-[26px] mb-1 px-1">
-                <label className="text-[10px] md:label-md font-label text-on-surface-variant block whitespace-nowrap">
-                  {subType === 'cartao' ? 'Data da Compra' : (isRevenue ? 'Data de Recebimento' : 'Data de Vencimento')}
+              <div className="flex items-center justify-between mb-1 px-1 h-[26px]">
+                <label className="text-[10px] md:label-md font-label text-on-surface-variant whitespace-nowrap uppercase font-bold tracking-wider">
+                  {subType === 'cartao' ? 'Data da Compra' : 'Data de Vencimento'}
                 </label>
               </div>
               <input
@@ -578,18 +656,6 @@ export function FinanceForm({
               />
             </div>
 
-            {type === 'despesa' && subType === 'cartao' ? (
-              <div>
-                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Categoria</label>
-                <input
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
-                  placeholder="Ex: Mercado, Saúde..."
-                  type="text"
-                  value={formData.categoria}
-                  onChange={e => setFormData({ ...formData, categoria: e.target.value })}
-                />
-              </div>
-            ) : (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-1 px-1 h-[26px]">
                   <label className="text-[10px] md:label-md font-label text-on-surface-variant whitespace-nowrap uppercase font-bold tracking-wider">
@@ -597,65 +663,81 @@ export function FinanceForm({
                       ? (isIndefinite ? 'Recorrência' : 'Duração')
                       : (isRevenue ? 'Tipo de Recebimento' : 'Tipo de Pagamento')}
                   </label>
-                  {isRecorrente && (
-                    <button
-                      type="button"
-                      onClick={() => setIsIndefinite(!isIndefinite)}
-                      style={{ borderRadius: '9999px' }}
-                      className={cn(
-                        "text-[9px] md:text-[10px] font-black uppercase tracking-tighter px-2 md:px-3 py-1 border transition-all -mt-[1px] whitespace-nowrap",
-                        isIndefinite
-                          ? "bg-navy/10 text-navy border-navy/20"
-                          : "bg-slate-50 text-slate-400 border-slate-200 hover:text-navy hover:border-navy/30"
-                      )}
-                    >
-                      {isIndefinite ? 'Sem prazo' : 'Com prazo'}
-                    </button>
-                  )}
                 </div>
 
-                <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-9 md:h-[44px] relative border border-slate-200/50 shadow-inner">
+                <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                   {isRecorrente ? (
-                    isIndefinite ? (
-                      <div className="flex-1 rounded-full bg-white/20 text-muted-foreground flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
-                        <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter text-foreground">Indeterminado</span>
-                      </div>
-                    ) : (
-                      <div className="flex-1 rounded-full bg-navy text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full w-full">
-                        <button
-                          type="button"
-                          className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                          onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">remove</span>
-                        </button>
-                        <div className="flex items-center gap-1">
+                    <>
+                      <div
+                        className={cn(
+                          "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
+                          !isIndefinite ? "left-[calc(50%+2px)]" : "left-1"
+                        )}
+                        style={{ 
+                          borderRadius: '9999px', 
+                          backgroundColor: isRevenue ? '#00995D' : 'var(--navy)' 
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
+                          isIndefinite ? "text-white" : "text-slate-400"
+                        )}
+                        onClick={() => setIsIndefinite(true)}
+                      >
+                        Sem Prazo
+                      </button>
+
+                      {!isIndefinite ? (
+                        <div className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full">
+                          <button
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                          </button>
                           <input
                             type="number"
                             min="1"
                             max="120"
-                            className="w-10 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
                             onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 12 })}
                           />
-                          <span className="text-[10px] font-black text-white/60 uppercase">Meses</span>
+                          <button
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
                         </div>
+                      ) : (
                         <button
                           type="button"
-                          className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                          onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
+                          className={cn(
+                            "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
+                            !isIndefinite ? "text-white" : "text-slate-400"
+                          )}
+                          onClick={() => {
+                            setIsIndefinite(false);
+                            if (!formData.parcela_total || formData.parcela_total === 1) {
+                              setFormData({ ...formData, parcela_total: 12 });
+                            }
+                          }}
                         >
-                          <span className="material-symbols-outlined text-[18px]">add</span>
+                          Com Prazo
                         </button>
-                      </div>
-                    )
+                      )}
+                    </>
                   ) : (
                     <>
                       <div
                         className={cn(
                           "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-navy shadow-md transition-all duration-300 ease-out",
-                          paymentType === 'Parcelado' ? "hidden opacity-0" : "left-1 opacity-100"
+                          paymentType === 'Parcelado' ? "left-[calc(50%+2px)]" : "left-1"
                         )}
                         style={{ borderRadius: '9999px' }}
                       />
@@ -675,7 +757,7 @@ export function FinanceForm({
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
-                          className="flex-1 relative z-10 rounded-full bg-navy text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                          className="flex-1 relative z-10 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
                         >
                           <button
                             type="button"
@@ -719,84 +801,16 @@ export function FinanceForm({
                   )}
                 </div>
               </div>
-            )}
-          </div>
-
-          {type === 'despesa' && subType === 'cartao' && (
-            <div className="md:col-span-2">
-              <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Tipo de Gasto</label>
-              <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-9 md:h-[44px] relative border border-slate-200/50 shadow-inner">
-                <div
-                  className={cn(
-                    "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-navy shadow-md transition-all duration-300 ease-out",
-                    paymentType === 'Parcelado' ? "hidden opacity-0" : "left-1 opacity-100"
-                  )}
-                  style={{ borderRadius: '9999px' }}
-                />
-
-                <button
-                  type="button"
-                  className={cn(
-                    "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                    paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
-                  )}
-                  onClick={() => {
-                    setPaymentType('A vista');
-                    setFormData({ ...formData, parcela_total: 1 });
-                  }}
-                >
-                  À vista
-                </button>
-                {paymentType === 'Parcelado' ? (
-                  <div
-                    className="flex-1 relative z-10 rounded-full bg-navy text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
-                  >
-                    <button
-                      type="button"
-                      className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                      onClick={() => setFormData({ ...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1) })}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-                    </button>
-                    <input
-                      type="number"
-                      min="2"
-                      max="99"
-                      className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
-                      value={formData.parcela_total}
-                      onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 2 })}
-                    />
-                    <button
-                      type="button"
-                      className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                      onClick={() => setFormData({ ...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1) })}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                      paymentType === 'Parcelado' ? "text-white" : "text-slate-400 hover:text-navy/40"
-                    )}
-                    onClick={() => {
-                      setPaymentType('Parcelado');
-                      setFormData({ ...formData, parcela_total: 2 });
-                    }}
-                  >
-                    <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>
-                  </button>
-                  )}
-                </div>
-              </div>
-            )}
+            </div>
           </>
         ) : (
-            <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-4 items-start">
+            <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-3 items-start">
               <div>
-                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data de Receber</label>
+                <div className="flex items-center justify-between mb-1 px-1 h-[26px]">
+                  <label className="text-[10px] md:label-md font-label text-on-surface-variant whitespace-nowrap uppercase font-bold tracking-wider">
+                    Data de Receber
+                  </label>
+                </div>
                 <input
                   type="date"
                   className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm text-on-surface"
@@ -811,69 +825,82 @@ export function FinanceForm({
                       ? (isIndefinite ? 'Recorrência' : 'Duração')
                       : 'Tipo de Recebimento'}
                   </label>
-                  {isRecorrente && (
-                    <button
-                      type="button"
-                      onClick={() => setIsIndefinite(!isIndefinite)}
-                      style={{ borderRadius: '9999px' }}
-                      className={cn(
-                        "text-[9px] md:text-[10px] font-black uppercase tracking-tighter px-2 md:px-3 py-1 border transition-all -mt-[1px] whitespace-nowrap",
-                        isIndefinite
-                          ? "bg-[#00995D]/10 text-[#00995D] border-[#00995D]/20"
-                          : "bg-slate-50 text-slate-400 border-slate-200 hover:text-[#00995D] hover:border-[#00995D]/30"
-                      )}
-                    >
-                      {isIndefinite ? 'Sem prazo' : 'Com prazo'}
-                    </button>
-                  )}
                 </div>
 
                 <div className="bg-[#F1F5F9] p-[3px] rounded-full flex w-full h-[44px] relative border border-slate-200/50 shadow-inner">
                   {isRecorrente ? (
-                    isIndefinite ? (
-                      <div className="flex-1 rounded-full bg-white/20 text-muted-foreground flex items-center justify-center gap-2 transition-all duration-300 h-full w-full">
-                        <span className="material-symbols-outlined text-lg">all_inclusive</span>
-                        <span className="text-[8.5px] md:text-[11px] font-headline font-black uppercase tracking-tighter text-foreground">Indeterminado</span>
-                      </div>
-                    ) : (
+                    <>
                       <div
-                        className="flex-1 rounded-full text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full w-full"
-                        style={{ backgroundColor: '#00995D' }}
+                        className={cn(
+                          "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
+                          !isIndefinite ? "left-[calc(50%+2px)]" : "left-1"
+                        )}
+                        style={{ 
+                          borderRadius: '9999px', 
+                          backgroundColor: '#00995D'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
+                          isIndefinite ? "text-white" : "text-slate-400"
+                        )}
+                        onClick={() => setIsIndefinite(true)}
                       >
-                        <button
-                          type="button"
-                          className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                          onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">remove</span>
-                        </button>
-                        <div className="flex items-center gap-1">
+                        Sem Prazo
+                      </button>
+
+                      {!isIndefinite ? (
+                        <div className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full">
+                          <button
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                          </button>
                           <input
                             type="number"
                             min="1"
                             max="120"
-                            className="w-10 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
                             onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 12 })}
                           />
-                          <span className="text-[10px] font-black text-white/60 uppercase">Meses</span>
+                          <button
+                            type="button"
+                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
                         </div>
+                      ) : (
                         <button
                           type="button"
-                          className="w-8 h-8 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
-                          onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
+                          className={cn(
+                            "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
+                            !isIndefinite ? "text-white" : "text-slate-400"
+                          )}
+                          onClick={() => {
+                            setIsIndefinite(false);
+                            if (!formData.parcela_total || formData.parcela_total === 1) {
+                              setFormData({ ...formData, parcela_total: 12 });
+                            }
+                          }}
                         >
-                          <span className="material-symbols-outlined text-[18px]">add</span>
+                          Com Prazo
                         </button>
-                      </div>
-                    )
+                      )}
+                    </>
                   ) : (
                     <>
                       {/* Sliding Pill Background - Hidden when <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span> is active to avoid overlap */}
                       <div
                         className={cn(
                           "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
-                          paymentType === 'Parcelado' ? "hidden opacity-0" : "left-1 opacity-100"
+                          paymentType === 'Parcelado' ? "left-[calc(50%+2px)]" : "left-1"
                         )}
                         style={{
                           borderRadius: '9999px',
@@ -896,8 +923,7 @@ export function FinanceForm({
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
-                          className="flex-1 relative z-10 rounded-full text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)] border border-white/10 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
-                          style={{ backgroundColor: '#00995D' }}
+                          className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full"
                         >
                           <button
                             type="button"
@@ -958,17 +984,23 @@ export function FinanceForm({
           <button
             type="button"
             onClick={(e) => {
+              if (isProcessing) return;
               if (!formData.valor || parseFloat(formData.valor) <= 0) {
                 setValidationError('Por favor, informe um valor válido para o lançamento.');
                 return;
               }
               handleSubmit(e as any);
             }}
+            disabled={isProcessing}
             style={{ borderRadius: '9999px', backgroundColor: themeColor }}
-            className="text-white h-[44px] md:h-[48px] font-label font-semibold text-xs md:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2 opacity-90 hover:opacity-100"
+            className="text-white h-[44px] md:h-[48px] font-label font-semibold text-xs md:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2 opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="material-symbols-outlined text-base md:text-lg">check_circle</span>
-            {!!initialData ? 'Salvar' : 'Registrar'}
+            {isProcessing ? (
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            ) : (
+              <span className="material-symbols-outlined text-base md:text-lg">check_circle</span>
+            )}
+            {isProcessing ? 'Aguarde...' : (!!initialData ? 'Salvar' : 'Registrar')}
           </button>
         </div>
       </form>
@@ -1352,21 +1384,32 @@ export function ConfirmModal({
 }: {
   isOpen: boolean,
   onClose: () => void,
-  onConfirm: () => void,
+  onConfirm: () => Promise<void> | void,
   title: string,
   message: string,
   confirmLabel?: string,
   variant?: 'danger' | 'primary' | 'success'
 }) {
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
   if (!isOpen) return null;
 
+  const handleConfirm = async () => {
+    setIsProcessing(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 3000 }} onClick={onClose}>
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 3000 }} onClick={!isProcessing ? onClose : undefined}>
       <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '400px', zIndex: 3001 }} onClick={e => e.stopPropagation()}>
         <div className="modal-content rounded-4 border-0 shadow-lg p-2 bg-card">
           <div className="modal-header border-0 pb-0">
             <h5 className="modal-title fw-bold">{title}</h5>
-            <button type="button" className="btn-close" onClick={onClose}></button>
+            <button type="button" className="btn-close" onClick={!isProcessing ? onClose : undefined} disabled={isProcessing}></button>
           </div>
           <div className="modal-body py-4 text-center">
             <div className={`d-inline-flex p-3 rounded-circle bg-${variant} bg-opacity-10 text-${variant} mb-3`}>
@@ -1375,13 +1418,15 @@ export function ConfirmModal({
             <p className="text-muted mb-0">{message}</p>
           </div>
           <div className="modal-footer border-0 pt-0 gap-2">
-            <button type="button" className="btn btn-light rounded-pill px-4 fw-bold flex-grow-1" onClick={onClose}>Cancelar</button>
+            <button type="button" className="btn btn-light rounded-pill px-4 fw-bold flex-grow-1" onClick={onClose} disabled={isProcessing}>Cancelar</button>
             <button
               type="button"
-              className={`btn btn-${variant} rounded-pill px-4 fw-bold flex-grow-1`}
-              onClick={() => { onConfirm(); onClose(); }}
+              className={`btn btn-${variant} rounded-pill px-4 fw-bold flex-grow-1 d-flex justify-content-center align-items-center gap-2`}
+              onClick={handleConfirm}
+              disabled={isProcessing}
             >
-              {confirmLabel}
+              {isProcessing && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+              {isProcessing ? 'Aguarde...' : confirmLabel}
             </button>
           </div>
         </div>
@@ -1591,8 +1636,8 @@ export function EmprestimoForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 md:gap-y-3">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 md:gap-y-3">
+          <div className="col-span-2">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição do Contrato</label>
             <input
               required
@@ -1604,7 +1649,7 @@ export function EmprestimoForm({
             />
           </div>
 
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Valor da Parcela (VF)</label>
             <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
               <span className="text-navy/40 font-bold mr-2 text-sm md:text-base">R$</span>
@@ -1618,7 +1663,7 @@ export function EmprestimoForm({
             </div>
           </div>
 
-          <div>
+          <div className="col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Taxa Mensal (%)</label>
             <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
               <input
@@ -1632,18 +1677,18 @@ export function EmprestimoForm({
             </div>
           </div>
 
-          <div>
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Total de Parcelas</label>
+          <div className="col-span-1">
+            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Total Parcelas</label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm"
+              className="w-full bg-[#F8FAFC] border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] md:h-[48px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-bold text-navy text-sm"
               type="number"
               value={formData.total_parcelas}
               onChange={e => setFormData({ ...formData, total_parcelas: e.target.value })}
             />
           </div>
 
-          <div>
+          <div className="col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data 1º Vencimento</label>
             <input
               required
@@ -1654,10 +1699,10 @@ export function EmprestimoForm({
             />
           </div>
 
-          <div>
+          <div className="col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Competência de Início</label>
             <select
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
               value={formData.competencia_inicial}
               onChange={e => setFormData({ ...formData, competencia_inicial: e.target.value })}
             >
@@ -1671,8 +1716,8 @@ export function EmprestimoForm({
 
                   return (
                     <>
-                      <option value={c1}>Mês do vencimento</option>
-                      <option value={c2}>Mês seguinte ao vencimento</option>
+                      <option value={c1}>{c1}</option>
+                      <option value={c2}>{c2}</option>
                     </>
                   );
                 } catch {
@@ -1682,7 +1727,7 @@ export function EmprestimoForm({
             </select>
           </div>
 
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
             <select
               className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
@@ -1988,6 +2033,13 @@ export function ExpenseSettingsModal({
       ]
     },
     {
+      title: 'CARTÕES',
+      tabs: [
+        { id: 'cartoes_rec', label: 'Recorrentes', icon: 'credit_card' },
+        { id: 'cartoes_parc', label: 'Parcelados', icon: 'calendar_month' },
+      ]
+    },
+    {
       title: 'RECEITAS',
       tabs: [
         { id: 'rec_recorrentes', label: 'Recorrentes', icon: 'autorenew' },
@@ -2048,13 +2100,17 @@ export function ExpenseSettingsModal({
       case 'recorrentes':
       case 'rec_recorrentes':
       case 'rec_parceladas':
+      case 'cartoes_rec':
+      case 'cartoes_parc':
         const isReceitaTab = activeTab.startsWith('rec_');
-        const isRecorrenteTab = activeTab === 'recorrentes' || activeTab === 'rec_recorrentes';
+        const isCartaoTab = activeTab.startsWith('cartoes_');
+        const isRecorrenteTab = activeTab === 'recorrentes' || activeTab === 'rec_recorrentes' || activeTab === 'cartoes_rec';
 
         const filtered = contasFixas.filter(c => {
           const typeMatch = isReceitaTab ? c.tipo === 'receita' : (!c.tipo || c.tipo === 'despesa');
-          const recurrenceMatch = isRecorrenteTab ? c.total_parcelas === null : c.total_parcelas !== null;
-          return typeMatch && recurrenceMatch;
+          const cardMatch = isCartaoTab ? !!c.cartao_id : (isReceitaTab ? true : !c.cartao_id);
+          const recurrenceMatch = isRecorrenteTab ? (!c.total_parcelas || c.total_parcelas === 0) : (c.total_parcelas && c.total_parcelas > 0);
+          return typeMatch && cardMatch && recurrenceMatch;
         });
 
         const activeThemeColor = themeColor;

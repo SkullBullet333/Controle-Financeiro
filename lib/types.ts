@@ -44,6 +44,8 @@ export interface CartaoTransacao {
   competencia: string;
   titular_id: number;
   categoria?: string;
+  conta_fixa_id?: number;
+  emprestimo_id?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -111,12 +113,13 @@ export interface ContaFixaConfig {
   family_id: string;
   descricao: string;
   valor_mensal: number;
-  total_parcelas: number;
+  total_parcelas: number | null;
   parcela_atual: number;
   data_inicio: string;
   competencia_inicial: string;
   titular_id: number;
   categoria?: string;
+  cartao_id?: number;
   tipo: 'despesa' | 'receita';
   created_at?: string;
 }

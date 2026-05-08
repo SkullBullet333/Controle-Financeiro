@@ -542,7 +542,7 @@ export function FilterBar({
       </div>
 
       <div className="d-flex align-items-center gap-2 ms-2">
-        {onOpenExpenseSettings && (type === 'geral' || type === 'receitas') && (
+        {onOpenExpenseSettings && (type === 'geral' || type === 'receitas' || type === 'cartoes') && (
           <button
             onClick={onOpenExpenseSettings}
             className="btn btn-outline-secondary rounded-4 p-0 d-flex align-items-center justify-content-center shadow-sm bg-card"

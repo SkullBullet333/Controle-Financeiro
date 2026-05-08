@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Sidebar, Topbar, MobileNav } from '@/components/layout';
+import Image from 'next/image';
 import { KPICards, ExtratoTable, TitularChart, PaymentStatusChart } from '@/components/dashboard';
 
 import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
@@ -15,6 +16,103 @@ import { Despesa, Receita, CartaoTransacao, Titular, CartaoConfig, Status, Profi
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths, addMonths } from 'date-fns';
 import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
+import { motion, AnimatePresence } from 'motion/react';
+
+function LoadingScreen({ themeColor }: { themeColor: string }) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900 overflow-hidden">
+      {/* Animated Background Orbs */}
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.1, 0.2, 0.1],
+          x: [-20, 20, -20],
+          y: [-20, 20, -20]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full blur-[120px]"
+        style={{ backgroundColor: themeColor }}
+      />
+      <motion.div 
+        animate={{ 
+          scale: [1.2, 1, 1.2],
+          opacity: [0.1, 0.15, 0.1],
+          x: [20, -20, 20],
+          y: [20, -20, 20]
+        }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] rounded-full blur-[120px]"
+        style={{ backgroundColor: themeColor }}
+      />
+
+      <div className="relative z-10 flex flex-col items-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="mb-8 p-6 rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-xl shadow-2xl relative"
+        >
+          {/* Glowing Ring */}
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 rounded-[32px] border-2 border-transparent border-t-white/30 border-r-white/10"
+          />
+          
+          <div className="relative flex items-center justify-center" style={{ width: '64px', height: '64px' }}>
+             <motion.div
+               animate={{ 
+                 scale: [1, 1.05, 1],
+                 filter: ["drop-shadow(0 0 0px rgba(255,255,255,0))", `drop-shadow(0 0 20px ${themeColor}44)`, "drop-shadow(0 0 0px rgba(255,255,255,0))"]
+               }}
+               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+             >
+                <Image 
+                  src="/icons/icon-192.png" 
+                  alt="App Logo" 
+                  width={64} 
+                  height={64}
+                  priority
+                  className="rounded-2xl"
+                />
+             </motion.div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="text-center"
+        >
+          <h1 className="text-2xl font-black text-white tracking-tighter mb-2 d-flex align-items-center justify-content-center gap-2">
+            <Image src="/icons/icon-16.png" width={20} height={20} alt="" className="opacity-80" />
+            Controle Financeiro
+          </h1>
+          <div className="flex items-center justify-center gap-2">
+            <motion.div
+              animate={{ width: ["0%", "100%", "0%"], left: ["0%", "0%", "100%"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="h-0.5 rounded-full relative overflow-hidden bg-white/10 w-24"
+            >
+              <motion.div 
+                className="absolute inset-0"
+                style={{ backgroundColor: themeColor }}
+              />
+            </motion.div>
+          </div>
+          <motion.p 
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-[10px] uppercase tracking-[0.3em] font-black text-white/40 mt-6"
+          >
+            Preparando seu painel
+          </motion.p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -116,6 +214,7 @@ export default function Home() {
     consolidatedDespesas,
     consolidatedReceitas,
     filteredCartaoTransacoes,
+    allProjectedCartaoTransacoes,
     despesasGerais,
     config,
     stats,
@@ -425,7 +524,7 @@ export default function Home() {
               totalVencido={stats.totalVencido}
               activeFilterId={activeFilterId}
               onFilterChange={setActiveFilterId}
-              allCartaoTransacoes={cartaoTransacoes}
+              allCartaoTransacoes={allProjectedCartaoTransacoes}
               currentMonth={currentMonth}
               currentYear={currentYear}
               onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
@@ -564,7 +663,7 @@ export default function Home() {
 
         // 2. Projeção de Contas Fixas Virtuais (Despesas)
         const projectedFixedSummary = contasFixas.reduce((acc, config) => {
-          if (config.tipo === 'receita') return acc;
+          if (config.tipo === 'receita' || config.cartao_id) return acc;
           const matchTitular = activeFilterId ? Number(config.titular_id) === Number(activeFilterId) : true;
           if (!matchTitular) return acc;
 
@@ -735,7 +834,7 @@ export default function Home() {
             .reduce((acc, d) => acc + d.valor, 0);
           
           // Soma transações de cartões (faturas projetadas e reais)
-          const fats = cartaoTransacoes.filter((c: CartaoTransacao) => {
+          const fats = allProjectedCartaoTransacoes.filter((c: CartaoTransacao) => {
             const matchTitular = activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true;
             return matchTitular && c.competencia === comp;
           }).reduce((acc: number, c: CartaoTransacao) => acc + c.valor, 0);
@@ -1064,238 +1163,253 @@ export default function Home() {
   };
 
   return (
-    <div className="layout-wrapper">
-      <Sidebar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        user={userProfile}
-        familyMembers={familyMembers}
-        onLogout={signOut}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-        onInvite={handleInvite}
-        onUpdateProfile={updateProfile}
-        onOpenModal={(type) => {
-          if (type === 'settings') setIsSettingsOpen(true);
-          else if (type === 'emprestimo') {
-            setModalType('emprestimo');
-            setEditingItem(null);
-            setIsModalOpen(true);
-          }
-          else {
-            setModalType(type as any);
-            setEditingItem(null);
-            setIsModalOpen(true);
-          }
-        }}
-      />
-
-      <div className="content">
-        {activeView !== 'config' && (
-          <Topbar
-            title={activeView}
-            month={currentMonth}
-            year={currentYear}
-            onChangeMonth={changeMonth}
-            onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
-            onLogout={signOut}
-            showBackButton={false}
-            onBack={() => setActiveView('dashboard')}
-            user={userProfile}
-            themeColor={themeColor}
-            alertas={alertas}
-            onOpenModal={(type) => { setModalType(type as any); setIsModalOpen(true); }}
-          />
-        )}
-
-        <div className={cn("content-body p-md-4", activeView === 'config' ? "p-0" : "px-1 py-3")}>
-          {isLoading ? (
-            <div className="d-flex align-items-center justify-content-center h-50 pt-5">
-              <div className="spinner-border text-primary" role="status"></div>
-            </div>
-          ) : (
-            <>
-              {renderContent()}
-              
-              {/* Persistent Mobile Back Button at end of content */}
-              {activeView !== 'dashboard' && 
-               activeView !== 'geral' && 
-               activeView !== 'cartoes' && 
-               activeView !== 'receitas' && 
-               activeView !== 'radar' && 
-               activeView !== 'config' && (
-                <div className="d-md-none px-4 py-6 mt-4 mb-8 border-top border-border/10">
-                  <button 
-                    onClick={() => setActiveView('dashboard')}
-                    className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
-                    style={{ background: themeColor || '#003641', fontSize: '11px' }}
-                  >
-                    Voltar para Início
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {activeView !== 'config' && (
-          <MobileNav
-            activeView={activeView}
-            onViewChange={(view) => {
-              setActiveView(view);
-            }}
-            onLaunch={() => {
-              setModalType('despesa');
-              setEditingItem(null);
-              setIsModalOpen(true);
-            }}
-            activeSettingsTab={activeSettingsTab}
-            onSettingsTabChange={setActiveSettingsTab}
-            themeColor={themeColor}
-          />
-        )}
-
-        {/* Modals */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingItem(null);
-          }}
-          title={
-            editingItem
-              ? (modalType === 'despesa' ? 'Editar Gasto' : modalType === 'receita' ? 'Editar Ganho' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : modalType === 'emprestimo' ? 'Editar Empréstimo' : 'Editar')
-              : (modalType === 'profile' ? 'Editar Meu Perfil' : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo') ? 'Novo Registro' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Registro')
-          }
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div
+          key="loading-screen"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          className="fixed inset-0 z-[10000]"
         >
-          {modalType === 'profile' ? (
-            <ProfileForm 
-              initialData={userProfile}
-              onSubmit={(data) => {
-                updateProfile(data);
-                setIsModalOpen(false);
-              }}
-            />
-          ) : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo' || modalType === 'despesa_cartao') ? (
-            <UniversalFinanceForm
-              initialType={modalType as any}
-              subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
-              titulares={config.titulares}
-              cartoes={config.cartoes}
-              competencia={competencia}
-              initialData={editingItem}
+          <LoadingScreen themeColor={themeColor} />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="main-content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="layout-wrapper"
+        >
+          <Sidebar
+            activeView={activeView}
+            onViewChange={setActiveView}
+            user={userProfile}
+            familyMembers={familyMembers}
+            onLogout={signOut}
+            isDarkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            onInvite={handleInvite}
+            onUpdateProfile={updateProfile}
+            onOpenModal={(type) => {
+              if (type === 'settings') setIsSettingsOpen(true);
+              else if (type === 'emprestimo') {
+                setModalType('emprestimo');
+                setEditingItem(null);
+                setIsModalOpen(true);
+              }
+              else {
+                setModalType(type as any);
+                setEditingItem(null);
+                setIsModalOpen(true);
+              }
+            }}
+          />
+
+          <div className="content">
+            {activeView !== 'config' && (
+              <Topbar
+                title={activeView}
+                month={currentMonth}
+                year={currentYear}
+                onChangeMonth={changeMonth}
+                onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
+                onLogout={signOut}
+                showBackButton={false}
+                onBack={() => setActiveView('dashboard')}
+                user={userProfile}
+                themeColor={themeColor}
+                alertas={alertas}
+                onOpenModal={(type) => { setModalType(type as any); setIsModalOpen(true); }}
+              />
+            )}
+
+            <div className={cn("content-body p-md-4", activeView === 'config' ? "p-0" : "px-1 py-3")}>
+              <>
+                {renderContent()}
+                
+                {/* Persistent Mobile Back Button at end of content */}
+                {activeView !== 'dashboard' && 
+                  activeView !== 'geral' && 
+                  activeView !== 'cartoes' && 
+                  activeView !== 'receitas' && 
+                  activeView !== 'radar' && 
+                  activeView !== 'config' && (
+                  <div className="d-md-none px-4 py-6 mt-4 mb-8 border-top border-border/10">
+                    <button 
+                      onClick={() => setActiveView('dashboard')}
+                      className="btn w-100 py-3 rounded-xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg"
+                      style={{ background: themeColor || '#003641', fontSize: '11px' }}
+                    >
+                      Voltar para Início
+                    </button>
+                  </div>
+                )}
+              </>
+            </div>
+
+            {activeView !== 'config' && (
+              <MobileNav
+                activeView={activeView}
+                onViewChange={(view) => {
+                  setActiveView(view);
+                }}
+                onLaunch={() => {
+                  setModalType('despesa');
+                  setEditingItem(null);
+                  setIsModalOpen(true);
+                }}
+                activeSettingsTab={activeSettingsTab}
+                onSettingsTabChange={setActiveSettingsTab}
+                themeColor={themeColor}
+              />
+            )}
+
+            {/* Modals */}
+            <Modal
+              isOpen={isModalOpen}
               onClose={() => {
                 setIsModalOpen(false);
                 setEditingItem(null);
               }}
-              onSubmitFinance={(data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => {
-                if (editingItem) {
-                  if ((editingItem as any).taxa_mensal_percentual !== undefined) {
-                      updateEmprestimo(data as any);
-                  } else if (modalType === 'despesa' || (editingItem as any).vencimento) updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
-                  else updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
-                } else {
-                  if ((data as any).data_recebimento) addReceita(data as Omit<Receita, 'id'>);
-                  else addDespesa(data as Omit<Despesa, 'id'>);
-                }
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
-              onSubmitContaFixa={async (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
-                if (editingItem && (editingItem as any).id) {
-                  await updateContaFixa((editingItem as any).id, data);
-                } else {
-                  await addContaFixa(data);
-                }
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
-              onSubmitEmprestimo={(data: Partial<Emprestimo>) => {
-                if (editingItem) updateEmprestimo(data);
-                else addEmprestimo(data);
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
-            />
-          ) : modalType === 'titular' ? (
-            <TitularForm
-              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
-              initialData={editingItem as Titular}
-              onSubmit={(data) => {
-                if (editingItem) updateTitular(editingItem.id, data);
-                else addTitular(data);
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
-            />
-          ) : modalType === 'cartao' ? (
-            <CartaoForm
-              key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
-              initialData={editingItem as CartaoConfig}
-              titulares={config.titulares}
-              onSubmit={(data) => {
-                if (editingItem) updateCartao(editingItem.id, data);
-                else addCartao(data);
-                setIsModalOpen(false);
-                setEditingItem(null);
+              title={
+                editingItem
+                  ? (modalType === 'despesa' ? 'Editar Gasto' : modalType === 'receita' ? 'Editar Ganho' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : modalType === 'emprestimo' ? 'Editar Empréstimo' : 'Editar')
+                  : (modalType === 'profile' ? 'Editar Meu Perfil' : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo') ? 'Novo Registro' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Registro')
+              }
+            >
+              {modalType === 'profile' ? (
+                <ProfileForm 
+                  initialData={userProfile}
+                  onSubmit={(data) => {
+                    updateProfile(data);
+                    setIsModalOpen(false);
+                  }}
+                />
+              ) : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo' || modalType === 'despesa_cartao') ? (
+                <UniversalFinanceForm
+                  initialType={modalType as any}
+                  subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
+                  titulares={config.titulares}
+                  cartoes={config.cartoes}
+                  competencia={competencia}
+                  initialData={editingItem}
+                  onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                  onSubmitFinance={(data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => {
+                    if (editingItem) {
+                      if ((editingItem as any).taxa_mensal_percentual !== undefined) {
+                          updateEmprestimo(data as any);
+                      } else if (modalType === 'despesa' || (editingItem as any).vencimento) updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
+                      else updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
+                    } else {
+                      if ((data as any).data_recebimento) addReceita(data as Omit<Receita, 'id'>);
+                      else addDespesa(data as Omit<Despesa, 'id'>);
+                    }
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                  onSubmitContaFixa={async (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
+                    if (editingItem && (editingItem as any).id) {
+                      await updateContaFixa((editingItem as any).id, data);
+                    } else {
+                      await addContaFixa(data);
+                    }
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                  onSubmitEmprestimo={(data: Partial<Emprestimo>) => {
+                    if (editingItem) updateEmprestimo(data);
+                    else addEmprestimo(data);
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                />
+              ) : modalType === 'titular' ? (
+                <TitularForm
+                  key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+                  initialData={editingItem as Titular}
+                  onSubmit={(data) => {
+                    if (editingItem) updateTitular(editingItem.id, data);
+                    else addTitular(data);
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                />
+              ) : modalType === 'cartao' ? (
+                <CartaoForm
+                  key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
+                  initialData={editingItem as CartaoConfig}
+                  titulares={config.titulares}
+                  onSubmit={(data) => {
+                    if (editingItem) updateCartao(editingItem.id, data);
+                    else addCartao(data);
+                    setIsModalOpen(false);
+                    setEditingItem(null);
+                  }}
+                />
+
+              ) : modalType === 'payoff' && (selectedLoan || selectedFixed) ? (
+                <PayoffModal 
+                  loan={selectedLoan!}
+                  item={selectedFixed!}
+                  installments={despesas.filter(d => 
+                    (selectedLoan && Number(d.emprestimo_id) === Number(selectedLoan.id)) || 
+                    (selectedFixed && Number(d.conta_fixa_id) === Number(selectedFixed.conta_fixa_id))
+                  )}
+                  onConfirmPayoff={quitarParcelas}
+                  onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedLoan(null);
+                    setSelectedFixed(null);
+                  }}
+                />
+              ) : null}
+            </Modal>
+
+            <MonthYearModal
+              isOpen={isMonthYearModalOpen}
+              onClose={() => setIsMonthYearModalOpen(false)}
+              currentMonth={currentMonth}
+              currentYear={currentYear}
+              onSelect={(m, y) => {
+                setMonth(m);
+                setYear(y);
               }}
             />
 
-          ) : modalType === 'payoff' && (selectedLoan || selectedFixed) ? (
-            <PayoffModal 
-              loan={selectedLoan!}
-              item={selectedFixed!}
-              installments={despesas.filter(d => 
-                (selectedLoan && Number(d.emprestimo_id) === Number(selectedLoan.id)) || 
-                (selectedFixed && Number(d.conta_fixa_id) === Number(selectedFixed.conta_fixa_id))
-              )}
-              onConfirmPayoff={quitarParcelas}
+            <ConfirmModal
+              isOpen={isConfirmDeleteOpen}
               onClose={() => {
-                setIsModalOpen(false);
-                setSelectedLoan(null);
-                setSelectedFixed(null);
+                setIsConfirmDeleteOpen(false);
+                setItemToDelete(null);
               }}
+              onConfirm={async () => {
+                if (!itemToDelete) return;
+                const { id, type } = itemToDelete;
+                if (type === 'despesa') await deleteDespesa(id);
+                else if (type === 'receita') await deleteReceita(id);
+                else if (type === 'cartao_transacao') await deleteCartaoTransacao(id);
+                else if (type === 'titular') await deleteTitular(id);
+                else if (type === 'cartao') await deleteCartao(id);
+                else if (type === 'emprestimo') await deleteEmprestimo(id);
+                else if (type === 'conta_fixa') await deleteContaFixa(id);
+                
+                setIsConfirmDeleteOpen(false);
+                setItemToDelete(null);
+              }}
+              title="Confirmar Exclusão"
+              message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+              confirmLabel="Excluir"
             />
-          ) : null}
-        </Modal>
+          </div>
 
-        <MonthYearModal
-          isOpen={isMonthYearModalOpen}
-          onClose={() => setIsMonthYearModalOpen(false)}
-          currentMonth={currentMonth}
-          currentYear={currentYear}
-          onSelect={(m, y) => {
-            setMonth(m);
-            setYear(y);
-          }}
-        />
-
-        <ConfirmModal
-          isOpen={isConfirmDeleteOpen}
-          onClose={() => {
-            setIsConfirmDeleteOpen(false);
-            setItemToDelete(null);
-          }}
-          onConfirm={() => {
-            if (!itemToDelete) return;
-            const { id, type } = itemToDelete;
-            if (type === 'despesa') deleteDespesa(id);
-            else if (type === 'receita') deleteReceita(id);
-            else if (type === 'cartao_transacao') deleteCartaoTransacao(id);
-            else if (type === 'titular') deleteTitular(id);
-            else if (type === 'cartao') deleteCartao(id);
-            else if (type === 'emprestimo') deleteEmprestimo(id);
-            else if (type === 'conta_fixa') deleteContaFixa(id);
-          }}
-          title="Confirmar Exclusão"
-          message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
-          confirmLabel="Excluir"
-        />
-
-
-        <SettingsModal 
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
+          <SettingsModal 
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
           user={userProfile}
           isDarkMode={isDarkMode}
           themeMode={themeMode}
@@ -1356,7 +1470,8 @@ export default function Home() {
             setIsConfirmDeleteOpen(true);
           }}
         />
-      </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

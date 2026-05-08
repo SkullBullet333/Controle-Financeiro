@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
-import { format, addMonths, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
+import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -25,12 +25,15 @@ export function useFinance(activeView: string) {
   const [userName, setUserName] = useState<string | null>(null);
   const [userType, setUserType] = useState<'titular' | 'membro'>('membro');
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
     if (!targetId) return;
 
-    setIsLoading(true);
+    if (isInitialLoad.current) {
+      setIsLoading(true);
+    }
     const now = new Date();
     const sixMonthsAgo = format(addMonths(now, -6), 'yyyy-MM-01');
 
@@ -115,6 +118,7 @@ export function useFinance(activeView: string) {
       alert(`Erro ao carregar dados: ${msg}`);
     } finally {
       setIsLoading(false);
+      isInitialLoad.current = false;
     }
   }, [user?.id]);
 
@@ -218,13 +222,13 @@ export function useFinance(activeView: string) {
     return { success: true };
   };
 
-  // Carregamento de dados disparado por mudanças no usuário ou no período
+  // Carregamento de dados disparado por mudanças no usuário
   useEffect(() => {
     if (user?.id) {
       fetchData(user.id);
       fetchProfile();
     }
-  }, [user?.id, currentMonth, currentYear, fetchData, fetchProfile]);
+  }, [user?.id, fetchData, fetchProfile]);
 
   // Auth listener - roda apenas uma vez para configurar o ouvinte
   useEffect(() => {
@@ -252,6 +256,7 @@ export function useFinance(activeView: string) {
         setNota('');
         setFamilyId(null);
         setIsLoading(false);
+        isInitialLoad.current = true;
       }
     });
 
@@ -750,9 +755,66 @@ export function useFinance(activeView: string) {
     return receitas.filter(r => r.competencia === competencia);
   }, [receitas, competencia]);
 
+  const allProjectedCartaoTransacoes = useMemo(() => {
+    const base = cartaoTransacoes;
+    
+    // Lançamentos virtuais de cartões vindos de contasFixas
+    const virtuals: CartaoTransacao[] = [];
+    contasFixas.filter(cf => cf.cartao_id && (!cf.tipo || cf.tipo === 'despesa')).forEach(cf => {
+      const dataInicial = parseISO(cf.data_inicio);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDia = isLastDayOfMonth(dataInicial);
+      
+      const lastParcelaToProject = cf.total_parcelas || 24;
+
+      for (let i = 1; i <= lastParcelaToProject; i++) {
+        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        
+        let comp = '';
+        if (cf.competencia_inicial) {
+          const [m, y] = cf.competencia_inicial.split('/').map(Number);
+          const baseDate = new Date(y, m - 1, 1);
+          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+        } else {
+          const card = config.cartoes.find(c => c.id === cf.cartao_id);
+          if (card) {
+            comp = calcularCompetenciaCartao(dataVenc, card.dia_vencimento, card.dia_fechamento);
+          } else {
+            comp = calcularCompetencia(dataVenc);
+          }
+        }
+
+        // Verifica se já existe um lançamento real para esta "parcela" virtual
+        const existeNoBanco = cartaoTransacoes.find(ct => 
+          ct.cartao_id === cf.cartao_id && 
+          ct.estabelecimento === cf.descricao &&
+          ct.competencia === comp
+        );
+
+        if (!existeNoBanco) {
+          virtuals.push({
+            id: -50000000 - (cf.id * 1000) - i,
+            cartao_id: cf.cartao_id!,
+            estabelecimento: cf.descricao,
+            valor: cf.valor_mensal,
+            parcela_atual: i,
+            parcela_total: cf.total_parcelas || 1,
+            competencia: comp,
+            data_compra: format(dataVenc, 'yyyy-MM-dd'),
+            titular_id: cf.titular_id,
+            categoria: cf.categoria,
+            user_id: user?.id || '',
+          });
+        }
+      }
+    });
+
+    return [...base, ...virtuals];
+  }, [cartaoTransacoes, contasFixas, user?.id]);
+
   const filteredCartaoTransacoes = useMemo(() => {
-    return cartaoTransacoes.filter(c => c.competencia === competencia);
-  }, [cartaoTransacoes, competencia]);
+    return allProjectedCartaoTransacoes.filter(c => c.competencia === competencia);
+  }, [allProjectedCartaoTransacoes, competencia]);
   
   const totalsByCard = useMemo(() => {
     const totals: Record<number, number> = {};
@@ -847,7 +909,7 @@ export function useFinance(activeView: string) {
 
     // 4. Parcelas de Contas Fixas (Virtuais)
     const virtualFixedInstallments: Despesa[] = [];
-    contasFixas.filter(c => !c.tipo || c.tipo === 'despesa').forEach(config => {
+    contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id).forEach(config => {
       const dataInicial = parseISO(config.data_inicio);
       const diaOriginal = getDate(dataInicial);
       const isUltimoDia = isLastDayOfMonth(dataInicial);
@@ -902,10 +964,10 @@ export function useFinance(activeView: string) {
     
     // 1. Alertas de itens físicos (qualquer competência)
     const physicalVencidas = despesas.filter(d => 
-      d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr
+      d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr && !d.cartao_vencimento_id && !d.isSummary
     );
     const physicalHoje = despesas.filter(d => 
-      d.status === 'Em aberto' && d.vencimento === todayStr
+      d.status === 'Em aberto' && d.vencimento === todayStr && !d.cartao_vencimento_id && !d.isSummary
     );
 
     // 2. Alertas de itens virtuais (Empréstimos)
@@ -939,9 +1001,9 @@ export function useFinance(activeView: string) {
       }
     });
 
-    // 3. Alertas de itens virtuais (Contas Fixas)
+    // 3. Alertas de itens virtuais (Contas Fixas - Exclui Cartões)
     const virtualFixedAlerts: Despesa[] = [];
-    contasFixas.filter(c => !c.tipo || c.tipo === 'despesa').forEach(config => {
+    contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id).forEach(config => {
       const dataInicial = parseISO(config.data_inicio);
       const diaOriginal = getDate(dataInicial);
       const isUltimoDia = isLastDayOfMonth(dataInicial);
@@ -1176,7 +1238,22 @@ export function useFinance(activeView: string) {
 
       const rec = recFisicas + recVirtuais;
       const desp = despesas.filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura ')).reduce((acc, d) => acc + d.valor, 0);
-      const fats = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + c.valor, 0);
+      
+      // Projetar faturas (físicas + virtuais de cartão)
+      const fatsFisicas = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + c.valor, 0);
+      const fatsVirtuais = contasFixas.filter(c => c.cartao_id && (!c.tipo || c.tipo === 'despesa')).reduce((acc, config) => {
+          const dataInicial = parseISO(config.data_inicio);
+          const currentProj = parseISO(`${tempYear}-${String(tempMonth).padStart(2, '0')}-01`);
+          
+          if (!isBefore(currentProj, startOfMonth(dataInicial))) {
+            if (!config.total_parcelas || differenceInMonths(currentProj, dataInicial) < config.total_parcelas) {
+                const jaLancada = cartaoTransacoes.find(ct => ct.cartao_id === config.cartao_id && ct.estabelecimento === config.descricao && ct.competencia === comp);
+                if (!jaLancada) return acc + config.valor_mensal;
+            }
+          }
+          return acc;
+      }, 0);
+      const fats = fatsFisicas + fatsVirtuais;
       
       projecao.push({
         competencia: comp,
@@ -1305,20 +1382,24 @@ export function useFinance(activeView: string) {
           }
 
           if (targetComps.includes(comp)) {
-            const exists = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i));
-            if (!exists) {
+            const existsInDespesas = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i));
+            const existsInCartoes = cartaoTransacoes.find(ct => Number(ct.conta_fixa_id) === Number(config.id) && Number(ct.parcela_atual) === Number(i));
+            
+            if (!existsInDespesas && !existsInCartoes) {
               const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
               toLaunch.push({
                 descricao: config.descricao,
                 valor: config.valor_mensal,
-                vencimento: format(dataVenc, 'yyyy-MM-dd'),
+                vencimento: format(dataVenc, 'yyyy-MM-dd'), // Para despesas comuns
+                data_compra: format(dataVenc, 'yyyy-MM-dd'), // Para cartões
                 competencia: comp,
                 status: 'Em aberto',
                 titular_id: config.titular_id,
                 conta_fixa_id: config.id,
                 parcela_atual: i,
                 parcela_total: config.total_parcelas || 0,
-                categoria: config.categoria || 'Contas Fixas',
+                categoria: config.categoria || (config.cartao_id ? 'cartoes' : 'Contas Fixas'),
+                cartao_id: config.cartao_id || null,
                 user_id: user.id,
                 family_id: familyId
               });
@@ -1342,20 +1423,26 @@ export function useFinance(activeView: string) {
         if (finalToLaunch.length > 0) {
           console.log(`Auto-lançando ${finalToLaunch.length} despesas projetadas.`);
           lastAutoLaunchRef.current = todayStr; 
-          const { error } = await supabase.from('despesas').insert(finalToLaunch);
-          if (error) {
-            console.error('Erro ao auto-lançar despesas:', error);
-            // Remover do ref se deu erro para permitir tentar de novo
-            finalToLaunch.forEach(item => {
-              const key = item.emprestimo_id 
-                ? `loan-${item.emprestimo_id}-${item.parcela_atual}`
-                : `fixed-${item.conta_fixa_id}-${item.parcela_atual}`;
-              syncedExpensesRef.current.delete(key);
-            });
-            lastAutoLaunchRef.current = null;
-          } else {
-            fetchData();
+          
+          // Separa o que é cartão do que é despesa comum
+          const cardsToLaunch = finalToLaunch.filter(item => (item as any).cartao_id);
+          const normalsToLaunch = finalToLaunch.filter(item => !(item as any).cartao_id);
+
+          if (cardsToLaunch.length > 0) {
+            const { error: cardError } = await supabase.from('cartoes').insert(cardsToLaunch);
+            if (cardError) console.error('Erro ao auto-lançar transações de cartão:', cardError);
           }
+
+          if (normalsToLaunch.length > 0) {
+            const { error: normalError } = await supabase.from('despesas').insert(normalsToLaunch);
+            if (normalError) {
+              console.error('Erro ao auto-lançar despesas:', normalError);
+              // Fallback
+              lastAutoLaunchRef.current = null;
+            }
+          }
+
+          fetchData();
         }
       } else {
         // Se não tem nada para lançar, também marcamos como checado para hoje
@@ -1383,6 +1470,7 @@ export function useFinance(activeView: string) {
     consolidatedDespesas,
     consolidatedReceitas,
     filteredCartaoTransacoes,
+    allProjectedCartaoTransacoes,
     despesasGerais,
     stats,
     radarStats,
