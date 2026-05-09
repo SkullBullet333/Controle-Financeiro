@@ -295,8 +295,10 @@ export function SettingsView({
               <div className="d-flex align-items-center gap-3 flex-wrap">
                 {[
                   '#4361ee', // Azul Royal
+                  '#0E2841', // Midnight Blue (Nova)
+                  '#262626', // Midnight Gray (Nova)
                   '#003641', // Azul Sicoob (Original)
-                  '#1e1b4b', // Azul Noturno (O preferido do usuário)
+                  '#1e1b4b', // Azul Noturno
                   '#10b981', // Verde Esmeralda
                   '#06b6d4', // Ciano
                   '#f43f5e', // Rosa

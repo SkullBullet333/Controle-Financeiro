@@ -188,8 +188,20 @@ export function Topbar({
   showBackButton, user, themeColor, alertas, onOpenModal 
 }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const totalAlertas = (alertas?.vencidas?.length || 0) + (alertas?.vencendoHoje?.length || 0);
   const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const getTitle = () => {
     switch (title) {
@@ -246,17 +258,45 @@ export function Topbar({
             </div>
             
             <div 
-              className="position-relative cursor-pointer active:scale-95 transition-transform" 
-              style={{ width: '36px', height: '36px' }}
-              onClick={() => onOpenModal?.('profile')}
+              className="position-relative"
+              ref={userMenuRef}
             >
-              <Image
-                src={user?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nome || 'Usuário')}&background=4361ee&color=fff&bold=true`}
-                fill
-                unoptimized
-                className="rounded-circle object-fit-cover ring-2 ring-white/20 shadow-sm"
-                alt={user?.nome || 'User'}
-              />
+              <div 
+                className="cursor-pointer active:scale-95 transition-transform" 
+                style={{ width: '36px', height: '36px' }}
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
+                <Image
+                  src={user?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nome || 'Usuário')}&background=4361ee&color=fff&bold=true`}
+                  fill
+                  unoptimized
+                  className="rounded-circle object-fit-cover ring-2 ring-white/20 shadow-sm"
+                  alt={user?.nome || 'User'}
+                />
+              </div>
+
+              {showUserMenu && (
+                <div 
+                  className="position-absolute end-0 top-100 mt-2 bg-card border border-border rounded-2xl shadow-2xl p-2 z-[10000] animate-in fade-in zoom-in-95 duration-200" 
+                  style={{ width: '180px' }}
+                >
+                  <button 
+                    className="w-100 text-start px-3 py-2 rounded-xl hover:bg-muted transition-colors d-flex align-items-center gap-3 border-0 bg-transparent text-foreground"
+                    onClick={() => { setShowUserMenu(false); onOpenModal?.('profile'); }}
+                  >
+                    <span className="material-symbols-outlined text-muted-foreground" style={{ fontSize: '20px' }}>person</span>
+                    <span className="small font-medium">Meu Perfil</span>
+                  </button>
+                  <div className="h-[1px] bg-border my-1 opacity-30"></div>
+                  <button 
+                    className="w-100 text-start px-3 py-2 text-danger hover:bg-danger/10 rounded-xl transition-colors d-flex align-items-center gap-3 border-0 bg-transparent"
+                    onClick={() => { setShowUserMenu(false); onLogout?.(); }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>logout</span>
+                    <span className="small font-medium">Sair</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -356,7 +396,7 @@ export function Topbar({
                 >
                   <i className="fa-regular fa-calendar text-muted-foreground opacity-60"></i>
                   <div className="d-flex align-items-center gap-1.5 font-black tracking-widest uppercase text-[11px]">
-                    <span id="lblMes" style={{ color: themeColor }}>{months[month - 1]}</span> 
+                    <span id="lblMes" className="text-foreground">{months[month - 1]}</span> 
                     <span id="lblAno" className="text-foreground">{year}</span>
                   </div>
                 </div>

@@ -48,8 +48,8 @@ export function AnalysisPlan({ projecao }: AnalysisPlanProps) {
               <div className="text-center mb-2">
                 <span className={cn(
                   "fw-bold uppercase tracking-widest",
-                  idx === 0 ? "text-blue-400" : "text-dark"
-                )} style={{ fontSize: '0.9rem', fontWeight: 800, color: idx === 0 ? '#738cff' : undefined }}>
+                  idx === 0 ? "text-navy" : "text-dark"
+                )} style={{ fontSize: '0.9rem', fontWeight: 800 }}>
                   {getMonthName(mes.competencia)}
                 </span>
               </div>

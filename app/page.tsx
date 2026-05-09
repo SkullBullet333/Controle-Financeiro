@@ -328,7 +328,7 @@ export default function Home() {
     }
   };
 
-  if (!authUser) {
+  if (!isLoading && !authUser) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 bg-slate-900">
         <div className="card border-0 rounded-4 shadow-lg overflow-hidden w-100" style={{ maxWidth: '400px' }}>
@@ -952,7 +952,7 @@ export default function Home() {
                           }
                         }}
                       >
-                        <div className="fw-bold">
+                        <div className="fw-bold text-navy">
                           {d.descricao} 
                           <span className="ms-1 text-muted fw-normal opacity-75 small italic">"{titularNome}"</span>
                         </div>
@@ -982,7 +982,7 @@ export default function Home() {
                     <i className="fa-solid fa-rotate-left me-1"></i> Limpar Seleção
                   </button>
                 </div>
-                <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <div className="table-responsive d-none d-md-block" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                   <table className="table table-hover align-middle mb-0">
                     <thead className="table-light">
                       <tr>
@@ -1028,6 +1028,42 @@ export default function Home() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile List View for Radar */}
+                <div className="d-md-none p-2 space-y-2" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                  {radarDespesasSelecionadas.map(d => {
+                    const loan = d.emprestimo_id ? emprestimos.find(e => e.id === d.emprestimo_id) : null;
+                    const taxa = loan?.taxa_mensal_percentual || 0;
+                    const { vp, discount } = (taxa > 0 && d.vencimento && d.vencimento !== '-')
+                      ? calculatePresentValue(d.valor, taxa, d.vencimento, new Date())
+                      : { vp: d.valor, discount: 0 };
+                    
+                    const titularNome = config.titulares.find(t => t.id === d.titular_id)?.nome || 'N/A';
+
+                    return (
+                      <div key={d.id} className="sicoob-list-item !gap-3">
+                        <div className="sicoob-list-icon bg-primary bg-opacity-10 text-primary">
+                          <i className="fa-solid fa-file-invoice-dollar text-xs"></i>
+                        </div>
+                        <div className="sicoob-list-content">
+                          <div className="text-[11px] font-bold text-navy leading-tight line-clamp-1">{d.descricao}</div>
+                          <div className="d-flex align-items-center gap-1.5 mt-0.5">
+                            <span className="text-[9px] font-bold text-primary">{titularNome}</span>
+                            <span className="text-[9px] text-muted opacity-30">●</span>
+                            <span className="text-[9px] text-muted">Parc. {d.parcela_atual}/{d.parcela_total}</span>
+                          </div>
+                          <div className="text-[9px] text-muted mt-0.5">Venc: {d.vencimento && d.vencimento !== '-' ? d.vencimento.split('-').reverse().join('/') : '-'}</div>
+                        </div>
+                        <div className="sicoob-list-value">
+                          <div className="text-[11px] font-black text-navy">{formatCurrency(vp)}</div>
+                          {discount > 0 && (
+                            <div className="text-[9px] text-success font-bold">-{formatCurrency(discount)}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -1063,7 +1099,7 @@ export default function Home() {
 
             <div className="row g-4 mt-4">
               <div className="col-lg-6">
-                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-fit">
+                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-[400px] flex flex-col">
                   <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                     <Lightbulb className="text-warning" /> Insights e Sugestões
                   </h3>

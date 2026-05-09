@@ -1892,7 +1892,7 @@ export function PayoffModal({
       <div className="space-y-6">
         <div className="bg-primary/5 p-3 rounded-2xl border border-primary/10 d-flex align-items-center justify-content-between gap-3">
           <div className="flex-grow-1">
-            <label className="text-[11px] font-bold uppercase text-primary mb-0 block">Referência de Hoje</label>
+            <label className="text-[11px] font-bold uppercase text-muted mb-0 block">Referência de Hoje</label>
             {loan && (
               <div className="text-[9px] text-muted opacity-75 font-medium">Juros: {loan.taxa_mensal_percentual}% ao mês</div>
             )}
@@ -1907,20 +1907,22 @@ export function PayoffModal({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl p-3 text-center">
-            <div className="text-[10px] font-bold text-muted uppercase">Selecionado</div>
-            <div className="text-lg font-black text-navy">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
-            <div className="text-[9px] text-muted">{selectedParcelas.length} itens</div>
+          <div className="bg-card border border-border rounded-xl py-2.5 px-3 text-center flex flex-column justify-content-between min-h-[90px]">
+            <div className="text-[10px] font-bold text-muted uppercase leading-tight">Selecionado</div>
+            <div className="text-xl font-black text-navy my-1">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
+            <div className="text-[12px] font-bold text-muted leading-tight">{selectedParcelas.length} itens</div>
           </div>
-          <div className="bg-navy rounded-xl p-3 text-center text-white shadow-lg">
-            <div className="text-[10px] font-bold text-white/60 uppercase">Valor a Pagar</div>
-            <div className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
-            {totalDiscount > 0 && <div className="text-[9px] text-success font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}</div>}
+          <div className="bg-navy rounded-xl py-2.5 px-3 text-center text-white shadow-lg flex flex-column justify-content-between min-h-[90px]">
+            <div className="text-[10px] font-bold text-white/60 uppercase leading-tight">Valor a Pagar</div>
+            <div className="text-xl font-black my-1">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
+            <div className="text-sm text-success font-black leading-tight">
+              {totalDiscount > 0 ? `-${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}` : '\u00A0'}
+            </div>
           </div>
         </div>
 
         <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar border rounded-xl overflow-hidden">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover align-middle mb-0 d-none d-md-table">
             <thead className="sticky top-0 bg-slate-50 z-10">
               <tr className="border-b">
                 <th style={{ width: '40px' }} className="px-3 py-2">
@@ -1967,6 +1969,40 @@ export function PayoffModal({
               ))}
             </tbody>
           </table>
+
+          {/* Mobile List View */}
+          <div className="d-md-none p-1 space-y-1">
+            {simulation.map(i => {
+              const isSelected = selectedIds.includes(i.id);
+              return (
+                <div 
+                  key={i.id}
+                  onClick={() => setSelectedIds(prev => isSelected ? prev.filter(id => id !== i.id) : [...prev, i.id])}
+                  className={cn(
+                    "sicoob-list-item !mb-1 !gap-2",
+                    isSelected ? "ring-1 ring-primary/30 bg-primary/5" : ""
+                  )}
+                >
+                  <div className="flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      className="form-check-input mt-0"
+                      checked={isSelected}
+                      readOnly
+                    />
+                  </div>
+                  <div className="sicoob-list-content">
+                    <div className="text-[11px] font-bold text-navy leading-tight">Parc. {i.parcela_atual}/{i.parcela_total}</div>
+                    <div className="text-[9px] text-muted">{i.vencimento.split('-').reverse().join('/')}</div>
+                  </div>
+                  <div className="sicoob-list-value">
+                    <div className="text-[11px] font-black text-navy leading-tight">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</div>
+                    <div className="text-[9px] text-success font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
           {simulation.length === 0 && (
             <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada.</div>
           )}
