@@ -4,33 +4,34 @@ Este documento serve como guia de contexto para assistentes de IA (como Antigrav
 
 ## 🛠️ Stack Tecnológica
 - **Framework:** Next.js 15.1.x (App Router, 'use client' extensivo para painéis dinâmicos)
-- **Estilização:** Tailwind CSS (moderno, dark mode nativo) + Vanilla CSS/Estilos Inline em componentes críticos para evitar conflitos de Bootstrap legados.
-- **Backend/Auth:** Supabase (PostgreSQL + RLS + Storage para avatares)
-- **Estado Global/Lógica:** Hooks customizados (`hooks/use-finance.ts`) centralizando a computação de dados derivados (competência, totais, faturas virtuais).
+- **Estilização:** Tailwind CSS + Vanilla CSS.
+    - **Temas:** Suporte a **Light**, **Dark** (Azul profundo) e **Midnight Black** (Preto absoluto).
+    - **Cores:** Cores de destaque (`--primary`) são personalizáveis por usuário e sincronizadas via banco de dados.
+- **Backend/Auth:** Supabase (PostgreSQL + RLS + Storage para avatares).
+- **Estado Global/Lógica:** Hook customizado `hooks/use-finance.ts` centralizando CRUDs, autenticação e computação de dados derivados (faturas virtuais, projeções de contas fixas).
 - **Ícones:** Material Symbols Outlined (Google) e Lucide-React.
 
 ## 📐 Arquitetura e Decisões de Design
-### 1. Fluxo de Lançamento (Redesign Premium)
-O modal de "Nova Despesa" foi redesenhado para ser ultra-clean e eficiente:
-- **Passo 1:** Preenchimento de dados básicos (valor, descrição, data, responsável, categoria).
-- **Passo 2:** Escolha de pagamento (À Vista ou Parcelado) com cards interativos.
-- **Estilo:** Bordas arredondadas de `1.5rem` nos cards internos e `2.5rem` no modal externo. O valor principal e o ícone do cabeçalho compartilham o fundo suave `#F8FAFC` e a cor `text-navy` para uma experiência visual coesa e premium.
-- **Cores:** Paleta de azuis profundos (`#1E40AF`) para ações positivas e vermelho suave para ações neutras/voltar.
+### 1. Fluxo de Lançamento e Transações
+- **Valores Negativos:** O sistema permite a entrada de valores negativos em transações de cartão de crédito para representar créditos ou estornos, refletindo corretamente nos totais da fatura.
+- **Parcelamento:** Suporte a lançamentos parcelados com projeção automática de competências.
+- **Estilo:** Design premium com bordas arredondadas (`2.5rem` em modais), sombras suaves e micro-interações.
 
-### 2. Sincronização de Dados
-- Toda a lógica de "fatura virtual" de cartões é gerada On-The-Fly no hook `useFinance` para evitar duplicidade no banco, consolidando transações reais em entradas de extrato.
-- **Competência:** O sistema usa um modelo de competência `MM/YYYY` para filtrar gastos, independentemente da data de vencimento.
+### 2. Sincronização e Preferências
+- **Profiles:** Preferências de tema, modo e cores são armazenadas na tabela `profiles` e vinculadas ao `user_id`.
+- **Faturas Virtuais:** A lógica de fatura é gerada On-The-Fly para evitar duplicidade, consolidando transações reais e projeções de contas fixas no hook `useFinance`.
+- **Antecipação:** Funcionalidade de antecipação de parcelas (Payoff) com cálculo automático de desconto baseado em Valor Presente (VP).
 
 ## 📁 Estrutura de Arquivos Crítica
-- `components/modals.tsx`: Contém todos os modais de interação (FinanceForm, SettingsModal, etc). Arquivo denso (>1400 linhas).
-- `hooks/use-finance.ts`: O "cérebro" da aplicação, gerencia CRUDs, autenticação e agregação de dados.
-- `lib/supabase.ts`: Configuração do cliente Supabase. Requer `.env` local.
-- `app/page.tsx`: Layout principal do Dashboard.
+- `components/modals.tsx`: Arquivo extremamente denso (**~2375 linhas**). Contém toda a lógica de formulários e modais de configuração. **Cuidado ao editar blocos grandes.**
+- `app/page.tsx`: Layout principal do Dashboard (**~70KB**). Gerencia a montagem de todos os widgets e visões.
+- `hooks/use-finance.ts`: O "cérebro" da aplicação, gerencia o estado global e a comunicação com o Supabase.
+- `lib/finance-service.ts`: Utilitários de lógica financeira, cálculos de competência e persistência.
 
 ## ⚠️ Observações de Desenvolvimento
-- **Configuração:** O arquivo `.env` deve conter `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-- **CSS:** Evite adicionar classes globais que possam quebrar o layout de "Cards" do Dashboard. Prefira utilitários Tailwind ou estilos isolados no componente.
-- **Sintaxe JSX:** O arquivo `modals.tsx` é complexo; ao editar, garanta que as tags de fechamento do `Backdrop` e `Modal` estejam integradas ao controle de estado `{step === 'confirm' && (...)}`.
+- **Performance:** Devido ao tamanho de `modals.tsx` e `page.tsx`, prefira edições cirúrgicas. Evite reescritas totais que possam quebrar estados de componentes controlados.
+- **Configuração:** `.env` requer `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- **Z-Index:** Atenção ao empilhamento de modais (SettingsModal vs FinanceForm) definido via classes customizadas de Z-Index no `globals.css`.
 
 ---
-*Última atualização: Março de 2026*
+*Última atualização: Maio de 2026*
