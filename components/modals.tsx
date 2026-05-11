@@ -991,8 +991,8 @@ export function FinanceForm({
                 setValidationError('Por favor, informe uma descrição.');
                 return;
               }
-              if (!formData.valor || parseFloat(formData.valor) <= 0) {
-                setValidationError('Por favor, informe um valor válido.');
+              if (!formData.valor || isNaN(parseFloat(formData.valor)) || parseFloat(formData.valor) === 0) {
+                setValidationError('Por favor, informe um valor válido (diferente de zero).');
                 return;
               }
               if (type === 'despesa' && subType === 'cartao' && !formData.cartao_vencimento_id) {
