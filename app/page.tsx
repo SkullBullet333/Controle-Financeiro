@@ -1099,11 +1099,11 @@ export default function Home() {
 
             <div className="row g-4 mt-4">
               <div className="col-lg-6">
-                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-[400px] flex flex-col">
+                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-[500px] flex flex-col">
                   <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                     <Lightbulb className="text-warning" /> Insights e Sugestões
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1">
                     {[
                       { title: 'Atenção ao Saldo', text: 'Suas despesas estão próximas da receita. Revise gastos.', color: 'bg-danger/10 text-danger' },
                       { title: 'Reserva de Emergência', text: 'Tente separar 10% da receita antes do mês começar.', color: 'bg-primary/10 text-primary' },
@@ -1119,7 +1119,7 @@ export default function Home() {
               </div>
 
               <div className="col-lg-6">
-                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-[400px] flex flex-col">
+                <div className="bg-card rounded-2xl border border-border p-6 shadow-sm h-[500px] flex flex-col">
                   <h3 className="text-center font-bold text-gray text-xs uppercase tracking-widest mb-6">📊 Distribuição Essencial vs. Estilo de Vida</h3>
                   <div className="flex-1">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1131,8 +1131,8 @@ export default function Home() {
                           ]}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
+                          innerRadius={80}
+                          outerRadius={110}
                           paddingAngle={5}
                           dataKey="value"
                         >

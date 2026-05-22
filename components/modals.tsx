@@ -469,7 +469,7 @@ export function FinanceForm({
       data.vencimento = finalDate;
       data.status = formData.status;
       data.parcela_atual = formData.parcela_atual;
-      data.parcela_total = paymentType === 'A vista' ? 1 : formData.parcela_total;
+      data.parcela_total = paymentType === 'A vista' ? 1 : (parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2));
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
 
       if (!data.cartao_vencimento_id) {
@@ -484,7 +484,7 @@ export function FinanceForm({
       data.data_recebimento = finalDate;
       const dataAjustada = ajustarDataReceita(parseISO(finalDate));
       data.competencia = calcularCompetenciaReceita(dataAjustada);
-      data.parcela_total = formData.parcela_total;
+      data.parcela_total = parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2);
     }
 
     if ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente)) {
@@ -492,7 +492,7 @@ export function FinanceForm({
         await onSubmitContaFixa({
           descricao: formData.descricao,
           valor_mensal: parseFloat(formData.valor),
-          total_parcelas: isIndefinite ? null : parseInt(formData.parcela_total as any),
+          total_parcelas: isIndefinite ? null : (parseInt(formData.parcela_total as any) || 12),
           parcela_atual: 1,
           data_inicio: finalDate,
           competencia_inicial: type === 'receita' 
@@ -687,14 +687,15 @@ export function FinanceForm({
                         )}
                         onClick={() => setIsIndefinite(true)}
                       >
-                        Sem Prazo
+                        <span className="md:hidden">S/ Prazo</span>
+                        <span className="hidden md:inline">Sem Prazo</span>
                       </button>
 
                       {!isIndefinite ? (
-                        <div className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full">
+                        <div className="flex-1 relative z-10 text-white flex items-center justify-center md:justify-between px-1.5 transition-all duration-300 h-full">
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -703,13 +704,16 @@ export function FinanceForm({
                             type="number"
                             min="1"
                             max="120"
-                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-full md:w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
-                            onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 12 })}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFormData({ ...formData, parcela_total: val === '' ? '' as any : parseInt(val) });
+                            }}
                           />
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -729,7 +733,8 @@ export function FinanceForm({
                             }
                           }}
                         >
-                          Com Prazo
+                          <span className="md:hidden">C/ Prazo</span>
+                          <span className="hidden md:inline">Com Prazo</span>
                         </button>
                       )}
                     </>
@@ -758,11 +763,11 @@ export function FinanceForm({
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
-                          className="flex-1 relative z-10 flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                          className="flex-1 relative z-10 flex items-center justify-center md:justify-between px-1.5 transition-all duration-300 h-full"
                         >
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -771,13 +776,16 @@ export function FinanceForm({
                             type="number"
                             min="2"
                             max="99"
-                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-full md:w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
-                            onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 2 })}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFormData({ ...formData, parcela_total: val === '' ? '' as any : parseInt(val) });
+                            }}
                           />
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -849,14 +857,15 @@ export function FinanceForm({
                         )}
                         onClick={() => setIsIndefinite(true)}
                       >
-                        Sem Prazo
+                        <span className="md:hidden">S/ Prazo</span>
+                        <span className="hidden md:inline">Sem Prazo</span>
                       </button>
 
                       {!isIndefinite ? (
-                        <div className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full">
+                        <div className="flex-1 relative z-10 text-white flex items-center justify-center md:justify-between px-1.5 transition-all duration-300 h-full">
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.max(1, (formData.parcela_total || 1) - 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -865,13 +874,16 @@ export function FinanceForm({
                             type="number"
                             min="1"
                             max="120"
-                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-full md:w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
-                            onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 12 })}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFormData({ ...formData, parcela_total: val === '' ? '' as any : parseInt(val) });
+                            }}
                           />
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.min(120, (formData.parcela_total || 1) + 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -891,7 +903,8 @@ export function FinanceForm({
                             }
                           }}
                         >
-                          Com Prazo
+                          <span className="md:hidden">C/ Prazo</span>
+                          <span className="hidden md:inline">Com Prazo</span>
                         </button>
                       )}
                     </>
@@ -924,11 +937,11 @@ export function FinanceForm({
                       </button>
                       {paymentType === 'Parcelado' ? (
                         <div
-                          className="flex-1 relative z-10 text-white flex items-center justify-between px-1.5 transition-all duration-300 h-full"
+                          className="flex-1 relative z-10 text-white flex items-center justify-center md:justify-between px-1.5 transition-all duration-300 h-full"
                         >
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.max(2, (formData.parcela_total || 2) - 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -937,13 +950,16 @@ export function FinanceForm({
                             type="number"
                             min="2"
                             max="99"
-                            className="w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
+                            className="w-full md:w-7 bg-transparent border-none text-center focus:outline-none focus:ring-0 font-headline font-bold text-sm text-white p-0"
                             value={formData.parcela_total}
-                            onChange={e => setFormData({ ...formData, parcela_total: parseInt(e.target.value) || 2 })}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setFormData({ ...formData, parcela_total: val === '' ? '' as any : parseInt(val) });
+                            }}
                           />
                           <button
                             type="button"
-                            className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
+                            className="hidden md:flex w-6 h-6 items-center justify-center text-white/60 hover:text-white transition-colors shrink-0"
                             onClick={() => setFormData({ ...formData, parcela_total: Math.min(99, (formData.parcela_total || 2) + 1) })}
                           >
                             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
