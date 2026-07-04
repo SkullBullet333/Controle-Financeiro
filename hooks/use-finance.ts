@@ -1302,7 +1302,7 @@ export function useFinance(activeView: string) {
   const syncedRevenuesRef = useRef<Set<number>>(new Set());
   const syncedExpensesRef = useRef<Set<string>>(new Set());
 
-  // Auto-lançamento de despesas projetadas (5 dias antes do fim do mês)
+  // Auto-lançamento de despesas projetadas (cartões no dia da compra, empréstimos e fixas comuns 5 dias antes do fim do mês)
   useEffect(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
@@ -1314,9 +1314,6 @@ export function useFinance(activeView: string) {
       const lastDay = lastDayOfMonth(today);
       const daysToLast = lastDay.getDate() - today.getDate();
       
-      // Só ativa se estivermos nos últimos 5 dias do mês
-      if (daysToLast > 5) return;
-
       const nextMonthDate = addMonths(today, 1);
       const currentComp = format(today, 'MM/yyyy');
       const nextComp = format(nextMonthDate, 'MM/yyyy');
@@ -1324,82 +1321,108 @@ export function useFinance(activeView: string) {
       
       const toLaunch: any[] = [];
 
-      // 1. Verificar Empréstimos
-      for (const loan of emprestimos) {
-        const dataIni = parseISO(loan.data_primeiro_vencimento);
-        const diaOriginal = getDate(dataIni);
-        const isUltimo = isLastDayOfMonth(dataIni);
+      // 1. Verificar Empréstimos (Apenas nos últimos 5 dias do mês)
+      if (daysToLast <= 5) {
+        for (const loan of emprestimos) {
+          const dataIni = parseISO(loan.data_primeiro_vencimento);
+          const diaOriginal = getDate(dataIni);
+          const isUltimo = isLastDayOfMonth(dataIni);
 
-        for (let i = 1; i <= loan.total_parcelas; i++) {
-          let comp = '';
-          if (loan.competencia_inicial) {
-            const [m, y] = loan.competencia_inicial.split('/').map(Number);
-            comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
-          } else {
-            const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-            comp = format(dataV, 'MM/yyyy');
-          }
+          for (let i = 1; i <= loan.total_parcelas; i++) {
+            let comp = '';
+            if (loan.competencia_inicial) {
+              const [m, y] = loan.competencia_inicial.split('/').map(Number);
+              comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
+            } else {
+              const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+              comp = format(dataV, 'MM/yyyy');
+            }
 
-          if (targetComps.includes(comp)) {
-            const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i));
-            if (!exists) {
-              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-              toLaunch.push({
-                descricao: loan.descricao,
-                valor: loan.valor_parcela,
-                vencimento: format(dataVenc, 'yyyy-MM-dd'),
-                competencia: comp,
-                status: 'Em aberto',
-                titular_id: loan.titular_id,
-                emprestimo_id: loan.id,
-                parcela_atual: i,
-                parcela_total: loan.total_parcelas,
-                categoria: 'Empréstimos e Financiamentos',
-                user_id: user.id,
-                family_id: familyId
-              });
+            if (targetComps.includes(comp)) {
+              const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i));
+              if (!exists) {
+                const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+                toLaunch.push({
+                  descricao: loan.descricao,
+                  valor: loan.valor_parcela,
+                  vencimento: format(dataVenc, 'yyyy-MM-dd'),
+                  competencia: comp,
+                  status: 'Em aberto',
+                  titular_id: loan.titular_id,
+                  emprestimo_id: loan.id,
+                  parcela_atual: i,
+                  parcela_total: loan.total_parcelas,
+                  categoria: 'Empréstimos e Financiamentos',
+                  user_id: user.id,
+                  family_id: familyId
+                });
+              }
             }
           }
         }
       }
 
       // 2. Verificar Contas Fixas
-      for (const config of contasFixas) {
-        if (config.tipo === 'receita') continue;
-        const dataIni = parseISO(config.data_inicio);
+      for (const fixedConfig of contasFixas) {
+        if (fixedConfig.tipo === 'receita') continue;
+        const dataIni = parseISO(fixedConfig.data_inicio);
         const diaOriginal = getDate(dataIni);
         const isUltimo = isLastDayOfMonth(dataIni);
-        const limit = config.total_parcelas || 24;
+        const limit = fixedConfig.total_parcelas || 24;
 
         for (let i = 1; i <= limit; i++) {
+          const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
+          
           let comp = '';
-          if (config.competencia_inicial) {
-            const [m, y] = config.competencia_inicial.split('/').map(Number);
+          if (fixedConfig.competencia_inicial) {
+            const [m, y] = fixedConfig.competencia_inicial.split('/').map(Number);
             comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
           } else {
-            const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-            comp = format(dataV, 'MM/yyyy');
+            if (fixedConfig.cartao_id) {
+              const card = config.cartoes.find(c => c.id === fixedConfig.cartao_id);
+              if (card) {
+                comp = calcularCompetenciaCartao(dataV, card.dia_vencimento, card.dia_fechamento);
+              } else {
+                comp = format(dataV, 'MM/yyyy');
+              }
+            } else {
+              comp = format(dataV, 'MM/yyyy');
+            }
           }
 
-          if (targetComps.includes(comp)) {
-            const existsInDespesas = despesas.find(d => Number(d.conta_fixa_id) === Number(config.id) && Number(d.parcela_atual) === Number(i));
-            const existsInCartoes = cartaoTransacoes.find(ct => Number(ct.conta_fixa_id) === Number(config.id) && Number(ct.parcela_atual) === Number(i));
+          const isCartao = !!fixedConfig.cartao_id;
+          let shouldLaunch = false;
+
+          if (isCartao) {
+            const dataVencStr = format(dataV, 'yyyy-MM-dd');
+            shouldLaunch = dataVencStr <= todayStr;
+          } else {
+            shouldLaunch = (daysToLast <= 5) && targetComps.includes(comp);
+          }
+
+          if (shouldLaunch) {
+            const existsInDespesas = despesas.find(d => Number(d.conta_fixa_id) === Number(fixedConfig.id) && Number(d.parcela_atual) === Number(i));
+            const existsInCartoes = cartaoTransacoes.find(ct => 
+              Number(ct.cartao_id) === Number(fixedConfig.cartao_id) && 
+              ct.estabelecimento === fixedConfig.descricao && 
+              ct.competencia === comp &&
+              Number(ct.parcela_atual) === Number(i)
+            );
             
             if (!existsInDespesas && !existsInCartoes) {
-              const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
               toLaunch.push({
-                descricao: config.descricao,
-                valor: config.valor_mensal,
-                vencimento: format(dataVenc, 'yyyy-MM-dd'), // Para despesas comuns
-                data_compra: format(dataVenc, 'yyyy-MM-dd'), // Para cartões
+                descricao: fixedConfig.descricao,
+                valor: fixedConfig.valor_mensal,
+                vencimento: format(dataV, 'yyyy-MM-dd'), // Para despesas comuns
+                data_compra: format(dataV, 'yyyy-MM-dd'), // Para cartões
                 competencia: comp,
                 status: 'Em aberto',
-                titular_id: config.titular_id,
-                conta_fixa_id: config.id,
+                titular_id: fixedConfig.titular_id,
+                conta_fixa_id: fixedConfig.id,
                 parcela_atual: i,
-                parcela_total: config.total_parcelas || 0,
-                categoria: config.categoria || (config.cartao_id ? 'cartoes' : 'Contas Fixas'),
-                cartao_id: config.cartao_id || null,
+                parcela_total: fixedConfig.total_parcelas || 0,
+                categoria: fixedConfig.categoria || (isCartao ? 'cartoes' : 'Contas Fixas'),
+                cartao_id: fixedConfig.cartao_id || null,
                 user_id: user.id,
                 family_id: familyId
               });
@@ -1429,7 +1452,20 @@ export function useFinance(activeView: string) {
           const normalsToLaunch = finalToLaunch.filter(item => !(item as any).cartao_id);
 
           if (cardsToLaunch.length > 0) {
-            const { error: cardError } = await supabase.from('cartoes').insert(cardsToLaunch);
+            const mappedCards = cardsToLaunch.map(item => ({
+              user_id: item.user_id,
+              family_id: item.family_id,
+              estabelecimento: item.descricao,
+              valor: item.valor,
+              competencia: item.competencia,
+              cartao_id: item.cartao_id,
+              categoria: item.categoria,
+              titular_id: item.titular_id,
+              parcela_atual: item.parcela_atual,
+              parcela_total: item.parcela_total,
+              data_compra: item.data_compra
+            }));
+            const { error: cardError } = await supabase.from('cartoes').insert(mappedCards);
             if (cardError) console.error('Erro ao auto-lançar transações de cartão:', cardError);
           }
 
@@ -1451,7 +1487,7 @@ export function useFinance(activeView: string) {
     };
 
     autoLaunch();
-  }, [isLoading, familyId, user?.id, emprestimos, contasFixas, despesas.length, fetchData]);
+  }, [isLoading, familyId, user?.id, emprestimos, contasFixas, despesas.length, config.cartoes, fetchData]);
 
   return {
     user,

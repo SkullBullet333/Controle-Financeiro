@@ -582,6 +582,7 @@ export default function Home() {
                   updateCartaoTransacao(id, cardUpdates);
                 }
                 if (activeView === 'geral') updateDespesa(id, updates);
+                if (activeView === 'receitas') updateReceita(id, updates);
               }}
               titulares={config.titulares}
               cartoes={config.cartoes}
@@ -1328,6 +1329,7 @@ export default function Home() {
                   cartoes={config.cartoes}
                   competencia={competencia}
                   initialData={editingItem}
+                  isDarkMode={isDarkMode}
                   onClose={() => {
                     setIsModalOpen(false);
                     setEditingItem(null);
@@ -1479,9 +1481,17 @@ export default function Home() {
           isOpen={isExpenseSettingsOpen}
           onClose={() => setIsExpenseSettingsOpen(false)}
           themeColor={themeColor}
+          themeMode={themeMode}
           isDarkMode={isDarkMode}
           emprestimos={emprestimos}
           contasFixas={contasFixas}
+          initialTab={
+            activeView === 'cartoes' 
+              ? 'cartoes_rec' 
+              : activeView === 'receitas' 
+                ? 'rec_recorrentes' 
+                : 'recorrentes'
+          }
           onEditEmprestimo={(loan: Emprestimo) => {
             setEditingItem(loan);
             setModalType('emprestimo');

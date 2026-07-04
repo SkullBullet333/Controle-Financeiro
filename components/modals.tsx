@@ -50,7 +50,8 @@ export function UniversalFinanceForm({
   onSubmitFinance,
   onSubmitContaFixa,
   onSubmitEmprestimo,
-  subType: initialSubType
+  subType: initialSubType,
+  isDarkMode = false
 }: {
   initialType?: 'despesa' | 'receita' | 'emprestimo' | 'despesa_cartao',
   initialData?: any,
@@ -61,7 +62,8 @@ export function UniversalFinanceForm({
   onSubmitFinance: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => Promise<void> | void,
   onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => Promise<void> | void,
   onSubmitEmprestimo: (data: Partial<Emprestimo>) => Promise<void> | void,
-  subType?: 'cartao' | 'boleto' | 'fixa'
+  subType?: 'cartao' | 'boleto' | 'fixa',
+  isDarkMode?: boolean
 }) {
   const [activeType, setActiveType] = useState<'despesa' | 'receita' | 'emprestimo' | 'despesa_cartao'>(initialType);
   const isEditing = !!initialData;
@@ -78,7 +80,7 @@ export function UniversalFinanceForm({
 
   const typeColors = {
     despesa: activeType === 'despesa' ? 'var(--navy)' : '#1e293b',
-    despesa_cartao: 'var(--sicoob-teal)',
+    despesa_cartao: isDarkMode ? '#2ec4b6' : 'var(--sicoob-teal)',
     receita: '#00995D',
     emprestimo: '#D97706'
   };
@@ -431,7 +433,7 @@ export function FinanceForm({
   const isExpense = (type as string) === 'despesa';
 
   const isMasterConfig = !!(initialData as any)?.data_inicio;
-  const [isRecorrente, setIsRecorrente] = useState(isMasterConfig || (subType === 'fixa' && !initialData));
+  const [isRecorrente, setIsRecorrente] = useState(isMasterConfig);
   const [isIndefinite, setIsIndefinite] = useState(isMasterConfig ? !(initialData as any).total_parcelas : true);
 
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
@@ -615,7 +617,7 @@ export function FinanceForm({
                   )}
                   style={{
                     borderRadius: '9999px',
-                    backgroundColor: isRevenue ? '#00995D' : 'var(--navy)'
+                    backgroundColor: themeColor
                   }}
                 />
 
@@ -676,7 +678,7 @@ export function FinanceForm({
                         )}
                         style={{ 
                           borderRadius: '9999px', 
-                          backgroundColor: isRevenue ? '#00995D' : 'var(--navy)' 
+                          backgroundColor: themeColor 
                         }}
                       />
                       <button
@@ -742,10 +744,13 @@ export function FinanceForm({
                     <>
                       <div
                         className={cn(
-                          "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-navy shadow-md transition-all duration-300 ease-out",
+                          "absolute top-1 bottom-1 w-[calc(50%-4px)] shadow-md transition-all duration-300 ease-out",
                           paymentType === 'Parcelado' ? "left-[calc(50%+2px)]" : "left-1"
                         )}
-                        style={{ borderRadius: '9999px' }}
+                        style={{ 
+                          borderRadius: '9999px',
+                          backgroundColor: themeColor
+                        }}
                       />
 
                       <button
@@ -2069,7 +2074,9 @@ export function ExpenseSettingsModal({
   onDeleteEmprestimo,
   onDeleteContaFixa,
   themeColor,
-  isDarkMode
+  themeMode,
+  isDarkMode,
+  initialTab = 'emprestimos'
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -2080,9 +2087,17 @@ export function ExpenseSettingsModal({
   onDeleteEmprestimo: (id: number) => void;
   onDeleteContaFixa: (id: number) => void;
   themeColor: string;
+  themeMode: 'light' | 'dark' | 'black';
   isDarkMode: boolean;
+  initialTab?: string;
 }) {
-  const [activeTab, setActiveTab] = useState('emprestimos');
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -2112,44 +2127,106 @@ export function ExpenseSettingsModal({
   ];
 
   const renderContent = () => {
+    // Modo específico para as cores e fontes (Light, Dark/Azul, Black/Preto)
+    const isLight = themeMode === 'light';
+    const isBlack = themeMode === 'black';
+
+    const cardBgClass = isLight 
+      ? "bg-slate-50/70 border border-slate-200/60 shadow-sm" 
+      : (isBlack 
+          ? "bg-neutral-900/50 border border-neutral-850/80 shadow-md" 
+          : "bg-slate-800/30 border border-slate-800/80 shadow-md");
+
+    const cardHoverClass = isLight 
+      ? "hover:bg-slate-100/70 hover:shadow-md" 
+      : (isBlack 
+          ? "hover:bg-neutral-900/80 hover:shadow-md" 
+          : "hover:bg-slate-800/60 hover:shadow-md");
+          
+    const cardTitleClass = isLight 
+      ? "text-slate-800 font-bold text-sm tracking-tight leading-tight" 
+      : "text-slate-100 font-bold text-sm tracking-tight leading-tight";
+
+    const cardMetaClass = isLight 
+      ? "text-[11px] text-slate-600 font-bold uppercase tracking-tighter opacity-90" 
+      : "text-[11px] text-slate-400 font-bold uppercase tracking-tighter opacity-80";
+
+    const headerTitleClass = isLight 
+      ? "text-xl font-headline font-black text-slate-800 m-0" 
+      : "text-xl font-headline font-black text-slate-100 m-0";
+
+    const headerSubtitleClass = isLight 
+      ? "hidden md:block text-slate-500 text-xs m-0 mt-1" 
+      : "hidden md:block text-muted-foreground text-xs m-0 mt-1";
+
+    const emptyStateClass = isLight 
+      ? "py-24 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50 d-flex flex-column align-items-center justify-content-center" 
+      : (isBlack 
+          ? "py-24 text-center border-2 border-dashed border-neutral-800 rounded-[2rem] bg-neutral-950/20 d-flex flex-column align-items-center justify-content-center" 
+          : "py-24 text-center border-2 border-dashed border-slate-800/60 rounded-[2rem] bg-slate-900/10 d-flex flex-column align-items-center justify-content-center");
+
+    const emptyTextClass = isLight 
+      ? "font-headline font-bold text-slate-400 text-uppercase tracking-widest text-[10px] mt-2" 
+      : "font-headline font-bold text-muted-foreground text-uppercase tracking-widest text-[10px] mt-2";
+
+    const categoryBadgeClass = isLight
+      ? "text-slate-700 bg-slate-200/70 border border-slate-300/30"
+      : "text-slate-400 bg-slate-800/40 border border-slate-700/20";
+
     switch (activeTab) {
       case 'emprestimos':
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-6 md:px-10 pt-2 md:pt-10 pb-4 bg-card border-bottom border-border/40">
-              <h3 className="text-xl font-bold text-foreground m-0">Contratos de Empréstimo</h3>
-              <p className="hidden md:block text-muted-foreground small m-0">Gerencie as configurações mestre de seus empréstimos ativos.</p>
+            <header className="flex-shrink-0 px-6 md:px-10 pt-6 md:pt-10 pb-5 bg-card border-bottom border-border/30">
+              <h3 className={headerTitleClass}>Contratos de Empréstimo</h3>
+              <p className={headerSubtitleClass}>Gerencie as configurações mestre e taxas de juros de seus empréstimos ativos.</p>
             </header>
 
-            <div className="flex-grow-1 overflow-y-auto p-10 pt-6 custom-scrollbar">
+            <div className="flex-grow-1 overflow-y-auto p-6 md:p-10 pt-6 custom-scrollbar">
               <div className="grid gap-4">
                 {emprestimos.length === 0 ? (
-                  <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
-                    <span className="material-symbols-outlined text-[48px] mb-4 text-muted-foreground">account_balance</span>
-                    <p className="fw-bold text-uppercase tracking-widest text-xs">Nenhum empréstimo cadastrado</p>
+                  <div className={emptyStateClass}>
+                    <span className="material-symbols-outlined text-[54px] text-slate-400/60 dark:text-muted-foreground/40" style={{ fontVariationSettings: "'wght' 300" }}>account_balance</span>
+                    <p className={emptyTextClass}>Nenhum empréstimo cadastrado</p>
                   </div>
                 ) : (
                   emprestimos.map((loan) => (
-                    <div key={loan.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
+                    <div 
+                      key={loan.id} 
+                      className={cn("p-4 rounded-2xl d-flex align-items-center justify-content-between hover:-translate-y-0.5 transition-all duration-300", cardBgClass, cardHoverClass)}
+                      style={{ borderLeft: '4px solid #D97706' }}
+                    >
                       <div className="d-flex align-items-center gap-4 flex-grow-1">
-                        <div className="w-12 h-12 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: isDarkMode ? 'rgba(251, 191, 36, 0.15)' : 'rgba(217, 119, 6, 0.1)', color: isDarkMode ? '#fbbf24' : '#d97706' }}>
-                          <span className="material-symbols-outlined">payments</span>
+                        <div className="w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center shadow-sm" style={{ background: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : 'rgba(217, 119, 6, 0.08)', color: '#D97706' }}>
+                          <span className="material-symbols-outlined font-semibold text-lg">payments</span>
                         </div>
                         <div>
-                          <div className="fw-bold text-foreground text-sm tracking-tight">{loan.descricao}</div>
-                          <div className="d-flex align-items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground font-black uppercase tracking-tighter opacity-70">
+                          <div className={cardTitleClass}>{loan.descricao}</div>
+                          <div className="d-flex align-items-center gap-2.5 mt-1.5 flex-wrap">
+                            <span className={cardMetaClass}>
                               Parcela: {formatCurrency(loan.valor_parcela)}
                             </span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold border border-amber-500/20">
                               {loan.taxa_mensal_percentual}% juros
                             </span>
                           </div>
                         </div>
                       </div>
                       <div className="d-flex gap-2">
-                        <button onClick={() => onEditEmprestimo(loan)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
-                        <button onClick={() => onDeleteEmprestimo(loan.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
+                        <button 
+                          onClick={() => onEditEmprestimo(loan)} 
+                          className="bg-transparent border-0 p-1.5 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
+                          title="Editar"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                        <button 
+                          onClick={() => onDeleteEmprestimo(loan.id)} 
+                          className="bg-transparent border-0 p-1.5 text-rose-500 hover:text-rose-600 dark:hover:text-rose-450 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
+                          title="Excluir"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        </button>
                       </div>
                     </div>
                   ))
@@ -2180,58 +2257,79 @@ export function ExpenseSettingsModal({
 
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-6 md:px-10 pt-2 md:pt-10 pb-4 bg-card border-bottom border-border/40">
-              <h3 className="text-xl font-bold text-foreground m-0">
+            <header className="flex-shrink-0 px-6 md:px-10 pt-6 md:pt-10 pb-5 bg-card border-bottom border-border/30">
+              <h3 className={headerTitleClass}>
                 {isReceitaTab
                   ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
-                  : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelado</span>s</>)}
+                  : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelados</span></>)}
               </h3>
-              <p className="hidden md:block text-muted-foreground small m-0">
+              <p className={headerSubtitleClass}>
                 {isReceitaTab
-                  ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo (ex: Bônus parcelado).')
-                  : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo (ex: Empréstimos pessoais).')}
+                  ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo determinado (ex: Bônus parcelado).')
+                  : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo determinado (ex: Financiamento).')}
               </p>
             </header>
 
-            <div className="flex-grow-1 overflow-y-auto p-10 pt-6 custom-scrollbar">
-            <div className="grid gap-4">
-              {filtered.length === 0 ? (
-                <div className="py-20 text-center border-2 border-dashed border-border rounded-3xl opacity-40">
-                  <span className="material-symbols-outlined text-[48px] mb-4 text-muted-foreground">
-                    {isRecorrenteTab ? 'event_repeat' : 'inventory_2'}
-                  </span>
-                  <p className="fw-bold text-uppercase tracking-widest text-xs">Nenhum registro encontrado</p>
-                </div>
-              ) : (
-                filtered.map((config) => (
-                  <div key={config.id} className="bg-card p-4 rounded-2xl border border-border d-flex align-items-center justify-content-between hover:bg-muted/30 transition-all group">
-                    <div className="d-flex align-items-center gap-4 flex-grow-1">
-                      <div className="w-12 h-12 rounded-xl d-flex align-items-center justify-content-center" style={{ backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : `${activeThemeColor}15`, color: isDarkMode ? 'var(--text)' : activeThemeColor }}>
-                        <span className="material-symbols-outlined">{isRecorrenteTab ? 'autorenew' : 'layers'}</span>
-                      </div>
-                      <div>
-                        <div className="fw-bold text-foreground text-sm tracking-tight">{config.descricao}</div>
-                        <div className="d-flex align-items-center gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground font-black uppercase tracking-tighter opacity-70">
-                            {formatCurrency(config.valor_mensal)} /mês
-                          </span>
-                          {!isRecorrenteTab && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold">
-                              {config.total_parcelas} parcelas
-                            </span>
-                          )}
-                          <span className="text-[10px] text-muted-foreground uppercase font-black opacity-50 tracking-widest">{config.categoria}</span>
+            <div className="flex-grow-1 overflow-y-auto p-6 md:p-10 pt-6 custom-scrollbar">
+              <div className="grid gap-4">
+                {filtered.length === 0 ? (
+                  <div className={emptyStateClass}>
+                    <span className="material-symbols-outlined text-[54px] text-slate-400/60 dark:text-muted-foreground/40" style={{ fontVariationSettings: "'wght' 300" }}>
+                      {isRecorrenteTab ? 'event_repeat' : 'inventory_2'}
+                    </span>
+                    <p className={emptyTextClass}>Nenhum registro encontrado</p>
+                  </div>
+                ) : (
+                  filtered.map((config) => {
+                    const cardColor = isReceitaTab ? '#00995D' : activeThemeColor;
+                    return (
+                      <div 
+                        key={config.id} 
+                        className={cn("p-4 rounded-2xl d-flex align-items-center justify-content-between hover:-translate-y-0.5 transition-all duration-300", cardBgClass, cardHoverClass)}
+                        style={{ borderLeft: `4px solid ${cardColor}` }}
+                      >
+                        <div className="d-flex align-items-center gap-4 flex-grow-1">
+                          <div className="w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center shadow-sm" style={{ background: isDarkMode ? `${cardColor}25` : `${cardColor}10`, color: cardColor }}>
+                            <span className="material-symbols-outlined font-semibold text-lg">{isRecorrenteTab ? 'autorenew' : 'layers'}</span>
+                          </div>
+                          <div>
+                            <div className={cardTitleClass}>{config.descricao}</div>
+                            <div className="d-flex align-items-center gap-2.5 mt-1.5 flex-wrap">
+                              <span className={cardMetaClass}>
+                                {formatCurrency(config.valor_mensal)} /mês
+                              </span>
+                              {!isRecorrenteTab && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold border border-border/40">
+                                  {config.total_parcelas} parcelas
+                                </span>
+                              )}
+                              {config.categoria && (
+                                <span className={cn("text-[9px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded-md", categoryBadgeClass)}>{config.categoria}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <button 
+                            onClick={() => onEditContaFixa(config)} 
+                            className="bg-transparent border-0 p-1.5 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
+                            title="Editar"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </button>
+                          <button 
+                            onClick={() => onDeleteContaFixa(config.id)} 
+                            className="bg-transparent border-0 p-1.5 text-rose-500 hover:text-rose-600 dark:hover:text-rose-450 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
+                            title="Excluir"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="d-flex gap-2">
-                      <button onClick={() => onEditContaFixa(config)} className="btn-icon rounded-xl hover:bg-primary/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-edit-blue">edit</span></button>
-                      <button onClick={() => onDeleteContaFixa(config.id)} className="btn-icon rounded-xl hover:bg-danger/10 transition-colors"><span className="material-symbols-outlined text-[20px] text-delete-red">delete</span></button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         );
@@ -2260,7 +2358,7 @@ export function ExpenseSettingsModal({
           <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-0">
 
             {/* Horizontal Tab Bar */}
-            <aside className="bg-muted/10 border-bottom border-border d-flex flex-row overflow-auto p-2 gap-1 no-scrollbar flex-shrink-0">
+            <aside className={cn("border-bottom border-border d-flex flex-row overflow-auto p-2 gap-1 no-scrollbar flex-shrink-0", themeMode === 'light' ? "bg-slate-50" : (themeMode === 'dark' ? "bg-slate-900/60" : "bg-neutral-950"))}>
               <div className="d-flex flex-row gap-1 px-1 w-100">
                 {sections.map((section) =>
                   section.tabs.map((tab) => (
@@ -2295,7 +2393,7 @@ export function ExpenseSettingsModal({
 
             {/* Content */}
             <main className="flex-fill bg-card d-flex flex-column overflow-hidden">
-              <div className="flex-grow-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="flex-fill overflow-hidden position-relative">
                 {renderContent()}
               </div>
               <div className="p-4 bg-card border-top border-border/10 flex-shrink-0">
@@ -2319,14 +2417,16 @@ export function ExpenseSettingsModal({
         onClick={onClose}
       >
         <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
-          <div className="modal-content border-0 shadow-2xl overflow-hidden rounded-[2rem] bg-card" style={{ height: '700px' }}>
+          <div className={cn("modal-content border-0 shadow-2xl overflow-hidden rounded-[2.5rem] border", themeMode === 'light' ? "bg-white border-slate-200" : (themeMode === 'black' ? "bg-[#000000] border-neutral-800" : "bg-card border-border/30"))} style={{ height: '700px' }}>
             <div className="d-flex h-100">
               {/* Sidebar */}
-              <aside className="bg-muted/20 border-end border-border d-flex flex-column overflow-auto py-4 px-2 gap-1 no-scrollbar flex-shrink-0" style={{ width: '220px' }}>
-                <div className="d-flex flex-column align-items-start px-3 mb-8">
-                  <div className="d-flex align-items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", color: isDarkMode ? '#f8fafc' : themeColor }}>receipt_long</span>
-                    <span className="text-[25px] font-black uppercase tracking-widest" style={{ color: isDarkMode ? '#f8fafc' : themeColor }}>Ajustes</span>
+              <aside className={cn("border-end d-flex flex-column overflow-auto py-6 px-3 gap-2 no-scrollbar flex-shrink-0", themeMode === 'light' ? "bg-slate-50/90 border-slate-200/80" : (themeMode === 'black' ? "bg-neutral-950 border-neutral-800/80" : "bg-slate-900/60 border-border/40"))} style={{ width: '230px' }}>
+                <div className="px-3 mb-6">
+                  <div className="d-flex align-items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl d-flex align-items-center justify-content-center text-white shadow-sm" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
+                      <span className="material-symbols-outlined text-lg leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+                    </div>
+                    <span className={cn("text-lg font-headline font-black tracking-wider uppercase", themeMode === 'light' ? "text-slate-800" : "text-slate-100")}>Ajustes</span>
                   </div>
                 </div>
 
@@ -2334,33 +2434,43 @@ export function ExpenseSettingsModal({
                   {sections.map((section) => (
                     <div key={section.title} className="d-flex flex-column gap-1">
                       <div className="px-3 mb-2">
-                        <span className="text-[9px] font-black text-muted-foreground opacity-50 tracking-[.25em] uppercase">{section.title}</span>
+                        <span className={cn("text-[9.5px] font-black tracking-[.25em] uppercase", themeMode === 'light' ? "text-slate-500" : "text-slate-400/70")}>{section.title}</span>
                       </div>
                       <div className="d-flex flex-column gap-1">
-                        {section.tabs.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                              "px-4 py-3 rounded-2xl transition-all duration-300 d-flex align-items-center gap-3 border-0",
-                              activeTab === tab.id ? "text-white" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                            )}
-                            style={{
-                              fontSize: '10px',
-                              background: activeTab === tab.id ? themeColor : 'transparent',
-                              boxShadow: activeTab === tab.id ? `0 4px 12px ${themeColor}40` : 'none',
-                              borderRadius: '16px'
-                            }}
-                          >
-                            <span
-                              className={cn("material-symbols-outlined text-[20px]", activeTab === tab.id ? "text-white" : (isDarkMode ? "text-white/60" : "text-muted-foreground"))}
-                              style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
+                        {section.tabs.map((tab) => {
+                          const isActive = activeTab === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              onClick={() => setActiveTab(tab.id)}
+                              className={cn(
+                                "px-3.5 py-3 rounded-2xl transition-all duration-300 d-flex align-items-center gap-3 border-0",
+                                isActive 
+                                  ? "text-white shadow-md font-bold" 
+                                  : (themeMode === 'light' 
+                                      ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900" 
+                                      : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-100")
+                              )}
+                              style={{
+                                fontSize: '11px',
+                                background: isActive 
+                                  ? `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` 
+                                  : 'transparent',
+                                boxShadow: isActive ? `0 6px 15px ${themeColor}30` : 'none',
+                                borderRadius: '14px',
+                                transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                              }}
                             >
-                              {tab.icon}
-                            </span>
-                            <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
-                          </button>
-                        ))}
+                              <span
+                                className={cn("material-symbols-outlined text-[18px]", isActive ? "text-white" : (isDarkMode ? "text-white/60" : "text-slate-500"))}
+                                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "" }}
+                              >
+                                {tab.icon}
+                              </span>
+                              <span className="font-headline font-bold uppercase tracking-widest text-[9.5px] whitespace-nowrap">{tab.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -2374,14 +2484,20 @@ export function ExpenseSettingsModal({
                 {renderContent()}
               </main>
             </div>
-            {/* Botão de Fechar no topo direito */}
+            
+            {/* Botão de Fechar no topo direito com micro-animação */}
             <button 
               type="button" 
-              className="btn-icon position-absolute top-0 end-0 m-4 z-50 d-flex align-items-center justify-content-center transition-all hover:bg-muted/20 rounded-circle border-0 bg-transparent text-foreground"
-              style={{ width: '40px', height: '40px' }}
+              className={cn(
+                "position-absolute top-0 end-0 m-6 z-50 d-flex align-items-center justify-content-center transition-all rounded-full hover:rotate-90 active:scale-90 border",
+                themeMode === 'light' 
+                  ? "bg-slate-100 text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 border-slate-200/50" 
+                  : "bg-slate-800/40 text-slate-400 hover:bg-slate-800/60 hover:text-white border-border/20 bg-card/40 backdrop-blur-sm"
+              )}
+              style={{ width: '42px', height: '42px' }}
               onClick={onClose}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>close</span>
+              <span className="material-symbols-outlined font-semibold text-lg">close</span>
             </button>
           </div>
         </div>

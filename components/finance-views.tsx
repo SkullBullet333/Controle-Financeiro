@@ -238,7 +238,7 @@ export function FinanceTable({
                     onDoubleClick={() => {
                       if ((item as any).isSummary) return;
                       // Apenas permite edição em linha para registros físicos (id > 0)
-                      if ((type === 'cartoes' || type === 'geral') && onInlineUpdate && itemId > 0) {
+                      if ((type === 'cartoes' || type === 'geral' || type === 'receitas') && onInlineUpdate && itemId > 0) {
                         setEditingId(itemId);
                         setEditValues({
                           descricao: (item as any).descricao || (item as any).estabelecimento,
@@ -312,7 +312,10 @@ export function FinanceTable({
                     {type === 'cartoes' && (
                       <>
                         <td className="px-4 py-3 fw-bold text-primary">
-                          {getCartaoName((item as any).cartao_id)}
+                          <div className="d-flex align-items-center gap-2">
+                            <CardLogo name={getCartaoName((item as any).cartao_id)} size="sm" />
+                            <span>{getCartaoName((item as any).cartao_id)}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3">{getTitularName((item as any).titular_id)}</td>
                         <td className="px-4 py-3">
@@ -369,8 +372,44 @@ export function FinanceTable({
                         </td>
                         <td className="px-2 px-md-4 py-3 text-muted d-none d-md-table-cell">{formatDate((item as any).data_recebimento)}</td>
                         <td className="px-2 px-md-4 py-3 fw-bold d-none d-md-table-cell">{getTitularName((item as any).titular_id)}</td>
-                        <td className="px-2 px-md-4 py-3 text-success fw-bold">{(item as any).descricao}</td>
-                        <td className="px-2 px-md-4 py-3 fw-bold">{formatCurrency((item as any).valor)}</td>
+                        <td className="px-2 px-md-4 py-3 text-success fw-bold">
+                          {editingId === (item as any).id ? (
+                            <input
+                              autoFocus
+                              className="form-control form-control-sm"
+                              value={editValues.descricao}
+                              onChange={e => setEditValues({ ...editValues, descricao: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            (item as any).descricao
+                          )}
+                        </td>
+                        <td className="px-2 px-md-4 py-3 fw-bold">
+                          {editingId === (item as any).id ? (
+                            <input
+                              type="number"
+                              className="form-control form-control-sm fw-bold"
+                              value={editValues.valor}
+                              onChange={e => setEditValues({ ...editValues, valor: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  onInlineUpdate?.((item as any).id, editValues);
+                                  setEditingId(null);
+                                }
+                                if (e.key === 'Escape') setEditingId(null);
+                              }}
+                            />
+                          ) : (
+                            formatCurrency((item as any).valor)
+                          )}
+                        </td>
                       </>
                     )}
 
