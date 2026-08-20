@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
+import { setCompressedCache, getCompressedCache, clearUserCompressedCache } from '@/lib/compressed-cache';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -14,6 +15,12 @@ export function useFinance(activeView: string) {
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [contasFixas, setContasFixas] = useState<ContaFixaConfig[]>([]);
   const [nota, setNota] = useState<string>('');
+  const [lembretes, setLembretes] = useState<{id: number, texto: string, concluido: boolean, data?: string}[]>([]);
+  const [avisosConfig, setAvisosConfig] = useState({
+    vencidas: true,
+    hoje: true,
+    radar: false
+  });
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'black'>('light');
   const isDarkMode = themeMode !== 'light';
   const [themeColor, setThemeColor] = useState<string>('#4361ee');
@@ -27,12 +34,39 @@ export function useFinance(activeView: string) {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const isInitialLoad = useRef(true);
 
+  // Restaura dados do cache comprimido com fflate instantaneamente
+  const restoreFromCache = useCallback((userId: string) => {
+    try {
+      const cached = getCompressedCache<any>(`fin_cache_${userId}`);
+      if (cached) {
+        if (cached.despesas) setDespesas(cached.despesas);
+        if (cached.receitas) setReceitas(cached.receitas);
+        if (cached.cartaoTransacoes) setCartaoTransacoes(cached.cartaoTransacoes);
+        if (cached.config) setConfig(cached.config);
+        if (cached.emprestimos) setEmprestimos(cached.emprestimos);
+        if (cached.contasFixas) setContasFixas(cached.contasFixas);
+        if (cached.nota !== undefined) setNota(cached.nota);
+        if (cached.lembretes) setLembretes(cached.lembretes);
+        if (cached.avisosConfig) setAvisosConfig(cached.avisosConfig);
+        setIsLoading(false);
+        return true;
+      }
+    } catch (e) {
+      console.warn('[Cache] Erro ao descompactar dados iniciais:', e);
+    }
+    return false;
+  }, []);
+
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
     if (!targetId) return;
 
     if (isInitialLoad.current) {
-      setIsLoading(true);
+      // Se não havia cache carregado, mantém loading como true; se já havia, não bloqueia a tela
+      const cached = getCompressedCache<any>(`fin_cache_${targetId}`);
+      if (!cached) {
+        setIsLoading(true);
+      }
     }
     const now = new Date();
     const sixMonthsAgo = format(addMonths(now, -6), 'yyyy-MM-01');
@@ -74,11 +108,17 @@ export function useFinance(activeView: string) {
       const emprestimosData = results[8].data;
       const contasFixasData = results[9].data;
 
+      const formattedDespesas = (despesasData || []).map(d => ({
+        ...d,
+        isSummary: d.descricao.startsWith('Fatura ')
+      }));
+
+      let parsedNotaStr = '';
+      let parsedLembretesList: any[] = [];
+      let parsedAvisosList: any = undefined;
+
       if (despesasData) {
-        setDespesas(despesasData.map(d => ({
-          ...d,
-          isSummary: d.descricao.startsWith('Fatura ')
-        })));
+        setDespesas(formattedDespesas);
       }
       if (receitasData) setReceitas(receitasData);
       if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
@@ -87,19 +127,26 @@ export function useFinance(activeView: string) {
         try {
           if (raw.startsWith('{')) {
             const parsed = JSON.parse(raw);
-            setNota(parsed.nota || '');
-            setLembretes(parsed.lembretes || []);
+            parsedNotaStr = parsed.nota || '';
+            parsedLembretesList = parsed.lembretes || [];
+            setNota(parsedNotaStr);
+            setLembretes(parsedLembretesList);
             
-            // Sincronizar preferências se existirem (agora apenas avisos, pois cores/tema são individuais no profile)
+            // Sincronizar preferências se existirem
             if (parsed.preferencias) {
               const prefs = parsed.preferencias;
-              if (prefs.avisos) setAvisosConfig(prev => ({ ...prev, ...prefs.avisos }));
+              if (prefs.avisos) {
+                parsedAvisosList = prefs.avisos;
+                setAvisosConfig(prev => ({ ...prev, ...prefs.avisos }));
+              }
             }
           } else {
+            parsedNotaStr = raw;
             setNota(raw);
             setLembretes([]);
           }
         } catch {
+          parsedNotaStr = raw;
           setNota(raw);
           setLembretes([]);
         }
@@ -107,10 +154,28 @@ export function useFinance(activeView: string) {
       if (emprestimosData) setEmprestimos(emprestimosData);
       if (contasFixasData) setContasFixas(contasFixasData);
 
-      setConfig({
+      const configData = {
         titulares: titularesData || [],
         cartoes: cartoesConfigData || []
-      });
+      };
+      setConfig(configData);
+
+      // Salva snapshot comprimido em alta velocidade com fflate
+      try {
+        setCompressedCache(`fin_cache_${targetId}`, {
+          despesas: formattedDespesas,
+          receitas: receitasData || [],
+          cartaoTransacoes: cartaoTransacoesData || [],
+          config: configData,
+          emprestimos: emprestimosData || [],
+          contasFixas: contasFixasData || [],
+          nota: parsedNotaStr,
+          lembretes: parsedLembretesList,
+          avisosConfig: parsedAvisosList
+        });
+      } catch (cacheErr) {
+        console.warn('[Cache] Erro ao gravar snapshot comprimido:', cacheErr);
+      }
 
     } catch (error: any) {
       console.error('Error fetching data from Supabase:', error);
@@ -222,20 +287,25 @@ export function useFinance(activeView: string) {
     return { success: true };
   };
 
-  // Carregamento de dados disparado por mudanças no usuário
+  // Carregamento de dados disparado por mudanças no usuário (com restauração de cache imediata)
   useEffect(() => {
     if (user?.id) {
+      restoreFromCache(user.id);
       fetchData(user.id);
       fetchProfile();
     }
-  }, [user?.id, fetchData, fetchProfile]);
+  }, [user?.id, fetchData, fetchProfile, restoreFromCache]);
 
   // Auth listener - roda apenas uma vez para configurar o ouvinte
   useEffect(() => {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (!session?.user) setIsLoading(false);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser?.id) {
+          restoreFromCache(currentUser.id);
+        }
+        if (!currentUser) setIsLoading(false);
       })
       .catch(async (error) => {
         console.error('Error getting session:', error);
@@ -246,9 +316,11 @@ export function useFinance(activeView: string) {
       });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
       
       if (event === 'SIGNED_OUT') {
+        if (user?.id) clearUserCompressedCache(user.id);
         setDespesas([]);
         setReceitas([]);
         setCartaoTransacoes([]);
@@ -261,12 +333,11 @@ export function useFinance(activeView: string) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [restoreFromCache, user?.id]);
 
   // On mount: apply a neutral default until fetchProfile loads the user's preference
   useEffect(() => {
     // No-op: dark mode is loaded per-user inside fetchProfile
-    // This prevents the old shared 'fin_dark' key from overriding user preferences
   }, []);
 
   useEffect(() => {
@@ -276,21 +347,12 @@ export function useFinance(activeView: string) {
     else if (themeMode === 'black') document.body.classList.add('black-mode');
   }, [themeMode]);
 
-  const [lembretes, setLembretes] = useState<{id: number, texto: string, concluido: boolean, data?: string}[]>([]);
-  const [avisosConfig, setAvisosConfig] = useState({
-    vencidas: true,
-    hoje: true,
-    radar: false
-  });
-
   const saveSettingsToCloud = async (overrides: any = {}) => {
     try {
       const payload = JSON.stringify({ 
         nota, 
         lembretes: overrides.lembretes || lembretes,
         preferencias: {
-          // darkMode and themeColor are now per-user in profiles table
-          // keeping avisos here as they are family-shared notification settings
           avisos: overrides.avisosConfig || avisosConfig
         }
       });

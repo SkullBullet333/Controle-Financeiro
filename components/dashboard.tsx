@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'motion/react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
@@ -55,9 +56,9 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
           </div>
         )}
 
-        <div className="bg-card border border-border rounded-4 p-4 mb-3 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 overflow-hidden relative" style={{ minHeight: '180px' }}>
+        <div className="bg-card border border-border rounded-xl p-4 mb-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden relative" style={{ minHeight: '180px' }}>
           {/* Subtle background decoration */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl"></div>
           
           <div className="d-flex justify-content-between align-items-center mb-1 relative z-10">
             <span className="text-muted font-black text-[10px] tracking-widest text-uppercase">Saldo do Mês</span>
@@ -89,13 +90,13 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
         {/* Quick Summary Grid */}
         <div className="row g-2 mb-3">
           <div className="col-6">
-            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
+            <div className="bg-card border border-border rounded-xl p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
               <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Em Aberto</div>
               <div className="fw-bold text-primary fs-5">{formatCurrency(stats.totalAberto)}</div>
             </div>
           </div>
           <div className="col-6">
-            <div className="bg-card border border-border rounded-4 p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
+            <div className="bg-card border border-border rounded-xl p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
               <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Pago</div>
               <div className="fw-bold text-success fs-5">{formatCurrency(stats.totalPago)}</div>
             </div>
@@ -105,9 +106,15 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
 
       {/* Standard Desktop KPI Cards - Hidden on small screens */}
       <div className="row g-3 mb-4 d-none d-md-flex">
-        {cards.map((card) => (
-          <div key={card.label} className="col-md-3">
-            <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100")}>
+        {cards.map((card, i) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05, ease: "easeOut" }}
+            key={card.label} 
+            className="col-md-3"
+          >
+            <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100 rounded-2xl border border-border shadow-sm")}>
               <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
                 {card.label}
               </small>
@@ -120,7 +127,7 @@ export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }
                 {formatCurrency(card.value)}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </>

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento, getProximoFechamento } from '@/lib/finance-service';
@@ -20,24 +21,37 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 backdrop-blur-sm bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-[640px] bg-surface-container-lowest rounded-[1.5rem] md:rounded-[2.5rem] shadow-premium p-6 md:p-10 relative overflow-y-auto max-h-[95vh] md:max-h-[85vh] animate-in zoom-in-95 duration-200"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="absolute top-4 right-4 md:top-8 md:right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 bg-black/50" 
           onClick={onClose}
         >
-          <X size={20} className="md:w-6 md:h-6" />
-        </button>
-        {children}
-      </div>
-    </div>
+          <motion.div
+            initial={{ scale: 0.98, opacity: 0, y: 5 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.98, opacity: 0, y: 5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-[640px] bg-surface-container-lowest rounded-xl md:rounded-2xl shadow-premium p-6 md:p-10 relative overflow-y-auto max-h-[95vh] md:max-h-[85vh] border border-border"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="absolute top-4 right-4 md:top-8 md:right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+              onClick={onClose}
+            >
+              <X size={20} className="md:w-6 md:h-6" />
+            </button>
+            {children}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 export function UniversalFinanceForm({
