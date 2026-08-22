@@ -1276,53 +1276,148 @@ export function useFinance(activeView: string) {
   }, [despesas]);
 
   const projecaoSemestral = useMemo(() => {
+    const calculateTotalsForMonth = (comp: string) => {
+      // 1. RECEITAS
+      const baseRec = receitas
+        .filter(r => r.competencia === comp)
+        .reduce((sum, r) => sum + Number(r.valor || 0), 0);
+
+      let virtualRec = 0;
+      contasFixas.filter(c => c.tipo === 'receita').forEach(cfg => {
+        const dataInicial = parseISO(cfg.data_inicio);
+        const diaOriginal = getDate(dataInicial);
+        const isUltimoDia = isLastDayOfMonth(dataInicial);
+        const limit = cfg.total_parcelas || 36;
+
+        for (let i = 1; i <= limit; i++) {
+          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+          let cComp = '';
+          if (cfg.competencia_inicial) {
+            const [m, y] = cfg.competencia_inicial.split('/').map(Number);
+            const baseDate = new Date(y, m - 1, 1);
+            cComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          } else {
+            cComp = calcularCompetencia(dataVenc);
+          }
+
+          if (cComp === comp) {
+            const existeNoBanco = receitas.find(r => 
+              Number(r.conta_fixa_id) === Number(cfg.id) && r.competencia === comp
+            );
+            if (!existeNoBanco) {
+              virtualRec += Number(cfg.valor_mensal || 0);
+            }
+          }
+        }
+      });
+
+      const totalReceitas = baseRec + virtualRec;
+
+      // 2. DESPESAS
+      // 2.1 Despesas físicas regulares (não faturas)
+      const baseDesp = despesas
+        .filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura '))
+        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
+
+      // 2.2 Faturas de Cartão (físicas + virtuais dinâmicas de allProjectedCartaoTransacoes)
+      let totalFaturas = 0;
+      config.cartoes.forEach(card => {
+        const cardTransactionsTotal = allProjectedCartaoTransacoes
+          .filter(ct => ct.cartao_id === card.id && ct.competencia === comp)
+          .reduce((sum, ct) => sum + Number(ct.valor || 0), 0);
+
+        const existingInDB = despesas.find(f => 
+          f.competencia === comp &&
+          (f.isSummary || f.descricao?.startsWith('Fatura ')) && 
+          (f.cartao_vencimento_id === card.id || f.descricao?.includes(card.nome_cartao))
+        );
+
+        if (existingInDB) {
+          totalFaturas += existingInDB.status === 'Pago' 
+            ? Number(existingInDB.valor || 0) 
+            : (cardTransactionsTotal || Number(existingInDB.valor || 0));
+        } else if (cardTransactionsTotal > 0) {
+          totalFaturas += cardTransactionsTotal;
+        }
+      });
+
+      // 2.3 Parcelas de Empréstimo (Virtuais)
+      let virtualLoans = 0;
+      emprestimos.forEach(loan => {
+        const dataInicial = parseISO(loan.data_primeiro_vencimento);
+        const diaOriginal = getDate(dataInicial);
+        const isUltimoDia = isLastDayOfMonth(dataInicial);
+
+        for (let i = 1; i <= loan.total_parcelas; i++) {
+          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+          let lComp = '';
+          if (loan.competencia_inicial) {
+            const [m, y] = loan.competencia_inicial.split('/').map(Number);
+            const baseDate = new Date(y, m - 1, 1);
+            lComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          } else {
+            lComp = calcularCompetencia(dataVenc);
+          }
+
+          if (lComp === comp) {
+            const existeNoBanco = despesas.find(d => 
+              Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i)
+            );
+            if (!existeNoBanco) {
+              virtualLoans += Number(loan.valor_parcela || 0);
+            }
+          }
+        }
+      });
+
+      // 2.4 Parcelas de Contas Fixas (Virtuais - não cartão)
+      let virtualFixed = 0;
+      contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id).forEach(cfg => {
+        const dataInicial = parseISO(cfg.data_inicio);
+        const diaOriginal = getDate(dataInicial);
+        const isUltimoDia = isLastDayOfMonth(dataInicial);
+        const limit = cfg.total_parcelas || 36;
+
+        for (let i = 1; i <= limit; i++) {
+          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+          let fComp = '';
+          if (cfg.competencia_inicial) {
+            const [m, y] = cfg.competencia_inicial.split('/').map(Number);
+            const baseDate = new Date(y, m - 1, 1);
+            fComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          } else {
+            fComp = calcularCompetencia(dataVenc);
+          }
+
+          if (fComp === comp) {
+            const existeNoBanco = despesas.find(d => 
+              Number(d.conta_fixa_id) === Number(cfg.id) && Number(d.parcela_atual) === Number(i)
+            );
+            if (!existeNoBanco) {
+              virtualFixed += Number(cfg.valor_mensal || 0);
+            }
+          }
+        }
+      });
+
+      const totalDespesas = baseDesp + totalFaturas + virtualLoans + virtualFixed;
+      return { totalReceitas, totalDespesas };
+    };
+
     const projecao = [];
     let tempMonth = currentMonth;
     let tempYear = currentYear;
 
     for (let i = 0; i < 8; i++) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
-      const recFisicas = receitas.filter(r => r.competencia === comp).reduce((acc, r) => acc + r.valor, 0);
-      
-      // Projetar receitas fixas (virtuais) para os meses futuros
-      const recVirtuais = contasFixas.filter(c => c.tipo === 'receita').reduce((acc, config) => {
-          const dataInicial = parseISO(config.data_inicio);
-          const currentProj = parseISO(`${tempYear}-${String(tempMonth).padStart(2, '0')}-01`);
-          
-          if (!isBefore(currentProj, startOfMonth(dataInicial))) {
-            if (!config.total_parcelas || differenceInMonths(currentProj, dataInicial) < config.total_parcelas) {
-                const jaLancada = receitas.find(r => r.conta_fixa_id === config.id && r.competencia === comp);
-                if (!jaLancada) return acc + config.valor_mensal;
-            }
-          }
-          return acc;
-      }, 0);
+      const { totalReceitas, totalDespesas } = calculateTotalsForMonth(comp);
 
-      const rec = recFisicas + recVirtuais;
-      const desp = despesas.filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura ')).reduce((acc, d) => acc + d.valor, 0);
-      
-      // Projetar faturas (físicas + virtuais de cartão)
-      const fatsFisicas = cartaoTransacoes.filter(c => c.competencia === comp).reduce((acc, c) => acc + c.valor, 0);
-      const fatsVirtuais = contasFixas.filter(c => c.cartao_id && (!c.tipo || c.tipo === 'despesa')).reduce((acc, config) => {
-          const dataInicial = parseISO(config.data_inicio);
-          const currentProj = parseISO(`${tempYear}-${String(tempMonth).padStart(2, '0')}-01`);
-          
-          if (!isBefore(currentProj, startOfMonth(dataInicial))) {
-            if (!config.total_parcelas || differenceInMonths(currentProj, dataInicial) < config.total_parcelas) {
-                const jaLancada = cartaoTransacoes.find(ct => ct.cartao_id === config.cartao_id && ct.estabelecimento === config.descricao && ct.competencia === comp);
-                if (!jaLancada) return acc + config.valor_mensal;
-            }
-          }
-          return acc;
-      }, 0);
-      const fats = fatsFisicas + fatsVirtuais;
-      
       projecao.push({
         competencia: comp,
-        receitas: rec,
-        despesas: desp,
-        faturas: fats,
-        saldo: rec - (desp + fats)
+        receitas: totalReceitas,
+        despesas: totalDespesas,
+        faturas: 0,
+        saldo: totalReceitas - totalDespesas
       });
 
       tempMonth++;
@@ -1332,7 +1427,7 @@ export function useFinance(activeView: string) {
       }
     }
     return projecao;
-  }, [despesas, receitas, currentMonth, currentYear, cartaoTransacoes, contasFixas]);
+  }, [despesas, receitas, currentMonth, currentYear, allProjectedCartaoTransacoes, contasFixas, emprestimos, config.cartoes]);
 
   // Auto-Sync of Virtual Revenues (Recurrent/Fixed) on their due date
   useEffect(() => {

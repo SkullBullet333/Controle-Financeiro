@@ -1,12 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Despesa, Titular } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  Cell,
+  PieChart,
+  Pie,
+  Legend
+} from 'recharts';
+import {
+  Eye,
+  EyeOff,
+  TrendingUp,
+  TrendingDown,
+  ArrowDown,
+  ArrowUp,
+  Clock,
+  Wallet,
+  Receipt,
+  Scale,
+  CreditCard as CardIcon,
+  PieChart as PieIcon,
+  LineChart as ChartLineIcon,
+  ChevronRight,
+  ListFilter,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ShoppingCart,
+  Zap,
+  Briefcase,
+  Car,
+  HeartPulse,
+  Home,
+  Utensils
+} from 'lucide-react';
+import { Despesa, Receita, Titular, CartaoConfig } from '@/lib/types';
 
 interface KPICardsProps {
   stats: {
@@ -21,334 +59,914 @@ interface KPICardsProps {
   month?: number;
   year?: number;
   onOpenPeriodModal?: () => void;
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
+  pendingCount?: number;
 }
 
-const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const monthsShort = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
-export function KPICards({ stats, onViewChange, month, year, onOpenPeriodModal }: KPICardsProps) {
-  const [showBalance, setShowBalance] = React.useState(true);
+// ============================================================================
+// 1. KPI CARDS & MOBILE HERO CARD (Conforme completo_prototype.html)
+// ============================================================================
+export function KPICards({
+  stats,
+  month,
+  year,
+  onOpenPeriodModal,
+  isHidden: externalHidden,
+  onToggleVisibility,
+  pendingCount = 0
+}: KPICardsProps) {
+  const [internalHidden, setInternalHidden] = useState(false);
+  const isHidden = externalHidden !== undefined ? externalHidden : internalHidden;
+  const toggleVisibility = onToggleVisibility || (() => setInternalHidden(!internalHidden));
 
-  const cards = [
-    { label: 'Receitas do Mês', value: stats.totalReceitas, icon: 'fa-wallet', color: 'success', variant: 'green' },
-    { label: 'Despesas do Mês', value: stats.totalDespesas, icon: 'fa-file-invoice-dollar', color: 'danger', variant: 'red' },
-    { label: 'Saldo (Margem)', value: stats.margem, icon: 'fa-scale-balanced', color: stats.margem >= 0 ? 'success' : 'danger', variant: stats.margem >= 0 ? 'green' : 'red' },
-    { label: 'Total em Aberto', value: stats.totalAberto, icon: 'fa-clock-rotate-left', color: 'faturas', variant: 'purple' },
-  ];
+  const formatHidden = (val: number) => {
+    if (isHidden) return 'R$ •••••';
+    return formatCurrency(val);
+  };
+
+  const marginPercentage = stats.totalReceitas > 0
+    ? ((stats.margem / stats.totalReceitas) * 100).toFixed(1)
+    : '0.0';
 
   return (
     <>
-      {/* Sicoob Premium Mobile Balance & Quick Actions - Only visible on small screens */}
-      <div className="d-md-none">
-        {/* New Mobile Period Selector Pill */}
+      {/* Mobile Hero Card: Um único card consolidado com todas as informações */}
+      <div className="d-md-none bg-card border border-border rounded-3xl p-3.5 shadow-md mb-2">
         {month && year && onOpenPeriodModal && (
-          <div className="d-flex gap-2 mb-2">
-            <div className="bg-primary/10 text-primary rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 flex-grow-1 border border-primary/20">
-              <i className="fa-regular fa-calendar-check text-sm opacity-70"></i>
-              <span className="font-black text-[9px] tracking-widest text-uppercase text-foreground">Este Mês: {months[month-1]} {year}</span>
+          <div className="d-flex justify-content-between align-items-center gap-2 mb-2.5">
+            <div className="bg-primary/10 text-primary rounded-pill px-3 py-1 d-flex align-items-center gap-1.5 border border-primary/20">
+              <span className="font-bold text-[10px] tracking-widest text-uppercase">
+                {monthsShort[month - 1]} {year}
+              </span>
             </div>
-            <button 
-              onClick={onOpenPeriodModal}
-              className="bg-card border border-border text-muted-foreground rounded-pill px-2.5 py-1.5 d-flex align-items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-            >
-              <span className="font-black text-[9px] tracking-widest text-uppercase">Escolha Mês</span>
-              <i className="fa-solid fa-chevron-down text-[8px] opacity-50"></i>
-            </button>
-          </div>
-        )}
-
-        <div className="bg-card border border-border rounded-xl p-4 mb-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden relative" style={{ minHeight: '180px' }}>
-          {/* Subtle background decoration */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl"></div>
-          
-          <div className="d-flex justify-content-between align-items-center mb-1 relative z-10">
-            <span className="text-muted font-black text-[10px] tracking-widest text-uppercase">Saldo do Mês</span>
-            <div className="d-flex gap-2">
-              <button 
-                 className="btn btn-link p-0 text-muted transition-all active:scale-90"
-                 onClick={() => setShowBalance(!showBalance)}
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-link p-1 text-muted hover:text-foreground"
+                onClick={toggleVisibility}
+                title={isHidden ? 'Exibir valores' : 'Ocultar valores'}
               >
-                <i className={`fa-solid ${showBalance ? 'fa-eye' : 'fa-eye-slash'} fs-6`}></i>
+                {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={onOpenPeriodModal}
+                className="bg-card-hover border border-border text-foreground rounded-pill px-3 py-1 d-flex align-items-center gap-1 transition-all active:scale-95 shadow-sm"
+              >
+                <span className="font-bold text-[10px] tracking-wider uppercase">Período</span>
+                <ChevronRight className="w-3 h-3 opacity-50" />
               </button>
             </div>
           </div>
-          <div className="h2 fw-bold mb-3 text-foreground tracking-tight relative z-10">
-            {showBalance ? formatCurrency(stats.margem) : 'R$ •••••'}
+        )}
+
+        <div className="text-center py-1.5">
+          <span className="text-[11px] font-bold text-muted uppercase tracking-wider block mb-0.5">
+            Saldo Disponível / Margem
+          </span>
+          <div className={cn('text-2xl font-black tracking-tight', isHidden && 'hidden-amount')} style={{ color: '#10b981' }}>
+            {formatHidden(stats.margem)}
           </div>
-          
-          <div className="row g-2 mt-2 pt-3 border-top border-border/60 relative z-10">
-            <div className="col-6">
-              <div className="text-muted font-black text-[9px] tracking-widest text-uppercase">Receitas</div>
-              <div className="fw-bold text-success text-sm">{showBalance ? formatCurrency(stats.totalReceitas) : 'R$ ••'}</div>
-            </div>
-            <div className="col-6 text-end">
-              <div className="text-muted font-black text-[9px] tracking-widest text-uppercase">Despesas</div>
-              <div className="fw-bold text-danger text-sm">{showBalance ? formatCurrency(stats.totalDespesas) : 'R$ ••'}</div>
-            </div>
-          </div>
+          <span className="badge-tag badge-paid text-[10px] mt-1 inline-block">
+            {marginPercentage}% de Margem Livre
+          </span>
         </div>
 
-        {/* Quick Summary Grid */}
-        <div className="row g-2 mb-3">
-          <div className="col-6">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
-              <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Em Aberto</div>
-              <div className="fw-bold text-primary fs-5">{formatCurrency(stats.totalAberto)}</div>
-            </div>
+        <div className="grid grid-cols-2 gap-2 pt-2.5 mt-2 border-top border-border/40">
+          <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
+            <span className="text-[10px] font-bold text-muted d-flex align-items-center gap-1 mb-0.5">
+              <ArrowDown className="w-3 h-3 text-success" /> Entradas
+            </span>
+            <span className={cn('text-xs font-black text-success block', isHidden && 'hidden-amount')}>
+              {formatHidden(stats.totalReceitas)}
+            </span>
           </div>
-          <div className="col-6">
-            <div className="bg-card border border-border rounded-xl p-3 shadow-sm h-100 d-flex flex-column justify-content-center" style={{ minHeight: '80px' }}>
-              <div className="text-muted font-black text-[8px] tracking-widest text-uppercase mb-1">Pago</div>
-              <div className="fw-bold text-success fs-5">{formatCurrency(stats.totalPago)}</div>
-            </div>
+
+          <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
+            <span className="text-[10px] font-bold text-muted d-flex align-items-center gap-1 mb-0.5">
+              <ArrowUp className="w-3 h-3 text-danger" /> Saídas
+            </span>
+            <span className={cn('text-xs font-black text-danger block', isHidden && 'hidden-amount')}>
+              {formatHidden(stats.totalDespesas)}
+            </span>
+          </div>
+
+          <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
+            <span className="text-[10px] font-bold text-muted block mb-0.5">
+              Pago no Mês
+            </span>
+            <span className={cn('text-[11px] font-bold text-foreground block', isHidden && 'hidden-amount')}>
+              {formatHidden(stats.totalPago)}
+            </span>
+          </div>
+
+          <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
+            <span className="text-[10px] font-bold block mb-0.5" style={{ color: 'var(--purple, #8b5cf6)' }}>
+              Em Aberto ({pendingCount})
+            </span>
+            <span className={cn('text-[11px] font-bold block', isHidden && 'hidden-amount')} style={{ color: 'var(--purple, #8b5cf6)' }}>
+              {formatHidden(stats.totalAberto)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Standard Desktop KPI Cards - Hidden on small screens */}
-      <div className="row g-3 mb-4 d-none d-md-flex">
-        {cards.map((card, i) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05, ease: "easeOut" }}
-            key={card.label} 
-            className="col-md-3"
-          >
-            <div className={cn("kpi-card", `kpi-card-${card.variant}`, "h-100 rounded-2xl border border-border shadow-sm")}>
-              <small className="text-muted d-block text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
-                {card.label}
-              </small>
-              <div className={cn("centered-value h3 fw-bold mb-0", 
-                card.variant === 'red' ? "text-danger" : 
-                card.variant === 'green' ? "text-success" : 
-                card.variant === 'blue' ? "text-primary" : 
-                card.variant === 'purple' ? "text-faturas" : ""
-              )}>
-                {formatCurrency(card.value)}
+      {/* KPI Grid Desktop (4 Cards conforme completo_prototype.html) */}
+      <div className="kpi-grid d-none d-md-grid">
+        {/* Card 1: Receitas Totais */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Receitas Totais</span>
+            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--income, #10b981)' }}>
+              <Wallet className="w-4 h-4" />
+            </div>
+          </div>
+          <div className={cn('kpi-val text-success sensitive-val', isHidden && 'hidden-amount')}>
+            {formatHidden(stats.totalReceitas)}
+          </div>
+          <div className="kpi-footer">
+            <TrendingUp className="w-3.5 h-3.5 text-success" />
+            <span>Mês em andamento</span>
+          </div>
+        </div>
+
+        {/* Card 2: Despesas Totais */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Despesas Totais</span>
+            <div className="kpi-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--expense, #ef4444)' }}>
+              <Receipt className="w-4 h-4" />
+            </div>
+          </div>
+          <div className={cn('kpi-val text-danger sensitive-val', isHidden && 'hidden-amount')}>
+            {formatHidden(stats.totalDespesas)}
+          </div>
+          <div className="kpi-footer">
+            <TrendingDown className="w-3.5 h-3.5 text-danger" />
+            <span>Pago: {formatHidden(stats.totalPago)}</span>
+          </div>
+        </div>
+
+        {/* Card 3: Saldo Líquido */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Saldo Líquido</span>
+            <div className="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                className="toggle-visibility"
+                onClick={toggleVisibility}
+                title={isHidden ? 'Exibir valores' : 'Ocultar valores'}
+              >
+                {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+              <div 
+                className="kpi-icon-wrap" 
+                style={{ 
+                  background: 'rgba(16, 185, 129, 0.22)', 
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <Scale className="w-4 h-4 text-success" style={{ color: '#10b981' }} />
               </div>
             </div>
-          </motion.div>
-        ))}
+          </div>
+          <div className={cn('kpi-val text-success sensitive-val', isHidden && 'hidden-amount')} style={{ color: '#10b981' }}>
+            {formatHidden(stats.margem)}
+          </div>
+          <div className="kpi-footer">
+            <span className="badge-tag badge-paid">{marginPercentage}% de Margem</span>
+          </div>
+        </div>
+
+        {/* Card 4: Total em Aberto */}
+        <div className="kpi-card">
+          <div className="kpi-header">
+            <span className="kpi-title">Total em Aberto</span>
+            <div className="kpi-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.18)', color: 'var(--purple, #8b5cf6)' }}>
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className={cn('kpi-val text-purple sensitive-val', isHidden && 'hidden-amount')} style={{ color: 'var(--purple, #8b5cf6)' }}>
+            {formatHidden(stats.totalAberto)}
+          </div>
+          <div className="kpi-footer">
+            <span className="badge-tag badge-pending">
+              {pendingCount > 0 ? `${pendingCount} pendentes` : 'Em aberto'}
+            </span>
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
-interface ExtratoTableProps {
-  despesas: Despesa[];
-  onEdit?: (item: Despesa) => void;
+// ============================================================================
+// 2. GRÁFICO DE EVOLUÇÃO MENSAL (Line / Area Chart)
+// ============================================================================
+interface EvolucaoMensalChartProps {
+  projecaoSemestral?: any[];
+  isHidden?: boolean;
 }
 
-export function ExtratoTable({ despesas, onEdit }: ExtratoTableProps) {
+export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }: EvolucaoMensalChartProps) {
+  const chartData = useMemo(() => {
+    if (!projecaoSemestral || projecaoSemestral.length === 0) {
+      return [
+        { monthName: 'Jan', receitas: 18000, despesas: 12000 },
+        { monthName: 'Fev', receitas: 19500, despesas: 11000 },
+        { monthName: 'Mar', receitas: 18000, despesas: 13500 },
+        { monthName: 'Abr', receitas: 21000, despesas: 10000 },
+        { monthName: 'Mai', receitas: 20500, despesas: 14000 },
+        { monthName: 'Jun', receitas: 22000, despesas: 9000 },
+        { monthName: 'Jul', receitas: 22400, despesas: 7810 }
+      ];
+    }
 
-  return (
-    <div className="bg-card rounded-4 border border-border shadow-sm overflow-hidden flex flex-col h-100">
-      <div className="p-3 p-md-4 border-b border-border d-flex justify-content-between align-items-center bg-muted/5">
-        <h5 className="fw-bold m-0 fs-6 fs-md-5"><i className="fa-solid fa-list-ul me-2 text-primary"></i>Extrato Detalhado</h5>
-      </div>
-      <div className="overflow-y-auto flex-1" style={{ maxHeight: '560px' }}>
-
-
-        {despesas.length === 0 ? (
-          <div className="p-5 text-center text-muted italic">Nenhuma movimentação identificada</div>
-        ) : (
-          <>
-            {/* Mobile View - Sicoob Style */}
-            <div className="p-1 p-md-0 d-md-none">
-              {despesas.map((d) => {
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
-                
-                const isReceita = (d as any).data_recebimento || d.valor > 0 && d.status === 'Recebido'; // Simplificação
-                const iconClass = isReceita ? "fa-arrow-down text-success" : "fa-arrow-up text-danger";
-                const iconBg = isReceita ? "bg-success bg-opacity-10" : "bg-danger bg-opacity-10";
-
-                return (
-                  <div
-                    key={d.id}
-                    onClick={() => !d.isSummary && onEdit?.(d)}
-                    className="sicoob-list-item cursor-pointer hover:bg-muted/30 transition-all active:scale-[0.98]"
-                  >
-                    <div className={cn("sicoob-list-icon shadow-sm", iconBg)}>
-                      <i className={cn("fa-solid", iconClass, "text-xs")}></i>
-                    </div>
-                    
-                    <div className="sicoob-list-content">
-                      <div className="fw-bold text-foreground text-truncate leading-tight" style={{ fontSize: '0.85rem' }}>
-                        {d.descricao}
-                      </div>
-                      <div className="d-flex align-items-center gap-2 mt-0.5">
-                        {d.vencimento !== '-' && (
-                          <span className={cn("text-[10px] font-medium", isVencido ? "text-danger fw-bold" : "text-muted-foreground")}>
-                            {isVencido 
-                              ? `Atrasado ${formatDate(d.vencimento)}` 
-                              : formatDate(d.vencimento)
-                            }
-                          </span>
-                        )}
-                        <span className="text-muted-foreground/30 text-[8px]">●</span>
-                        <span className={cn(
-                          "font-black text-[8px] tracking-tighter uppercase",
-                          d.status === 'Pago' ? "text-success" : "text-warning"
-                        )}>
-                          {d.status === 'Pago' ? 'Pago' : 'Pendente'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="sicoob-list-value">
-                      <div className="fw-black text-foreground text-sm tracking-tight">
-                        {formatCurrency(d.valor)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop View - Original Table-like List */}
-            <div className="list-group list-group-flush d-none d-md-block">
-              {despesas.map((d) => {
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const isVencido = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr;
-
-                return (
-                  <div
-                    key={d.id}
-                    onDoubleClick={() => !d.isSummary && onEdit?.(d)}
-                    className="list-group-item list-group-item-action border-0 border-bottom border-border px-3 px-md-4 py-2 cursor-pointer bg-transparent"
-                  >
-                    <div className="d-flex justify-content-between align-items-start mb-0">
-                      <div className="fw-bold text-dark text-truncate pr-2" style={{ maxWidth: '65%' }}>
-                        {d.descricao}
-                      </div>
-                      <div className="fw-bold text-dark whitespace-nowrap">
-                        {formatCurrency(d.valor)}
-                      </div>
-                    </div>
-
-                    <div className="d-flex justify-content-between align-items-end">
-                      <div className="small text-muted flex-column d-flex">
-                        {d.vencimento !== '-' && (
-                          <span className={cn(isVencido ? "text-danger fw-bold" : "text-muted")}>
-                            {isVencido 
-                              ? `Venceu em ${formatDate(d.vencimento)}` 
-                              : `Dia ${parseInt(d.vencimento.split('-')[2] || '0')}`
-                            }
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <span className={cn(
-                          d.status === 'Pago' ? "status-pago" : "status-aberto"
-                        )}>
-                          {d.status === 'Pago' ? 'Pago' : 'Em aberto'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function TitularChart({ despesas, titulares }: { despesas: Despesa[], titulares: Titular[] }) {
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const titularData = React.useMemo(() => {
-    const data: Record<number, number> = {};
-    despesas.forEach(d => {
-      if (d.titular_id) {
-        data[d.titular_id] = (data[d.titular_id] || 0) + d.valor;
+    return projecaoSemestral.slice(0, 8).map((item) => {
+      let label = item.competencia;
+      if (typeof item.competencia === 'string' && item.competencia.includes('/')) {
+        const [m] = item.competencia.split('/').map(Number);
+        if (m >= 1 && m <= 12) label = monthsShort[m - 1];
       }
+      return {
+        monthName: label,
+        receitas: Number(item.receitas || 0),
+        despesas: Number((item.despesas || 0) + (item.faturas || 0))
+      };
     });
-    return Object.entries(data).map(([id, value]) => ({
-      name: titulares.find(t => t.id === parseInt(id))?.nome || 'N/A',
-      value
-    }));
-  }, [despesas, titulares]);
+  }, [projecaoSemestral]);
 
-  const COLORS = ['#4361ee', '#2ec4b6', '#ff9f1c', '#e71d36', '#9b59b6'];
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          className="p-3 rounded-xl shadow-2xl border border-border"
+          style={{
+            background: 'rgba(15, 15, 20, 0.95)',
+            color: '#fff',
+            backdropFilter: 'blur(10px)',
+            fontSize: '13px'
+          }}
+        >
+          <div className="font-bold text-gray-300 mb-1.5">{label}</div>
+          {payload.map((entry: any, index: number) => (
+            <div key={`item-${index}`} className="d-flex align-items-center gap-2 mb-1">
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: entry.color || entry.stroke
+                }}
+              />
+              <span className="text-gray-400">{entry.name}:</span>
+              <span className="font-bold">
+                {isHidden ? 'R$ •••••' : formatCurrency(entry.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="bg-card rounded-4 border border-border p-4 shadow-sm h-100">
-      <h6 className="fw-bold mb-4 text-center text-uppercase small text-muted">Gastos por Titular</h6>
-      <div style={{ height: '280px' }}>
+    <div className="card-panel h-100 flex flex-col">
+      <div className="panel-header mb-2">
+        <div>
+          <h3 className="panel-title">
+            <ChartLineIcon className="w-5 h-5 text-primary" />
+            <span>Evolução Mensal</span>
+          </h3>
+          <span className="panel-subtitle">Entradas vs. Saídas no período</span>
+        </div>
+        <div className="badge-tag badge-paid text-[10px] py-0.5 px-2">2026</div>
+      </div>
 
-
+      <div className="chart-container chart-height-dashboard w-100">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={titularData}
-              cx="50%"
-              cy="50%"
-              innerRadius={isMobile ? "50%" : 60}
-              outerRadius={isMobile ? "80%" : 90}
-              paddingAngle={5}
-              dataKey="value"
-            >
-              {titularData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value: any) => formatCurrency(Number(value || 0))} />
-            <Legend verticalAlign="bottom" height={36} />
-          </PieChart>
+          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
+            <defs>
+              <linearGradient id="recGradCompleto" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="despGradCompleto" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              dataKey="monthName"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 500 }}
+              dy={6}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+              tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
+            />
+            <RechartsTooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="receitas"
+              name="Receitas"
+              stroke="#10b981"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#recGradCompleto)"
+            />
+            <Area
+              type="monotone"
+              dataKey="despesas"
+              name="Despesas"
+              stroke="#ef4444"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#despGradCompleto)"
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
 
-export function PaymentStatusChart({ stats }: { stats: { totalReceitas: number; totalDespesas: number; totalPago: number; totalAberto: number; margem: number; totalVencido?: number } }) {
-  const [isMobile, setIsMobile] = React.useState(false);
+// ============================================================================
+// 3. GRÁFICO DE DESPESAS POR CATEGORIA (Bar Chart)
+// ============================================================================
+interface DespesasCategoriaChartProps {
+  despesas: Despesa[];
+  receitas?: Receita[];
+  isHidden?: boolean;
+}
 
-  React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+const CATEGORY_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#3b82f6', '#10b981', '#64748b', '#06b6d4', '#f43f5e'];
+
+export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = false }: DespesasCategoriaChartProps) {
+  const categoryData = useMemo(() => {
+    const map: Record<string, number> = {};
+    let total = 0;
+
+    // Include consolidated despesas (virtual + physical)
+    despesas.forEach((d) => {
+      const cat = d.categoria?.trim() || 'Outros';
+      map[cat] = (map[cat] || 0) + Number(d.valor || 0);
+      total += Number(d.valor || 0);
+    });
+
+    if (total === 0 || Object.keys(map).length === 0) {
+      return [
+        { name: 'Moradia', valor: 3500 },
+        { name: 'Alimentação', valor: 2500 },
+        { name: 'Transporte', valor: 1500 },
+        { name: 'Lazer', valor: 1500 },
+        { name: 'Outros', valor: 1000 }
+      ];
+    }
+
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 7)
+      .map(([name, val]) => ({ name, valor: val }));
+  }, [despesas]);
+
+  const CustomBarTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          className="p-3 rounded-xl shadow-2xl border border-border"
+          style={{
+            background: 'rgba(15, 15, 20, 0.95)',
+            color: '#fff',
+            backdropFilter: 'blur(10px)',
+            fontSize: '13px',
+            minWidth: '160px'
+          }}
+        >
+          <div className="font-bold text-gray-200 mb-1.5">{label}</div>
+          <div className="d-flex justify-content-between gap-4">
+            <span className="text-gray-400">Valor:</span>
+            <span className="font-bold" style={{ color: '#8b5cf6' }}>
+              {isHidden ? 'R$ •••••' : formatCurrency(payload[0].value)}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="bg-card rounded-4 border border-border p-4 shadow-sm text-center flex flex-col justify-content-center h-100">
-      <h6 className="fw-bold mb-4 text-uppercase small text-muted">Status de Pagamento</h6>
-      <div className="position-relative" style={{ height: '280px' }}>
+    <div className="card-panel h-100 flex flex-col">
+      <div className="panel-header mb-2">
+        <div>
+          <h3 className="panel-title">
+            <PieIcon className="w-5 h-5 text-primary" />
+            <span>Despesas por Categoria</span>
+          </h3>
+          <span className="panel-subtitle">Distribuição por categoria no mês</span>
+        </div>
+      </div>
 
-
-
+      <div className="chart-container chart-height-dashboard w-100">
         <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={categoryData}
+            layout="vertical"
+            margin={{ top: 2, right: 10, left: -10, bottom: 2 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.06)" />
+            <XAxis
+              type="number"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+              tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+              width={75}
+            />
+            <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+            <Bar dataKey="valor" name="Valor" radius={[0, 4, 4, 0]} maxBarSize={16}>
+              {categoryData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 4. CARTÕES DE CRÉDITO & FATURAS WIDGET (Slider conforme completo_prototype.html)
+// ============================================================================
+interface CreditCardsWidgetProps {
+  cartoes?: CartaoConfig[];
+  titulares?: Titular[];
+  despesas?: Despesa[];
+  onViewAllCards?: () => void;
+  isHidden?: boolean;
+}
+
+const PRESET_CARDS_CONFIG = [
+  {
+    name: 'Sicoob Clássico',
+    color: '#00AE9A',
+    gradientClass: 'card-sicoob-classico',
+    last4: '7376',
+    defaultHolder: 'Rodrigo Rocha'
+  },
+  {
+    name: 'Sicoob Platinum',
+    color: '#00353E',
+    gradientClass: 'card-sicoob-platinum',
+    last4: '7262',
+    defaultHolder: 'Mariana Rocha'
+  },
+  {
+    name: 'Mercado Pago',
+    color: '#222A37',
+    gradientClass: 'card-mercado-pago',
+    last4: '4904',
+    defaultHolder: 'Rodrigo Rocha'
+  },
+  {
+    name: 'Inter',
+    color: '#FF5100',
+    gradientClass: 'card-inter',
+    last4: '1234',
+    defaultHolder: 'Mariana Rocha'
+  },
+  {
+    name: 'Nubank',
+    color: '#6834AE',
+    gradientClass: 'card-nubank',
+    last4: '4321',
+    defaultHolder: 'Rodrigo Rocha'
+  }
+];
+
+export function CreditCardsWidget({
+  cartoes = [],
+  titulares = [],
+  despesas = [],
+  onViewAllCards,
+  isHidden = false
+}: CreditCardsWidgetProps) {
+  const cardsList = useMemo(() => {
+    return PRESET_CARDS_CONFIG.map((preset, idx) => {
+      // Find matching card in config.cartoes
+      const normPreset = preset.name.toLowerCase();
+      const matchedCard = cartoes.find((c) => {
+        const norm = (c.nome_cartao || '').toLowerCase();
+        return norm.includes(normPreset) || normPreset.includes(norm);
+      });
+
+      // Holder name
+      let holder = preset.defaultHolder;
+      if (matchedCard && matchedCard.titular_id) {
+        const tName = titulares.find((t) => t.id === matchedCard.titular_id)?.nome;
+        if (tName) holder = tName;
+      }
+
+      // Calculate invoice from despesas
+      const cardFatura = despesas
+        .filter((d) => {
+          if (matchedCard && d.cartao_vencimento_id === matchedCard.id) return true;
+          const desc = (d.descricao || '').toLowerCase();
+          return (
+            desc.includes(normPreset) ||
+            desc.includes(preset.last4) ||
+            (normPreset.includes('sicoob clássico') && desc.includes('sicoob') && (desc.includes('clássico') || desc.includes('classico'))) ||
+            (normPreset.includes('sicoob platinum') && desc.includes('sicoob') && desc.includes('platinum')) ||
+            (normPreset.includes('mercado pago') && desc.includes('mercado pago')) ||
+            (normPreset.includes('inter') && desc.includes('inter')) ||
+            (normPreset.includes('nubank') && desc.includes('nubank'))
+          );
+        })
+        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
+
+      return {
+        id: matchedCard ? matchedCard.id : idx + 1,
+        brand: preset.name,
+        holder,
+        number: `•••• •••• •••• ${preset.last4}`,
+        fatura: cardFatura,
+        gradientClass: preset.gradientClass,
+        color: preset.color
+      };
+    });
+  }, [cartoes, titulares, despesas]);
+
+  return (
+    <div className="card-panel">
+      <div className="panel-header">
+        <div>
+          <h3 className="panel-title">
+            <CardIcon className="w-5 h-5 text-primary" />
+            <span>Cartões de Crédito & Faturas</span>
+          </h3>
+          <span className="panel-subtitle">Acompanhamento de fechamento e limites</span>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onViewAllCards}
+        >
+          Ver Todos
+        </button>
+      </div>
+
+      <div className="card-slider">
+        {cardsList.map((c) => (
+          <div
+            key={c.id}
+            className={cn('credit-card-ui', c.gradientClass)}
+            onClick={onViewAllCards}
+          >
+            <div className="cc-top">
+              <div className="cc-chip"></div>
+              <span className="cc-brand">{c.brand}</span>
+            </div>
+            <div className="cc-middle">
+              <div className="cc-number">{c.number}</div>
+            </div>
+            <div className="cc-bottom">
+              <div className="cc-holder">{c.holder}</div>
+              <div className="cc-balance-preview">
+                <div className="cc-balance-label">Fatura Atual</div>
+                <div className={cn('cc-balance-val sensitive-val', isHidden && 'hidden-amount')}>
+                  {isHidden ? 'R$ •••••' : formatCurrency(c.fatura)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 5. EXTRATO DE LANÇAMENTOS RECENTES (Table View conforme completo_prototype.html)
+// ============================================================================
+interface ExtratoTableWidgetProps {
+  despesas: Despesa[];
+  receitas?: Receita[];
+  cartoes?: CartaoConfig[];
+  titulares?: Titular[];
+  onViewAll?: () => void;
+  onEdit?: (item: Despesa) => void;
+  isHidden?: boolean;
+}
+
+export function ExtratoTableWidget({
+  despesas,
+  receitas = [],
+  cartoes = [],
+  titulares = [],
+  onViewAll,
+  onEdit,
+  isHidden = false
+}: ExtratoTableWidgetProps) {
+  const transactions = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const exp = despesas.map((d) => {
+      const isCard = d.isSummary || !!d.cartao_vencimento_id || d.descricao.startsWith('Fatura ');
+      const isOverdue = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr && d.vencimento !== '-';
+      const titularNome = titulares.find((t) => t.id === d.titular_id)?.nome || 'Família';
+      const cartaoNome = cartoes.find((c) => c.id === d.cartao_vencimento_id)?.nome_cartao;
+      const cat = d.categoria || (isCard ? 'Cartão' : 'Despesa');
+      // Sort key: vencimento or competencia date
+      const sortDate = d.vencimento && d.vencimento !== '-' ? d.vencimento : (d.competencia ? `${d.competencia.split('/')[1]}-${d.competencia.split('/')[0]}-01` : '0000-00-00');
+
+      return {
+        id: d.id,
+        raw: d,
+        desc: d.descricao,
+        cat,
+        titular: cartaoNome ? `Cartão ${cartaoNome}` : titularNome,
+        vencimento: d.vencimento && d.vencimento !== '-' ? formatDate(d.vencimento) : 'Mensal',
+        status: d.status || 'Em aberto',
+        isOverdue,
+        isIncome: false,
+        amount: d.valor,
+        sortDate
+      };
+    });
+
+    const inc = receitas.map((r) => {
+      const titularNome = titulares.find((t) => t.id === r.titular_id)?.nome || 'Família';
+      const sortDate = r.data_recebimento ? r.data_recebimento : (r.competencia ? `${r.competencia.split('/')[1]}-${r.competencia.split('/')[0]}-01` : '0000-00-00');
+      return {
+        id: r.id,
+        raw: r as any,
+        desc: r.descricao,
+        cat: r.categoria || 'Receita',
+        titular: titularNome,
+        vencimento: r.data_recebimento ? formatDate(r.data_recebimento) : 'Mensal',
+        status: r.status || 'Recebido',
+        isOverdue: false,
+        isIncome: true,
+        amount: r.valor,
+        sortDate
+      };
+    });
+
+    // Merge and sort: overdue first, then by most recent date
+    return [...exp, ...inc].sort((a, b) => {
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+      return b.sortDate.localeCompare(a.sortDate);
+    });
+  }, [despesas, receitas, cartoes, titulares]);
+
+  return (
+    <div className="card-panel">
+      <div className="panel-header">
+        <div>
+          <h3 className="panel-title">
+            <ListFilter className="w-5 h-5 text-primary" />
+            <span>Extrato de Lançamentos Recentes</span>
+          </h3>
+          <span className="panel-subtitle">
+            {transactions.length} movimentações no período ({despesas.length} despesas e {receitas.length} receitas)
+          </span>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onViewAll}
+        >
+          Ver Todos
+        </button>
+      </div>
+
+      {/* Mobile View: Lista de Transações em Cards (Sem rolagem horizontal) */}
+      <div className="d-md-none space-y-2 max-h-[420px] overflow-y-auto custom-scrollbar p-1">
+        {transactions.length === 0 ? (
+          <div className="text-center py-6 text-muted small italic">
+            Nenhuma movimentação identificada neste período
+          </div>
+        ) : (
+          transactions.map((tx) => {
+            const isPaid = tx.status === 'Pago' || tx.status === 'Recebido';
+
+            return (
+              <div
+                key={`mob-dash-${tx.isIncome ? 'inc' : 'exp'}-${tx.id}`}
+                className={cn(
+                  "bg-card border border-border rounded-2xl p-3 d-flex align-items-center justify-content-between gap-2.5 transition-all shadow-sm cursor-pointer",
+                  isPaid && "opacity-90"
+                )}
+                onClick={() => onEdit?.(tx.raw)}
+              >
+                <div className="d-flex align-items-center gap-2.5 min-w-0 flex-grow">
+                  <span
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : '#3b82f6',
+                      display: 'inline-block',
+                      flexShrink: 0
+                    }}
+                  />
+                  <div className="min-w-0 flex-grow">
+                    <div className="font-bold text-xs text-foreground truncate">
+                      {tx.desc}
+                    </div>
+                    <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-wrap mt-0.5">
+                      <span>{tx.vencimento}</span>
+                      <span>•</span>
+                      <span className="badge-tag" style={{ padding: '1px 5px', fontSize: '9px' }}>{tx.cat}</span>
+                      {tx.titular && (
+                        <>
+                          <span>•</span>
+                          <span>{tx.titular}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-flex flex-column align-items-end flex-shrink-0">
+                  <span
+                    className={cn(
+                      'font-bold text-xs',
+                      tx.isIncome ? 'text-success' : 'text-danger',
+                      isHidden && 'hidden-amount'
+                    )}
+                    style={{
+                      color: tx.isIncome ? 'var(--income, #10b981)' : 'var(--expense, #ef4444)',
+                      fontWeight: 700
+                    }}
+                  >
+                    {tx.isIncome ? `+ ${formatCurrency(tx.amount)}` : `- ${formatCurrency(tx.amount)}`}
+                  </span>
+                  <span
+                    className={cn(
+                      'badge-tag mt-1',
+                      isPaid ? 'badge-paid' : tx.isOverdue ? 'badge-overdue' : 'badge-pending'
+                    )}
+                    style={{ fontSize: '9px', padding: '1px 6px' }}
+                  >
+                    {tx.isOverdue ? 'Atrasado' : isPaid ? (tx.isIncome ? 'Recebido' : 'Pago') : 'Em Aberto'}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop View: Tabela */}
+      <div className="table-responsive custom-scrollbar d-none d-md-block" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+        <table className="styled-table" style={{ position: 'relative' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
+            <tr>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Titular</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-5 text-muted">
+                  Nenhuma movimentação identificada neste período
+                </td>
+              </tr>
+            ) : (
+              transactions.map((tx) => {
+                const isPaid = tx.status === 'Pago' || tx.status === 'Recebido';
+
+                return (
+                  <tr key={`${tx.isIncome ? 'inc' : 'exp'}-${tx.id}`} onClick={() => onEdit?.(tx.raw)}>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : '#3b82f6',
+                            display: 'inline-block',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span className="font-semibold text-sm">
+                          {tx.desc}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge-tag" style={{ background: 'var(--card-hover)', color: 'var(--text-muted)' }}>
+                        {tx.cat}
+                      </span>
+                    </td>
+                    <td className="text-muted text-sm font-medium">
+                      {tx.titular}
+                    </td>
+                    <td className="text-muted text-sm whitespace-nowrap">
+                      {tx.vencimento}
+                    </td>
+                    <td>
+                      <span
+                        className={cn(
+                          'badge-tag',
+                          isPaid ? 'badge-paid' : tx.isOverdue ? 'badge-overdue' : 'badge-pending'
+                        )}
+                      >
+                        {tx.isOverdue ? 'Atrasado' : isPaid ? (tx.isIncome ? 'Recebido' : 'Pago') : 'Em Aberto'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span
+                        className={cn(
+                          'font-bold',
+                          tx.isIncome ? 'text-success' : 'text-danger',
+                          isHidden && 'hidden-amount'
+                        )}
+                        style={{
+                          color: tx.isIncome ? 'var(--income, #10b981)' : 'var(--expense, #ef4444)',
+                          fontWeight: 700
+                        }}
+                      >
+                        {tx.isIncome ? `+ ${formatCurrency(tx.amount)}` : `- ${formatCurrency(tx.amount)}`}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Backward compatibility wrapper for old ExtratoTable export
+export function ExtratoTable({ despesas, onEdit }: { despesas: Despesa[]; onEdit?: (item: Despesa) => void }) {
+  return <ExtratoTableWidget despesas={despesas} onEdit={onEdit} />;
+}
+
+// Backward compatibility wrapper for TitularChart
+export function TitularChart({ despesas, titulares }: { despesas: Despesa[]; titulares: Titular[] }) {
+  return <DespesasCategoriaChart despesas={despesas} />;
+}
+
+// Backward compatibility wrapper for PaymentStatusChart
+export function PaymentStatusChart({ stats }: { stats: { totalReceitas: number; totalDespesas: number; totalPago: number; totalAberto: number; margem: number; totalVencido?: number } }) {
+  return (
+    <div className="card-panel text-center flex flex-col justify-content-center h-100">
+      <div className="panel-title mb-4">Status de Pagamento</div>
+      <div className="position-relative w-100" style={{ height: '220px', minHeight: '220px', maxHeight: '220px', minWidth: 0, overflow: 'hidden' }}>
+        <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie
               data={[
                 { name: 'Pago', value: stats.totalPago },
-                { name: 'Em Aberto', value: stats.totalAberto },
+                { name: 'Em Aberto', value: stats.totalAberto }
               ]}
               cx="50%"
               cy="50%"
-              innerRadius={isMobile ? "50%" : 60}
-              outerRadius={isMobile ? "80%" : 90}
-              paddingAngle={5}
+              innerRadius={60}
+              outerRadius={85}
+              paddingAngle={4}
               dataKey="value"
               startAngle={90}
               endAngle={-270}
             >
-              <Cell fill="var(--success)" />
-              <Cell fill="var(--warning)" />
+              <Cell fill="var(--income, #10b981)" />
+              <Cell fill="#f59e0b" />
             </Pie>
-            <Tooltip formatter={(value: any) => formatCurrency(Number(value || 0))} />
+            <RechartsTooltip formatter={(value: any) => formatCurrency(Number(value || 0))} />
             <Legend verticalAlign="bottom" height={36} />
           </PieChart>
         </ResponsiveContainer>
@@ -363,11 +981,109 @@ export function PaymentStatusChart({ stats }: { stats: { totalReceitas: number; 
   );
 }
 
-export function DashboardCharts({ despesas, stats, titulares }: { despesas: Despesa[], stats: { totalReceitas: number; totalDespesas: number; totalPago: number; totalAberto: number; margem: number; totalVencido?: number }, titulares: Titular[] }) {
+// ============================================================================
+// 6. DASHBOARD VIEW (Layout Completo conforme completo_prototype.html)
+// ============================================================================
+export interface DashboardViewProps {
+  stats: {
+    totalReceitas: number;
+    totalDespesas: number;
+    totalPago: number;
+    totalAberto: number;
+    margem: number;
+    totalVencido?: number;
+  };
+  despesas: Despesa[];
+  receitas?: Receita[];
+  cartoes?: CartaoConfig[];
+  titulares?: Titular[];
+  projecaoSemestral?: any[];
+  currentMonth?: number;
+  currentYear?: number;
+  onViewChange?: (view: string) => void;
+  onOpenPeriodModal?: () => void;
+  onEditDespesa?: (item: Despesa) => void;
+  onEditReceita?: (item: Receita) => void;
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
+}
+
+export function DashboardView({
+  stats,
+  despesas,
+  receitas = [],
+  cartoes = [],
+  titulares = [],
+  projecaoSemestral = [],
+  currentMonth,
+  currentYear,
+  onViewChange,
+  onOpenPeriodModal,
+  onEditDespesa,
+  onEditReceita,
+  isHidden: externalHidden,
+  onToggleVisibility: externalToggle
+}: DashboardViewProps) {
+  const [internalHidden, setInternalHidden] = useState(false);
+  const isHidden = externalHidden !== undefined ? externalHidden : internalHidden;
+  const toggleVisibility = externalToggle || (() => setInternalHidden(!internalHidden));
+
+  const pendingCount = useMemo(() => {
+    return despesas.filter((d) => d.status !== 'Pago').length;
+  }, [despesas]);
+
   return (
-    <div className="flex flex-col gap-4">
-      <TitularChart despesas={despesas} titulares={titulares} />
-      <PaymentStatusChart stats={stats} />
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      {/* 1. KPIs Section (Cards no Topo) */}
+      <KPICards
+        stats={stats}
+        onViewChange={onViewChange}
+        month={currentMonth}
+        year={currentYear}
+        onOpenPeriodModal={onOpenPeriodModal}
+        isHidden={isHidden}
+        onToggleVisibility={toggleVisibility}
+        pendingCount={pendingCount}
+      />
+
+      {/* 2. Charts Section (Evolução Mensal 1.6fr + Despesas por Categoria 1fr) */}
+      <div className="grid-2col">
+        <EvolucaoMensalChart
+          projecaoSemestral={projecaoSemestral}
+          isHidden={isHidden}
+        />
+        <DespesasCategoriaChart
+          despesas={despesas}
+          isHidden={isHidden}
+        />
+      </div>
+
+      {/* 3. Cartões de Crédito & Faturas Slider */}
+      <CreditCardsWidget
+        cartoes={cartoes}
+        titulares={titulares}
+        despesas={despesas}
+        onViewAllCards={() => onViewChange?.('cartoes')}
+        isHidden={isHidden}
+      />
+
+      {/* 4. Extrato de Lançamentos Recentes */}
+      <ExtratoTableWidget
+        despesas={despesas}
+        receitas={receitas}
+        cartoes={cartoes}
+        titulares={titulares}
+        onViewAll={() => onViewChange?.('geral')}
+        onEdit={onEditDespesa}
+        isHidden={isHidden}
+      />
+    </motion.div>
   );
 }
+
+export default DashboardView;

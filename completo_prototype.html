@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="midnight" data-primary="green">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Radar Financeiro | Fintech UI/UX</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 Pro CDN Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & CSS VARIABLES
+       ========================================================================== */
+    :root {
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      
+      /* Primary Colors (Default: Emerald Green) */
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --primary-subtle: rgba(16, 185, 129, 0.12);
+      
+      /* Semantic Status Colors */
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --info: #3b82f6;
+      --purple: #8b5cf6;
+
+      /* Radii */
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --radius-full: 9999px;
+    }
+
+    /* THEME: MIDNIGHT BLACK (Default) */
+    [data-theme="midnight"] {
+      --bg: #030305;
+      --bg-surface: #0a0a0f;
+      --card: #0f1016;
+      --card-hover: #151720;
+      --card-elevated: #1a1c26;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --glass-bg: rgba(15, 16, 22, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.5);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.8);
+      --mobile-header-bg: #0a0a0f;
+      --bottom-nav-bg: #0a0a0f;
+    }
+
+    /* THEME: DARK DEEP (Deep Blue Navy) */
+    [data-theme="dark"] {
+      --bg: #0b0f19;
+      --bg-surface: #0f172a;
+      --card: #131d31;
+      --card-hover: #18243d;
+      --card-elevated: #1e2c4a;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --glass-bg: rgba(19, 29, 49, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+      --mobile-header-bg: #0f172a;
+      --bottom-nav-bg: #0f172a;
+    }
+
+    /* THEME: LIGHT MODE */
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-surface: #f1f5f9;
+      --card: #ffffff;
+      --card-hover: #f8fafc;
+      --card-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-subtle: rgba(0, 0, 0, 0.04);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(0, 0, 0, 0.08);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.08);
+      --mobile-header-bg: #ffffff;
+      --bottom-nav-bg: #ffffff;
+    }
+
+    /* PRIMARY COLOR PALETTES */
+    [data-primary="green"] {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.3);
+      --primary-subtle: rgba(16, 185, 129, 0.12);
+    }
+    [data-primary="purple"] {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --primary-glow: rgba(139, 92, 246, 0.3);
+      --primary-subtle: rgba(139, 92, 246, 0.12);
+    }
+    [data-primary="blue"] {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-glow: rgba(59, 130, 246, 0.3);
+      --primary-subtle: rgba(59, 130, 246, 0.12);
+    }
+    [data-primary="amber"] {
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --primary-glow: rgba(245, 158, 11, 0.3);
+      --primary-subtle: rgba(245, 158, 11, 0.12);
+    }
+
+    /* ==========================================================================
+       2. RESET & BASE STYLES
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    input, select, button, textarea {
+      font-family: inherit;
+      outline: none;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       3. RESPONSIVE APP SHELL LAYOUT
+       ========================================================================== */
+    .app-container {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* DESKTOP SIDEBAR */
+    .sidebar {
+      width: 260px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      z-index: 100;
+      flex-shrink: 0;
+      transition: var(--transition-base);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px 28px 12px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--text), var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-base);
+      position: relative;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background: var(--card-hover);
+    }
+
+    .nav-item.active {
+      color: var(--text);
+      background: var(--primary-subtle);
+      border: 1px solid var(--primary-glow);
+    }
+
+    .nav-item.active i {
+      color: var(--primary);
+    }
+
+    .nav-item i {
+      font-size: 1.1rem;
+      width: 22px;
+      text-align: center;
+      transition: var(--transition-base);
+    }
+
+    .sidebar-footer {
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-md);
+      transition: var(--transition-base);
+      flex: 1;
+    }
+
+    .user-profile:hover {
+      background: var(--card-hover);
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #ffffff;
+      border: 2px solid var(--border);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .user-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* MAIN CONTENT AREA */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+      padding-bottom: 90px; /* Space for mobile nav */
+    }
+
+    /* DESKTOP TOPBAR */
+    .topbar {
+      height: 76px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .page-header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .page-header-title i {
+      color: var(--primary);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .period-navigator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 4px 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .period-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .period-btn:hover {
+      background: var(--card-hover);
+      color: var(--text);
+    }
+
+    .period-display {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-base);
+      position: relative;
+    }
+
+    .btn-icon:hover {
+      color: var(--text);
+      border-color: var(--primary);
+      background: var(--card-hover);
+    }
+
+    .badge-dot {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger-glow);
+    }
+
+    /* THEME SELECTOR DROPDOWN / PILLS */
+    .theme-picker {
+      display: flex;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .theme-pill {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-base);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .theme-pill.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* CONTENT CONTAINER */
+    .content-container {
+      padding: 32px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ==========================================================================
+       4. MOBILE APP BAR & HEADER (ESTILO SICOOB / NUBANK)
+       ========================================================================== */
+    .mobile-header {
+      display: none;
+      padding: 16px 20px;
+      background: var(--mobile-header-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+    }
+
+    .mobile-header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mobile-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mobile-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border: 2px solid var(--primary-glow);
+    }
+
+    .mobile-greeting {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-greeting-hi {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mobile-greeting-name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .mobile-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* HERO CARD DE SALDO (MOBILE BANKING HERO) */
+    .mobile-hero-card {
+      display: none;
+      background: linear-gradient(145deg, var(--card), var(--card-elevated));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .mobile-hero-card::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 140px;
+      height: 140px;
+      background: var(--primary-glow);
+      border-radius: 50%;
+      filter: blur(40px);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .hero-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .hero-eye-btn {
+      background: var(--card-hover);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .hero-eye-btn:hover {
+      color: var(--text);
+      border-color: var(--primary);
+    }
+
+    .hero-balance {
+      font-size: 1.95rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+
+    .hero-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hero-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hero-stat-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hero-stat-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .text-success { color: var(--success) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-primary { color: var(--primary) !important; }
+    .text-purple { color: var(--purple) !important; }
+    .text-warning { color: var(--warning) !important; }
+
+    /* ==========================================================================
+       5. BOTTOM NAVIGATION WITH ELEVATED FAB (+)
+       ========================================================================== */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: var(--bottom-nav-bg);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      padding: 0 10px;
+    }
+
+    .mobile-bottom-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 100%;
+      position: relative;
+    }
+
+    .nav-tab-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 58px;
+      height: 52px;
+      transition: var(--transition-base);
+      border-radius: var(--radius-md);
+    }
+
+    .nav-tab-btn i {
+      font-size: 1.25rem;
+      transition: var(--transition-base);
+    }
+
+    .nav-tab-btn.active {
+      color: var(--primary);
+    }
+
+    .nav-tab-btn.active i {
+      transform: translateY(-2px) scale(1.1);
+    }
+
+    /* FAB BUMP & BUTTON */
+    .fab-slot {
+      width: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .fab-button {
+      position: absolute;
+      top: -24px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #ffffff;
+      border: 4px solid var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 8px 20px var(--primary-glow);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .fab-button:hover, .fab-button:active {
+      transform: scale(1.08) rotate(90deg);
+      box-shadow: 0 12px 28px var(--primary-glow);
+    }
+
+    /* ==========================================================================
+       6. CARDS, KPI GRIDS & WIDGETS
+       ========================================================================== */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-base);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-subtle);
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .kpi-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .kpi-val {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* CHARTS & ANALYTICS GRID */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 24px;
+    }
+
+    .card-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 260px;
+    }
+
+    /* CREDIT CARDS WIDGET */
+    .card-slider {
+      display: flex;
+      gap: 18px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .credit-card-ui {
+      min-width: 290px;
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 180px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      flex-shrink: 0;
+      transition: var(--transition-base);
+    }
+
+    .credit-card-ui:hover {
+      transform: translateY(-4px) scale(1.02);
+    }
+
+    .card-gradient-black {
+      background: linear-gradient(135deg, #1e293b, #0f172a, #020617);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .card-gradient-purple {
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9, #4c1d95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-gradient-teal {
+      background: linear-gradient(135deg, #0d9488, #0f766e, #115e59);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .cc-chip {
+      width: 36px;
+      height: 28px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #fcd34d, #f59e0b);
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .cc-chip::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+
+    .cc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cc-brand {
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-style: italic;
+      letter-spacing: 0.05em;
+    }
+
+    .cc-middle {
+      margin: 10px 0;
+    }
+
+    .cc-number {
+      font-size: 0.92rem;
+      letter-spacing: 0.15em;
+      font-family: monospace;
+      opacity: 0.9;
+    }
+
+    .cc-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .cc-holder {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cc-balance-preview {
+      text-align: right;
+    }
+
+    .cc-balance-label {
+      font-size: 0.65rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+
+    .cc-balance-val {
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    /* TABLE & LIST VIEW */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .styled-table th {
+      padding: 12px 16px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .styled-table td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text);
+    }
+
+    .styled-table tr:hover td {
+      background: var(--card-hover);
+    }
+
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .badge-paid {
+      background: var(--success-glow);
+      color: var(--success);
+    }
+
+    .badge-pending {
+      background: var(--warning-glow);
+      color: var(--warning);
+    }
+
+    .badge-overdue {
+      background: var(--danger-glow);
+      color: var(--danger);
+    }
+
+    /* ACTION BUTTONS */
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-base);
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--card-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-base);
+    }
+
+    .btn-secondary:hover {
+      background: var(--card-hover);
+      border-color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       7. MODALS & BOTTOM SHEETS
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 520px;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.92) translateY(20px);
+      transition: var(--transition-smooth);
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px;
+      transition: var(--transition-base);
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: var(--transition-base);
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .type-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .type-btn {
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .type-btn.active-expense {
+      background: var(--danger);
+      color: #fff;
+    }
+    .type-btn.active-income {
+      background: var(--success);
+      color: #fff;
+    }
+    .type-btn.active-card {
+      background: var(--purple);
+      color: #fff;
+    }
+
+    /* VIEWS VISIBILITY */
+    .view-section {
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .view-section.active-view {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* RADAR INSIGHTS CARDS */
+    .radar-card {
+      background: linear-gradient(135deg, var(--card), var(--card-elevated));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .radar-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       8. RESPONSIVE BREAKPOINTS (MOBILE VS DESKTOP)
+       ========================================================================== */
+    @media (max-width: 991px) {
+      .sidebar {
+        display: none;
+      }
+      .topbar {
+        display: none;
+      }
+      .mobile-header {
+        display: block;
+      }
+      .mobile-hero-card {
+        display: block;
+      }
+      .mobile-bottom-nav {
+        display: block;
+      }
+      .content-container {
+        padding: 16px;
+        gap: 18px;
+      }
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .kpi-card {
+        padding: 16px;
+      }
+      .kpi-val {
+        font-size: 1.25rem;
+      }
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+      .card-panel {
+        padding: 18px;
+      }
+      .theme-picker {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hero-balance {
+        font-size: 1.65rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ==========================================================================
+         DESKTOP SIDEBAR (FIXA À ESQUERDA)
+         ========================================================================== -->
+    <aside class="sidebar">
+      <div class="brand-logo">
+        <div class="brand-icon">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+        <span class="brand-title">Radar Financeiro</span>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" onclick="switchView('dashboard')">
+          <i class="fa-solid fa-house"></i>
+          <span>Dashboard</span>
+        </li>
+        <li class="nav-item" onclick="switchView('cartoes')">
+          <i class="fa-solid fa-credit-card"></i>
+          <span>Meus Cartões</span>
+        </li>
+        <li class="nav-item" onclick="switchView('extrato')">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Despesas & Receitas</span>
+        </li>
+        <li class="nav-item" onclick="switchView('radar')">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Radar Financeiro</span>
+        </li>
+        <li class="nav-item" onclick="switchView('config')">
+          <i class="fa-solid fa-gear"></i>
+          <span>Definições</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="user-profile" onclick="openProfileModal()">
+          <div class="avatar">RR</div>
+          <div class="user-info">
+            <span class="user-name">Rodrigo Rocha</span>
+            <span class="user-badge">Titular</span>
+          </div>
+        </div>
+        <button class="btn-icon" title="Sair" onclick="alert('Encerrando sessão...')">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ==========================================================================
+         MAIN WRAPPER (TOPBAR + CONTENT)
+         ========================================================================== -->
+    <div class="main-wrapper">
+
+      <!-- DESKTOP TOPBAR -->
+      <header class="topbar">
+        <div class="page-header-title">
+          <i class="fa-solid fa-house" id="topbar-icon"></i>
+          <span id="topbar-title">Dashboard Financeiro</span>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Month / Year Navigator -->
+          <div class="period-navigator">
+            <button class="period-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="period-display" onclick="openPeriodModal()">
+              <i class="fa-regular fa-calendar text-primary"></i>
+              <span id="desktop-period">AGO 2026</span>
+            </div>
+            <button class="period-btn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+
+          <!-- Theme Switcher -->
+          <div class="theme-picker">
+            <button class="theme-pill active" onclick="setTheme('midnight')" id="pill-midnight">
+              <i class="fa-solid fa-moon"></i> Midnight
+            </button>
+            <button class="theme-pill" onclick="setTheme('dark')" id="pill-dark">
+              <i class="fa-solid fa-cloud-moon"></i> Dark Deep
+            </button>
+            <button class="theme-pill" onclick="setTheme('light')" id="pill-light">
+              <i class="fa-solid fa-sun"></i> Light
+            </button>
+          </div>
+
+          <!-- Primary Color Dropdown/Toggle -->
+          <button class="btn-icon" title="Trocar Cor Primária" onclick="cyclePrimaryColor()">
+            <i class="fa-solid fa-palette text-primary"></i>
+          </button>
+
+          <!-- Notification Bell -->
+          <button class="btn-icon" title="Notificações" onclick="openNotificationModal()">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-dot"></span>
+          </button>
+
+          <!-- New Transaction Button -->
+          <button class="btn-primary" onclick="openTransactionModal()">
+            <i class="fa-solid fa-plus"></i>
+            <span>Novo Lançamento</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- MOBILE COMPACT HEADER (ESTILO SICOOB) -->
+      <div class="mobile-header">
+        <div class="mobile-header-inner">
+          <div class="mobile-user">
+            <div class="mobile-avatar">RR</div>
+            <div class="mobile-greeting">
+              <span class="mobile-greeting-hi">Olá, Rodrigo</span>
+              <span class="mobile-greeting-name" id="mobile-view-title">Dashboard</span>
+            </div>
+          </div>
+
+          <div class="mobile-header-actions">
+            <!-- Theme cycle for mobile -->
+            <button class="btn-icon" style="width:34px; height:34px;" onclick="cycleThemeMobile()">
+              <i class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+            <!-- Bell -->
+            <button class="btn-icon" style="width:34px; height:34px;" onclick="openNotificationModal()">
+              <i class="fa-regular fa-bell"></i>
+              <span class="badge-dot"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- APP CONTENT CONTAINER -->
+      <main class="content-container">
+
+        <!-- ======================================================================
+             MOBILE HERO CARD (APENAS DISPOSITIVOS MÓVEIS)
+             ====================================================================== -->
+        <div class="mobile-hero-card">
+          <div class="hero-top">
+            <span class="hero-label">Saldo Disponível no Mês</span>
+            <button class="hero-eye-btn" onclick="toggleBalanceVisibility()">
+              <i class="fa-solid fa-eye" id="mobile-eye-icon"></i>
+            </button>
+          </div>
+
+          <div class="hero-balance sensitive-val" id="mobile-hero-balance">R$ 5.840,50</div>
+
+          <div class="hero-stats-row">
+            <div class="hero-stat-item">
+              <span class="hero-stat-label"><i class="fa-solid fa-arrow-down text-success"></i> Entradas</span>
+              <span class="hero-stat-value text-success sensitive-val" id="mobile-hero-income">R$ 14.250,00</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label"><i class="fa-solid fa-arrow-up text-danger"></i> Saídas</span>
+              <span class="hero-stat-value text-danger sensitive-val" id="mobile-hero-expense">R$ 8.409,50</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================================
+             VIEW 1: DASHBOARD
+             ====================================================================== -->
+        <section id="view-dashboard" class="view-section active-view">
+          
+          <!-- KPI Cards Grid -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Receitas Totais</span>
+                <div class="kpi-icon-wrap" style="background: var(--success-glow); color: var(--success);">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-success sensitive-val" id="kpi-receitas">R$ 14.250,00</div>
+              <div class="kpi-footer">
+                <i class="fa-solid fa-arrow-trend-up text-success"></i>
+                <span>+8.2% vs mês anterior</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Despesas Totais</span>
+                <div class="kpi-icon-wrap" style="background: var(--danger-glow); color: var(--danger);">
+                  <i class="fa-solid fa-file-invoice-dollar"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-danger sensitive-val" id="kpi-despesas">R$ 8.409,50</div>
+              <div class="kpi-footer">
+                <i class="fa-solid fa-arrow-trend-down text-success"></i>
+                <span>-3.4% orçado</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Saldo Líquido</span>
+                <div class="kpi-icon-wrap" style="background: var(--primary-glow); color: var(--primary);">
+                  <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-primary sensitive-val" id="kpi-saldo">R$ 5.840,50</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-paid">41.0% de Margem</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-title">Total em Aberto</span>
+                <div class="kpi-icon-wrap" style="background: rgba(139, 92, 246, 0.2); color: var(--purple);">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-purple sensitive-val" id="kpi-aberto">R$ 2.150,00</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-pending">3 faturas pendentes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="grid-2col">
+            <!-- Bar Chart: Evolução Mensal -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i class="fa-solid fa-chart-simple text-primary"></i> Evolução Mensal</h3>
+                  <span class="panel-subtitle">Entradas vs. Saídas nos últimos 6 meses</span>
+                </div>
+                <div class="badge-tag badge-paid">2026</div>
+              </div>
+              <div class="chart-container">
+                <canvas id="monthlyEvolutionChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Donut Chart: Categorias -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i class="fa-solid fa-chart-pie text-primary"></i> Despesas por Categoria</h3>
+                  <span class="panel-subtitle">Distribuição proporcional deste mês</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="categoryDonutChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cards Summary Slider -->
+          <div class="card-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-credit-card text-primary"></i> Cartões de Crédito & Faturas</h3>
+                <span class="panel-subtitle">Acompanhamento de fechamento e limites</span>
+              </div>
+              <button class="btn-secondary" onclick="switchView('cartoes')">Ver Todos</button>
+            </div>
+            
+            <div class="card-slider">
+              <!-- Card 1 -->
+              <div class="credit-card-ui card-gradient-black">
+                <div class="cc-top">
+                  <div class="cc-chip"></div>
+                  <span class="cc-brand">Nubank Ultravioleta</span>
+                </div>
+                <div class="cc-middle">
+                  <div class="cc-number">•••• •••• •••• 9012</div>
+                </div>
+                <div class="cc-bottom">
+                  <div class="cc-holder">Rodrigo Rocha</div>
+                  <div class="cc-balance-preview">
+                    <div class="cc-balance-label">Fatura Atual</div>
+                    <div class="cc-balance-val sensitive-val">R$ 3.420,80</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="credit-card-ui card-gradient-purple">
+                <div class="cc-top">
+                  <div class="cc-chip"></div>
+                  <span class="cc-brand">Itaú Personnalité</span>
+                </div>
+                <div class="cc-middle">
+                  <div class="cc-number">•••• •••• •••• 4451</div>
+                </div>
+                <div class="cc-bottom">
+                  <div class="cc-holder">Rodrigo Rocha</div>
+                  <div class="cc-balance-preview">
+                    <div class="cc-balance-label">Fatura Atual</div>
+                    <div class="cc-balance-val sensitive-val">R$ 1.890,00</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 3 -->
+              <div class="credit-card-ui card-gradient-teal">
+                <div class="cc-top">
+                  <div class="cc-chip"></div>
+                  <span class="cc-brand">Sicoob Black Card</span>
+                </div>
+                <div class="cc-middle">
+                  <div class="cc-number">•••• •••• •••• 7780</div>
+                </div>
+                <div class="cc-bottom">
+                  <div class="cc-holder">Mariana Rocha</div>
+                  <div class="cc-balance-preview">
+                    <div class="cc-balance-label">Fatura Atual</div>
+                    <div class="cc-balance-val sensitive-val">R$ 950,20</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transactions Table -->
+          <div class="card-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-list text-primary"></i> Extrato de Lançamentos Recentes</h3>
+                <span class="panel-subtitle">Últimas movimentações registradas</span>
+              </div>
+              <button class="btn-secondary" onclick="switchView('extrato')">Ver Completo</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Titular</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-tx-table">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ======================================================================
+             VIEW 2: MEUS CARTÕES & ANTECIPAÇÃO (VP)
+             ====================================================================== -->
+        <section id="view-cartoes" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.3rem;"><i class="fa-solid fa-credit-card text-primary"></i> Gestão de Cartões de Crédito</h2>
+              <span class="panel-subtitle">Faturas virtuais em tempo real e cálculo de amortização/desconto de parcelas</span>
+            </div>
+            <button class="btn-primary" onclick="openPayoffModal()">
+              <i class="fa-solid fa-calculator"></i>
+              <span>Simular Antecipação (VP)</span>
+            </button>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">Limite Total Disponível</span>
+              <div class="kpi-val text-success sensitive-val">R$ 38.500,00</div>
+              <div class="kpi-footer">72% de limite livre</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Faturas do Mês (Fechadas)</span>
+              <div class="kpi-val text-danger sensitive-val">R$ 6.261,00</div>
+              <div class="kpi-footer">Vencimento próximo em 5 dias</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Parcelamentos Futuros</span>
+              <div class="kpi-val text-purple sensitive-val">R$ 14.890,00</div>
+              <div class="kpi-footer">Projeção até Dezembro</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Economia com Antecipações</span>
+              <div class="kpi-val text-primary sensitive-val">R$ 480,20</div>
+              <div class="kpi-footer">Descontos obtidos no ano</div>
+            </div>
+          </div>
+
+          <!-- Cards Detail Grid -->
+          <div class="grid-2col">
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-receipt text-primary"></i> Detalhamento da Fatura - Nubank</h3>
+              <div class="table-responsive">
+                <table class="styled-table">
+                  <thead>
+                    <tr>
+                      <th>Compra</th>
+                      <th>Parcela</th>
+                      <th>Data</th>
+                      <th style="text-align:right;">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Notebook Dell XPS</td>
+                      <td><span class="badge-tag badge-pending">03/10</span></td>
+                      <td>12/08/2026</td>
+                      <td style="text-align:right; font-weight:700;" class="sensitive-val">R$ 650,00</td>
+                    </tr>
+                    <tr>
+                      <td>Supermercado Pão de Açúcar</td>
+                      <td><span class="badge-tag badge-paid">À vista</span></td>
+                      <td>14/08/2026</td>
+                      <td style="text-align:right; font-weight:700;" class="sensitive-val">R$ 842,30</td>
+                    </tr>
+                    <tr>
+                      <td>Passagens Aéreas LATAM</td>
+                      <td><span class="badge-tag badge-pending">02/06</span></td>
+                      <td>18/08/2026</td>
+                      <td style="text-align:right; font-weight:700;" class="sensitive-val">R$ 420,00</td>
+                    </tr>
+                    <tr>
+                      <td>Estorno / Reembolso Uber</td>
+                      <td><span class="badge-tag badge-paid">Crédito</span></td>
+                      <td>20/08/2026</td>
+                      <td style="text-align:right; font-weight:700;" class="text-success sensitive-val">- R$ 45,00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Payoff Simulation Box -->
+            <div class="card-panel" style="background: linear-gradient(145deg, var(--card), var(--card-elevated));">
+              <h3 class="panel-title"><i class="fa-solid fa-bolt text-warning"></i> Antecipação Inteligente</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">
+                Ao antecipar parcelas com taxa de desconto de <strong>1.15% a.m.</strong>, você reduz o saldo devedor futuro e recupera seu limite imediatamente.
+              </p>
+              <div style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Parcelas Selecionadas:</span>
+                  <span style="font-weight:700;">7x Notebook Dell</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Valor Nominal Futuro:</span>
+                  <span style="font-weight:700;" class="sensitive-val">R$ 4.550,00</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                  <span style="font-size:0.8rem; color:var(--success);">Desconto Aplicado (VP):</span>
+                  <span style="font-weight:700; color:var(--success);" class="sensitive-val">- R$ 214,35</span>
+                </div>
+                <div style="border-top:1px solid var(--border); padding-top:8px; display:flex; justify-content:space-between;">
+                  <span style="font-weight:800;">Valor para Quitação:</span>
+                  <span style="font-weight:800; font-size:1.1rem; color:var(--primary);" class="sensitive-val">R$ 4.335,65</span>
+                </div>
+              </div>
+              <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="alert('Solicitação de antecipação enviada com sucesso!')">
+                Confirmar Antecipação com Desconto
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 3: EXTRATO COMPLETO & FILTROS
+             ====================================================================== -->
+        <section id="view-extrato" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.3rem;"><i class="fa-solid fa-list-check text-primary"></i> Despesas e Receitas</h2>
+              <span class="panel-subtitle">Lista detalhada com filtros dinâmicos por membro da família e categoria</span>
+            </div>
+            <button class="btn-primary" onclick="openTransactionModal()">
+              <i class="fa-solid fa-plus"></i> Novo Registro
+            </button>
+          </div>
+
+          <!-- Filter Toolbar -->
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <input type="text" placeholder="Buscar por descrição..." class="form-input" style="max-width: 280px;" oninput="filterTransactions(this.value)">
+            <select class="form-select" style="max-width: 180px;" onchange="filterByType(this.value)">
+              <option value="all">Todos os Tipos</option>
+              <option value="receita">Apenas Receitas</option>
+              <option value="despesa">Apenas Despesas</option>
+            </select>
+            <select class="form-select" style="max-width: 180px;" onchange="filterByMember(this.value)">
+              <option value="all">Todos os Membros</option>
+              <option value="Rodrigo">Rodrigo</option>
+              <option value="Mariana">Mariana</option>
+            </select>
+          </div>
+
+          <div class="card-panel">
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Titular</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Valor</th>
+                    <th style="text-align:center;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="full-tx-table">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 4: RADAR FINANCEIRO & METAS
+             ====================================================================== -->
+        <section id="view-radar" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.3rem;"><i class="fa-solid fa-wand-magic-sparkles text-primary"></i> Radar Financeiro & Projeções</h2>
+              <span class="panel-subtitle">Inteligência orçamentária, saúde financeira e metas familiares</span>
+            </div>
+            <div class="badge-tag badge-paid" style="font-size:0.85rem;">Score de Saúde: 88/100 (Excelente)</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:18px;">
+            <div class="radar-card">
+              <div class="radar-icon-box" style="background: var(--success-glow); color: var(--success);">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 4px;">Reserva de Emergência</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">6.4 meses de despesas cobertas (Meta: 6 meses).</p>
+                <div style="height: 6px; width: 100%; background: var(--border); border-radius: 4px; overflow: hidden;">
+                  <div style="width: 100%; height: 100%; background: var(--success);"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="radar-card">
+              <div class="radar-icon-box" style="background: var(--warning-glow); color: var(--warning);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 4px;">Alerta de Streaming</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Você possui 4 serviços ativos somando R$ 189,90/mês.</p>
+                <span class="badge-tag badge-pending">Otimização Sugerida</span>
+              </div>
+            </div>
+
+            <div class="radar-card">
+              <div class="radar-icon-box" style="background: var(--primary-glow); color: var(--primary);">
+                <i class="fa-solid fa-piggy-bank"></i>
+              </div>
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 4px;">Meta: Viagem Fim de Ano</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">R$ 12.000,00 de R$ 15.000,00 atingidos (80%).</p>
+                <div style="height: 6px; width: 100%; background: var(--border); border-radius: 4px; overflow: hidden;">
+                  <div style="width: 80%; height: 100%; background: var(--primary);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <h3 class="panel-title"><i class="fa-solid fa-chart-line text-primary"></i> Projeção de Fluxo de Caixa (Próximos 6 Meses)</h3>
+            <div class="chart-container">
+              <canvas id="projectionChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 5: CONFIGURAÇÕES & DEFINIÇÕES
+             ====================================================================== -->
+        <section id="view-config" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.3rem;"><i class="fa-solid fa-gear text-primary"></i> Definições e Preferências</h2>
+              <span class="panel-subtitle">Personalize a identidade visual, membros da família e integrações</span>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-palette text-primary"></i> Tema e Identidade Visual</h3>
+              <div class="form-group">
+                <label class="form-label">Tema Principal</label>
+                <select class="form-select" onchange="setTheme(this.value)">
+                  <option value="midnight">Midnight Black (Preto Absoluto OLED)</option>
+                  <option value="dark">Dark Deep (Azul Noturno Sofisticado)</option>
+                  <option value="light">Light Mode (Claro Minimalista)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Cor de Destaque (--primary)</label>
+                <div style="display:flex; gap:10px; margin-top:6px;">
+                  <button style="width:36px; height:36px; border-radius:50%; background:#10b981; border:2px solid #fff; cursor:pointer;" onclick="setPrimaryColor('green')"></button>
+                  <button style="width:36px; height:36px; border-radius:50%; background:#8b5cf6; border:2px solid #fff; cursor:pointer;" onclick="setPrimaryColor('purple')"></button>
+                  <button style="width:36px; height:36px; border-radius:50%; background:#3b82f6; border:2px solid #fff; cursor:pointer;" onclick="setPrimaryColor('blue')"></button>
+                  <button style="width:36px; height:36px; border-radius:50%; background:#f59e0b; border:2px solid #fff; cursor:pointer;" onclick="setPrimaryColor('amber')"></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-users text-primary"></i> Membros & Compartilhamento Familiar</h3>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:var(--bg-surface); border-radius:var(--radius-md);">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="avatar">RR</div>
+                    <div>
+                      <div style="font-weight:700; font-size:0.9rem;">Rodrigo Rocha</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted);">rodrigo@email.com</div>
+                    </div>
+                  </div>
+                  <span class="badge-tag badge-paid">Titular</span>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:var(--bg-surface); border-radius:var(--radius-md);">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="avatar" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">MR</div>
+                    <div>
+                      <div style="font-weight:700; font-size:0.9rem;">Mariana Rocha</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted);">mariana@email.com</div>
+                    </div>
+                  </div>
+                  <span class="badge-tag badge-pending">Membro</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ==========================================================================
+         MOBILE BOTTOM NAVIGATION (ESTILO SICOOB COM FAB CENTRAL)
+         ========================================================================== -->
+    <nav class="mobile-bottom-nav">
+      <div class="mobile-bottom-inner">
+        <!-- SLOT 1: INÍCIO -->
+        <button class="nav-tab-btn active" id="mob-nav-dashboard" onclick="switchView('dashboard')">
+          <i class="fa-solid fa-house"></i>
+          <span>Início</span>
+        </button>
+
+        <!-- SLOT 2: EXTRATO -->
+        <button class="nav-tab-btn" id="mob-nav-extrato" onclick="switchView('extrato')">
+          <i class="fa-solid fa-list-ul"></i>
+          <span>Extrato</span>
+        </button>
+
+        <!-- SLOT 3: CENTER FAB (+) -->
+        <div class="fab-slot">
+          <button class="fab-button" onclick="openTransactionModal()" title="Novo Lançamento">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+
+        <!-- SLOT 4: RADAR -->
+        <button class="nav-tab-btn" id="mob-nav-radar" onclick="switchView('radar')">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Radar</span>
+        </button>
+
+        <!-- SLOT 5: DEFINIÇÕES -->
+        <button class="nav-tab-btn" id="mob-nav-config" onclick="switchView('config')">
+          <i class="fa-solid fa-gear"></i>
+          <span>Definições</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: NOVO LANÇAMENTO FINANCEIRO
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-transaction">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-circle-plus text-primary"></i> Novo Lançamento</h3>
+        <button class="modal-close" onclick="closeModal('modal-transaction')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="type-switcher">
+          <button class="type-btn active-expense" id="btn-type-expense" onclick="setTxType('expense')">Despesa</button>
+          <button class="type-btn" id="btn-type-income" onclick="setTxType('income')">Receita</button>
+          <button class="type-btn" id="btn-type-card" onclick="setTxType('card')">Cartão</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Valor (R$)</label>
+          <input type="text" class="form-input" id="tx-amount" placeholder="0,00" style="font-size:1.4rem; font-weight:800; color:var(--primary);">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <input type="text" class="form-input" id="tx-desc" placeholder="Ex: Supermercado Mensal">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-select" id="tx-cat">
+              <option>Alimentação</option>
+              <option>Moradia</option>
+              <option>Transporte</option>
+              <option>Lazer</option>
+              <option>Saúde</option>
+              <option>Salário</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Titular</label>
+            <select class="form-select" id="tx-member">
+              <option>Rodrigo Rocha</option>
+              <option>Mariana Rocha</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Data de Vencimento</label>
+            <input type="date" class="form-input" id="tx-date" value="2026-08-22">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Parcelas</label>
+            <select class="form-select" id="tx-installments">
+              <option value="1">À vista (1x)</option>
+              <option value="2">2x</option>
+              <option value="3">3x</option>
+              <option value="6">6x</option>
+              <option value="10">10x</option>
+              <option value="12">12x</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%; justify-content:center; padding:14px; font-size:1rem; margin-top:8px;" onclick="saveTransaction()">
+          <i class="fa-solid fa-check"></i> Salvar Lançamento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: NOTIFICAÇÕES & AVISOS
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-notifications">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-regular fa-bell text-primary"></i> Central de Notificações</h3>
+        <button class="modal-close" onclick="closeModal('modal-notifications')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:var(--danger-glow); border:1px solid var(--danger); padding:14px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--danger); font-size:0.85rem;"><i class="fa-solid fa-circle-exclamation"></i> Conta Vencida</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Ontem</span>
+            </div>
+            <p style="font-size:0.85rem; margin-top:4px;">Condomínio Residencial (R$ 890,00) venceu ontem.</p>
+          </div>
+
+          <div style="background:var(--warning-glow); border:1px solid var(--warning); padding:14px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--warning); font-size:0.85rem;"><i class="fa-solid fa-clock"></i> Vence Hoje</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Hoje</span>
+            </div>
+            <p style="font-size:0.85rem; margin-top:4px;">Energia Elétrica CEMIG (R$ 310,40).</p>
+          </div>
+
+          <div style="background:var(--card-hover); border:1px solid var(--border); padding:14px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--primary); font-size:0.85rem;"><i class="fa-solid fa-credit-card"></i> Fechamento de Fatura</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Em 3 dias</span>
+            </div>
+            <p style="font-size:0.85rem; margin-top:4px;">Fatura Nubank fecha em 25/08.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC & INTERACTIONS
+       ========================================================================== -->
+  <script>
+    /* --------------------------------------------------------------------------
+       STATE & DATA
+       -------------------------------------------------------------------------- */
+    let currentTheme = 'midnight';
+    let currentPrimary = 'green';
+    let balanceVisible = true;
+    let currentMonthIndex = 7; // Agosto (0-based)
+    let currentYear = 2026;
+    const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+    let transactions = [
+      { id: 1, desc: 'Salário Tech Lead', cat: 'Salário', member: 'Rodrigo', date: '05/08/2026', status: 'pago', type: 'receita', value: 14250.00 },
+      { id: 2, desc: 'Aluguel do Apartamento', cat: 'Moradia', member: 'Rodrigo', date: '10/08/2026', status: 'pago', type: 'despesa', value: 3200.00 },
+      { id: 3, desc: 'Supermercado Mensal', cat: 'Alimentação', member: 'Mariana', date: '14/08/2026', status: 'pago', type: 'despesa', value: 1650.00 },
+      { id: 4, desc: 'Condomínio Residencial', cat: 'Moradia', member: 'Rodrigo', date: '21/08/2026', status: 'vencido', type: 'despesa', value: 890.00 },
+      { id: 5, desc: 'Energia Elétrica CEMIG', cat: 'Moradia', member: 'Mariana', date: '22/08/2026', status: 'hoje', type: 'despesa', value: 310.40 },
+      { id: 6, desc: 'Fatura Cartão Nubank', cat: 'Cartão', member: 'Rodrigo', date: '28/08/2026', status: 'pendente', type: 'despesa', value: 2359.10 }
+    ];
+
+    let monthlyEvolutionChartInstance = null;
+    let categoryDonutChartInstance = null;
+    let projectionChartInstance = null;
+
+    /* --------------------------------------------------------------------------
+       INITIALIZATION
+       -------------------------------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTables();
+      initCharts();
+    });
+
+    /* --------------------------------------------------------------------------
+       THEME & COLOR CONTROLLERS
+       -------------------------------------------------------------------------- */
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      document.querySelectorAll('.theme-pill').forEach(btn => btn.classList.remove('active'));
+      const activePill = document.getElementById(`pill-${theme}`);
+      if (activePill) activePill.classList.add('active');
+      
+      updateChartsTheme();
+    }
+
+    function cycleThemeMobile() {
+      const themes = ['midnight', 'dark', 'light'];
+      let nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+      setTheme(themes[nextIndex]);
+    }
+
+    function setPrimaryColor(color) {
+      currentPrimary = color;
+      document.documentElement.setAttribute('data-primary', color);
+      updateChartsTheme();
+    }
+
+    function cyclePrimaryColor() {
+      const colors = ['green', 'purple', 'blue', 'amber'];
+      let nextIndex = (colors.indexOf(currentPrimary) + 1) % colors.length;
+      setPrimaryColor(colors[nextIndex]);
+    }
+
+    /* --------------------------------------------------------------------------
+       SENSITIVE DATA EYE TOGGLE
+       -------------------------------------------------------------------------- */
+    function toggleBalanceVisibility() {
+      balanceVisible = !balanceVisible;
+      const eyeIcon = document.getElementById('mobile-eye-icon');
+      
+      if (balanceVisible) {
+        eyeIcon.className = 'fa-solid fa-eye';
+      } else {
+        eyeIcon.className = 'fa-solid fa-eye-slash';
+      }
+
+      document.querySelectorAll('.sensitive-val').forEach(el => {
+        if (!el.dataset.originalVal) {
+          el.dataset.originalVal = el.innerText;
+        }
+        if (balanceVisible) {
+          el.innerText = el.dataset.originalVal;
+        } else {
+          el.innerText = 'R$ •••••••';
+        }
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       NAVIGATION & VIEW SWITCHER
+       -------------------------------------------------------------------------- */
+    function switchView(viewId) {
+      // Hide all views
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active-view'));
+      
+      // Show selected view
+      const targetView = document.getElementById(`view-${viewId}`);
+      if (targetView) targetView.classList.add('active-view');
+
+      // Update Desktop Sidebar active class
+      document.querySelectorAll('.sidebar .nav-item').forEach(item => item.classList.remove('active'));
+      const sidebarMapping = {
+        'dashboard': 0,
+        'cartoes': 1,
+        'extrato': 2,
+        'radar': 3,
+        'config': 4
+      };
+      const sidebarItems = document.querySelectorAll('.sidebar .nav-item');
+      if (sidebarItems[sidebarMapping[viewId]]) {
+        sidebarItems[sidebarMapping[viewId]].classList.add('active');
+      }
+
+      // Update Mobile Bottom Nav active class
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeMobBtn = document.getElementById(`mob-nav-${viewId}`);
+      if (activeMobBtn) activeMobBtn.classList.add('active');
+
+      // Update Titles & Icons
+      const titles = {
+        'dashboard': { title: 'Dashboard Financeiro', icon: 'fa-house' },
+        'cartoes': { title: 'Meus Cartões de Crédito', icon: 'fa-credit-card' },
+        'extrato': { title: 'Despesas & Receitas', icon: 'fa-list-check' },
+        'radar': { title: 'Radar Financeiro', icon: 'fa-wand-magic-sparkles' },
+        'config': { title: 'Definições & Configurações', icon: 'fa-gear' }
+      };
+
+      if (titles[viewId]) {
+        document.getElementById('topbar-title').innerText = titles[viewId].title;
+        document.getElementById('topbar-icon').className = `fa-solid ${titles[viewId].icon}`;
+        document.getElementById('mobile-view-title').innerText = titles[viewId].title.split(' ')[0];
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* --------------------------------------------------------------------------
+       PERIOD NAVIGATOR
+       -------------------------------------------------------------------------- */
+    function changeMonth(delta) {
+      currentMonthIndex += delta;
+      if (currentMonthIndex > 11) {
+        currentMonthIndex = 0;
+        currentYear++;
+      } else if (currentMonthIndex < 0) {
+        currentMonthIndex = 11;
+        currentYear--;
+      }
+      document.getElementById('desktop-period').innerText = `${months[currentMonthIndex]} ${currentYear}`;
+    }
+
+    function openPeriodModal() {
+      alert(`Selecionar período: Atualmente em ${months[currentMonthIndex]} de ${currentYear}`);
+    }
+
+    /* --------------------------------------------------------------------------
+       TABLE RENDERING
+       -------------------------------------------------------------------------- */
+    function formatMoney(val) {
+      return 'R$ ' + Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function renderTables() {
+      const dbTable = document.getElementById('dashboard-tx-table');
+      const fullTable = document.getElementById('full-tx-table');
+      
+      let dbHtml = '';
+      let fullHtml = '';
+
+      transactions.forEach(t => {
+        let badgeClass = 'badge-paid';
+        let badgeLabel = 'Pago';
+        if (t.status === 'pendente') { badgeClass = 'badge-pending'; badgeLabel = 'Em Aberto'; }
+        if (t.status === 'vencido') { badgeClass = 'badge-overdue'; badgeLabel = 'Vencido'; }
+        if (t.status === 'hoje') { badgeClass = 'badge-pending'; badgeLabel = 'Vence Hoje'; }
+
+        const isIncome = t.type === 'receita';
+        const colorClass = isIncome ? 'text-success' : 'text-danger';
+        const prefix = isIncome ? '+ ' : '- ';
+
+        const row = `
+          <tr>
+            <td><strong>${t.desc}</strong></td>
+            <td><span class="badge-tag" style="background:var(--card-hover);">${t.cat}</span></td>
+            <td>${t.member}</td>
+            <td>${t.date}</td>
+            <td><span class="badge-tag ${badgeClass}">${badgeLabel}</span></td>
+            <td style="text-align:right;" class="sensitive-val ${colorClass}">
+              <strong>${prefix}${formatMoney(t.value)}</strong>
+            </td>
+          </tr>
+        `;
+        dbHtml += row;
+
+        fullHtml += `
+          <tr>
+            <td>${t.date}</td>
+            <td><strong>${t.desc}</strong></td>
+            <td><span class="badge-tag" style="background:var(--card-hover);">${t.cat}</span></td>
+            <td>${t.member}</td>
+            <td><span class="badge-tag ${badgeClass}">${badgeLabel}</span></td>
+            <td style="text-align:right;" class="sensitive-val ${colorClass}">
+              <strong>${prefix}${formatMoney(t.value)}</strong>
+            </td>
+            <td style="text-align:center;">
+              <button class="btn-icon" style="width:28px; height:28px; display:inline-flex;" onclick="deleteTx(${t.id})">
+                <i class="fa-solid fa-trash text-danger" style="font-size:0.75rem;"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      if (dbTable) dbTable.innerHTML = dbHtml;
+      if (fullTable) fullTable.innerHTML = fullHtml;
+    }
+
+    function deleteTx(id) {
+      transactions = transactions.filter(t => t.id !== id);
+      renderTables();
+    }
+
+    /* --------------------------------------------------------------------------
+       MODAL CONTROLLERS
+       -------------------------------------------------------------------------- */
+    function openTransactionModal() {
+      document.getElementById('modal-transaction').classList.add('active');
+    }
+    function openNotificationModal() {
+      document.getElementById('modal-notifications').classList.add('active');
+    }
+    function openPayoffModal() {
+      alert('Calculadora de Amortização Antecipada aberta! Economia estimada de até 15%.');
+    }
+    function openProfileModal() {
+      switchView('config');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    let activeTxType = 'expense';
+    function setTxType(type) {
+      activeTxType = type;
+      document.getElementById('btn-type-expense').className = 'type-btn ' + (type === 'expense' ? 'active-expense' : '');
+      document.getElementById('btn-type-income').className = 'type-btn ' + (type === 'income' ? 'active-income' : '');
+      document.getElementById('btn-type-card').className = 'type-btn ' + (type === 'card' ? 'active-card' : '');
+    }
+
+    function saveTransaction() {
+      const desc = document.getElementById('tx-desc').value || 'Novo Lançamento';
+      const amountStr = document.getElementById('tx-amount').value.replace(',', '.') || '100.00';
+      const amount = parseFloat(amountStr) || 100.00;
+      const cat = document.getElementById('tx-cat').value;
+      const member = document.getElementById('tx-member').value;
+
+      transactions.unshift({
+        id: Date.now(),
+        desc: desc,
+        cat: cat,
+        member: member.split(' ')[0],
+        date: '22/08/2026',
+        status: 'pendente',
+        type: activeTxType === 'income' ? 'receita' : 'despesa',
+        value: amount
+      });
+
+      renderTables();
+      closeModal('modal-transaction');
+      alert('Lançamento salvo com sucesso!');
+    }
+
+    /* --------------------------------------------------------------------------
+       CHART.JS GRAPHS
+       -------------------------------------------------------------------------- */
+    function getChartColor() {
+      const rootStyle = getComputedStyle(document.documentElement);
+      return rootStyle.getPropertyValue('--primary').trim() || '#10b981';
+    }
+
+    function getTextColor() {
+      return currentTheme === 'light' ? '#64748b' : '#94a3b8';
+    }
+
+    function initCharts() {
+      const primary = getChartColor();
+      const textColor = getTextColor();
+
+      // 1. Monthly Evolution (Bar)
+      const ctxMonthly = document.getElementById('monthlyEvolutionChart');
+      if (ctxMonthly) {
+        monthlyEvolutionChartInstance = new Chart(ctxMonthly, {
+          type: 'bar',
+          data: {
+            labels: ['MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO'],
+            datasets: [
+              {
+                label: 'Receitas',
+                data: [12000, 13500, 12800, 14000, 13800, 14250],
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                barPercentage: 0.6
+              },
+              {
+                label: 'Despesas',
+                data: [7800, 8900, 7600, 9200, 8100, 8409],
+                backgroundColor: '#ef4444',
+                borderRadius: 6,
+                barPercentage: 0.6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: textColor, font: { family: 'Plus Jakarta Sans', weight: '600' } } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: textColor } },
+              y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: textColor } }
+            }
+          }
+        });
+      }
+
+      // 2. Categories Donut
+      const ctxDonut = document.getElementById('categoryDonutChart');
+      if (ctxDonut) {
+        categoryDonutChartInstance = new Chart(ctxDonut, {
+          type: 'doughnut',
+          data: {
+            labels: ['Moradia', 'Alimentação', 'Cartões', 'Transporte', 'Lazer'],
+            datasets: [{
+              data: [3510, 1650, 2359, 580, 310],
+              backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: textColor, boxWidth: 12, padding: 14 } }
+            },
+            cutout: '72%'
+          }
+        });
+      }
+
+      // 3. Projections Line Chart
+      const ctxProjection = document.getElementById('projectionChart');
+      if (ctxProjection) {
+        projectionChartInstance = new Chart(ctxProjection, {
+          type: 'line',
+          data: {
+            labels: ['SET', 'OUT', 'NOV', 'DEZ', 'JAN/27', 'FEV/27'],
+            datasets: [
+              {
+                label: 'Saldo Projetado Acumulado',
+                data: [20000, 25800, 31500, 39000, 43200, 48900],
+                borderColor: primary,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: textColor } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: textColor } },
+              y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: textColor } }
+            }
+          }
+        });
+      }
+    }
+
+    function updateChartsTheme() {
+      const textColor = getTextColor();
+      const primary = getChartColor();
+
+      if (monthlyEvolutionChartInstance) {
+        monthlyEvolutionChartInstance.options.plugins.legend.labels.color = textColor;
+        monthlyEvolutionChartInstance.options.scales.x.ticks.color = textColor;
+        monthlyEvolutionChartInstance.options.scales.y.ticks.color = textColor;
+        monthlyEvolutionChartInstance.update();
+      }
+
+      if (categoryDonutChartInstance) {
+        categoryDonutChartInstance.options.plugins.legend.labels.color = textColor;
+        categoryDonutChartInstance.update();
+      }
+
+      if (projectionChartInstance) {
+        projectionChartInstance.data.datasets[0].borderColor = primary;
+        projectionChartInstance.options.plugins.legend.labels.color = textColor;
+        projectionChartInstance.options.scales.x.ticks.color = textColor;
+        projectionChartInstance.options.scales.y.ticks.color = textColor;
+        projectionChartInstance.update();
+      }
+    }
+  </script>
+</body>
+</html>

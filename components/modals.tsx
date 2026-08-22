@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento, getProximoFechamento } from '@/lib/finance-service';
-import { parseISO, format, getDate, isLastDayOfMonth, addMonths } from 'date-fns';
+import { parseISO, format, getDate, isLastDayOfMonth, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
 import { getCardLogo } from '@/lib/finance-service';
 
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 interface ModalProps {
   isOpen: boolean;
@@ -665,11 +665,10 @@ export function FinanceForm({
                   {subType === 'cartao' ? 'Data da Compra' : 'Data de Vencimento'}
                 </label>
               </div>
-              <input
-                type="date"
-                className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm text-on-surface"
+              <StyledDatePicker
                 value={formData.vencimento}
-                onChange={e => setFormData({ ...formData, vencimento: e.target.value })}
+                onChange={val => setFormData({ ...formData, vencimento: val })}
+                className="w-100 h-[44px]"
               />
             </div>
 
@@ -762,8 +761,8 @@ export function FinanceForm({
                           paymentType === 'Parcelado' ? "left-[calc(50%+2px)]" : "left-1"
                         )}
                         style={{ 
-                          borderRadius: '9999px',
-                          backgroundColor: themeColor
+                          borderRadius: '9999px', 
+                          backgroundColor: themeColor 
                         }}
                       />
 
@@ -839,11 +838,10 @@ export function FinanceForm({
                     Data de Receber
                   </label>
                 </div>
-                <input
-                  type="date"
-                  className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm text-on-surface"
+                <StyledDatePicker
                   value={formData.vencimento}
-                  onChange={e => setFormData({ ...formData, vencimento: e.target.value })}
+                  onChange={val => setFormData({ ...formData, vencimento: val })}
+                  className="w-100 h-[44px]"
                 />
               </div>
               <div className="flex flex-col">
@@ -1325,6 +1323,262 @@ export function CartaoForm({
 }
 
 
+// =========================================================
+// NOVO: StyledDatePicker (Calendário Elegante e Estiloso)
+// =========================================================
+export function StyledDatePicker({
+  value,
+  onChange,
+  placeholder = "Selecione a data",
+  className,
+  placement = 'top'
+}: {
+  value: string;
+  onChange: (dateStr: string) => void;
+  placeholder?: string;
+  className?: string;
+  placement?: 'top' | 'bottom';
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const parsedDate = useMemo(() => {
+    try {
+      return value ? parseISO(value) : new Date();
+    } catch {
+      return new Date();
+    }
+  }, [value]);
+
+  const [viewMonth, setViewMonth] = useState(parsedDate.getMonth());
+  const [viewYear, setViewYear] = useState(parsedDate.getFullYear());
+
+  useEffect(() => {
+    if (value) {
+      try {
+        const d = parseISO(value);
+        setViewMonth(d.getMonth());
+        setViewYear(d.getFullYear());
+      } catch {}
+    }
+  }, [value]);
+
+  // Click outside to close
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  const daysOfWeek = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+
+  // Calculate days for the month view
+  const calendarDays = useMemo(() => {
+    const firstDayDate = new Date(viewYear, viewMonth, 1);
+    const startDay = getDay(firstDayDate);
+    const daysInCurrentMonth = getDaysInMonth(firstDayDate);
+
+    const prevMonthDate = subMonths(firstDayDate, 1);
+    const daysInPrevMonth = getDaysInMonth(prevMonthDate);
+
+    const days = [];
+
+    // Previous month padding
+    for (let i = startDay - 1; i >= 0; i--) {
+      days.push({
+        day: daysInPrevMonth - i,
+        isCurrentMonth: false,
+        dateStr: format(new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), daysInPrevMonth - i), 'yyyy-MM-dd')
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= daysInCurrentMonth; i++) {
+      days.push({
+        day: i,
+        isCurrentMonth: true,
+        dateStr: format(new Date(viewYear, viewMonth, i), 'yyyy-MM-dd')
+      });
+    }
+
+    // Next month padding to fill grid to multiple of 7
+    const remaining = (7 - (days.length % 7)) % 7;
+    const nextMonthDate = addMonths(firstDayDate, 1);
+    for (let i = 1; i <= remaining; i++) {
+      days.push({
+        day: i,
+        isCurrentMonth: false,
+        dateStr: format(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), i), 'yyyy-MM-dd')
+      });
+    }
+
+    return days;
+  }, [viewMonth, viewYear]);
+
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(prev => prev - 1);
+    } else {
+      setViewMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(prev => prev + 1);
+    } else {
+      setViewMonth(prev => prev + 1);
+    }
+  };
+
+  const handleSelectToday = () => {
+    const today = new Date();
+    const str = format(today, 'yyyy-MM-dd');
+    onChange(str);
+    setViewMonth(today.getMonth());
+    setViewYear(today.getFullYear());
+    setIsOpen(false);
+  };
+
+  return (
+    <div className={cn("position-relative", className ? "w-100" : "")} ref={containerRef} style={{ display: className ? 'block' : 'inline-block' }}>
+      {/* Trigger Button with Extra Rounded Corners */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "btn btn-sm d-flex align-items-center justify-content-between gap-2 px-3.5 py-2 border border-border bg-card transition-all shadow-sm hover:border-primary text-start",
+          className || "min-w-[135px]"
+        )}
+        style={{ borderRadius: '18px' }}
+      >
+        <div className="d-flex align-items-center gap-2">
+          <i className="fa-solid fa-calendar-days text-primary text-xs"></i>
+          <span className="text-xs font-bold text-foreground">
+            {value ? formatDate(value) : placeholder}
+          </span>
+        </div>
+        <i className={cn("fa-solid fa-chevron-down text-[10px] text-muted transition-transform ms-auto", isOpen && "rotate-180")}></i>
+      </button>
+
+      {/* Floating Popover Calendar (Opens Above by Default) */}
+      {isOpen && (
+        <div 
+          className="position-absolute bg-card border border-border rounded-3xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+          style={{
+            bottom: placement === 'bottom' ? undefined : 'calc(100% + 8px)',
+            top: placement === 'bottom' ? 'calc(100% + 8px)' : undefined,
+            left: 0,
+            width: '275px',
+            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.6)',
+            background: 'var(--card, #12141c)',
+            zIndex: 1050
+          }}
+        >
+          {/* Header with Month / Year Navigation */}
+          <div className="d-flex align-items-center justify-content-between mb-2.5 px-1">
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary"
+              onClick={handlePrevMonth}
+            >
+              <i className="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <div className="text-xs font-black text-foreground">
+              {monthNames[viewMonth]} <span className="text-primary">{viewYear}</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary"
+              onClick={handleNextMonth}
+            >
+              <i className="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+
+          {/* Days of Week */}
+          <div className="grid grid-cols-7 gap-1 text-center mb-1">
+            {daysOfWeek.map((d, i) => (
+              <span key={i} className="text-[10px] font-black text-muted uppercase">
+                {d}
+              </span>
+            ))}
+          </div>
+
+          {/* Calendar Days Grid */}
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {calendarDays.map((item, idx) => {
+              const isSelected = item.dateStr === value;
+              const isToday = item.dateStr === format(new Date(), 'yyyy-MM-dd');
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    onChange(item.dateStr);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-xl d-flex align-items-center justify-content-center text-xs font-bold transition-all border-0",
+                    isSelected
+                      ? "bg-primary text-white shadow-sm shadow-primary/30"
+                      : item.isCurrentMonth
+                        ? "text-foreground hover:bg-muted"
+                        : "text-muted opacity-30 hover:bg-muted/50",
+                    isToday && !isSelected && "ring-1 ring-primary/40 text-primary font-black"
+                  )}
+                  style={{
+                    backgroundColor: isSelected ? 'var(--primary)' : undefined
+                  }}
+                >
+                  {item.day}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Footer Action */}
+          <div className="d-flex align-items-center justify-content-between pt-2.5 mt-2 border-t border-border">
+            <button
+              type="button"
+              className="btn btn-link p-0 text-[11px] font-bold text-primary hover:underline"
+              onClick={handleSelectToday}
+            >
+              <i className="fa-solid fa-bolt me-1"></i>Hoje
+            </button>
+            <button
+              type="button"
+              className="btn btn-link p-0 text-[11px] font-bold text-muted hover:text-danger"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+            >
+              Limpar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MonthYearModal({
   isOpen,
   onClose,
@@ -1344,77 +1598,89 @@ export function MonthYearModal({
     'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
   ];
 
+  useEffect(() => {
+    if (isOpen) {
+      setViewYear(currentYear);
+    }
+  }, [isOpen, currentYear]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 backdrop-blur-md bg-black/40" onClick={onClose}>
-      <div
-        className="w-full max-w-[380px] bg-white rounded-[2.5rem] shadow-2xl p-6 md:p-10 animate-in zoom-in-95 duration-200"
-        onClick={e => e.stopPropagation()}
+    <>
+      {/* Transparent Click-Outside Backdrop (Sem desfoque) */}
+      <div className="fixed inset-0 z-[2999]" onClick={onClose} />
+
+      {/* Popover Limpo Abaixo do Botão (Sem sombra, sem cobrir o botão) */}
+      <div 
+        className="fixed z-[3000] animate-in fade-in zoom-in-95 duration-150"
+        style={{
+          top: '82px',
+          right: '28px',
+          width: '250px'
+        }}
       >
-        {/* Header com Ano */}
-        <div className="flex justify-between items-center mb-8 px-2">
-          <button
-            type="button"
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-100 text-slate-400 hover:bg-slate-50 transition-all"
-            onClick={() => setViewYear((prev: number) => prev - 1)}
-          >
-            <span className="material-symbols-outlined text-xl">chevron_left</span>
-          </button>
-          
-          <h2 className="text-2xl font-black text-foreground m-0">{viewYear}</h2>
-          
-          <button
-            type="button"
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-slate-100 text-slate-400 hover:bg-slate-50 transition-all"
-            onClick={() => setViewYear((prev: number) => prev + 1)}
-          >
-            <span className="material-symbols-outlined text-xl">chevron_right</span>
-          </button>
-        </div>
-
-        {/* Grid de Meses */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          {meses.map((mes, index) => {
-            const monthNum = index + 1;
-            const isSelected = monthNum === currentMonth && viewYear === currentYear;
-            return (
-              <button
-                key={mes}
-                type="button"
-                className={cn(
-                  "py-3.5 px-4 flex items-center justify-center font-black text-xs tracking-tight transition-all border",
-                  isSelected
-                    ? "text-white shadow-lg shadow-primary/20"
-                    : "bg-card text-foreground border-border hover:bg-muted"
-                )}
-                style={{ 
-                  borderRadius: '20px',
-                  backgroundColor: isSelected ? 'var(--primary)' : undefined,
-                  borderColor: isSelected ? 'var(--primary)' : undefined
-                }}
-                onClick={() => {
-                  onSelect(monthNum, viewYear);
-                  onClose();
-                }}
-              >
-                {mes}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Botão Fechar */}
-        <button
-          type="button"
-          className="w-100 py-3.5 bg-muted hover:bg-muted/80 text-foreground font-bold text-base transition-all border border-transparent active:scale-95"
-          style={{ borderRadius: '20px' }}
-          onClick={onClose}
+        <div
+          className="bg-card border border-border rounded-3xl p-3"
+          style={{
+            background: 'var(--card, #12141c)'
+          }}
+          onClick={e => e.stopPropagation()}
         >
-          Fechar
-        </button>
+          {/* Header com Ano e Setas Sem Margem / Espaçamento justo */}
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0"
+              onClick={() => setViewYear(prev => prev - 1)}
+              title="Ano anterior"
+            >
+              <i className="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            
+            <span className="text-sm font-black text-foreground tracking-tight px-1">{viewYear}</span>
+            
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0"
+              onClick={() => setViewYear(prev => prev + 1)}
+              title="Próximo ano"
+            >
+              <i className="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+
+          {/* Grid Compacto de 12 Meses */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {meses.map((mes, index) => {
+              const monthNum = index + 1;
+              const isSelected = monthNum === currentMonth && viewYear === currentYear;
+              return (
+                <button
+                  key={mes}
+                  type="button"
+                  className={cn(
+                    "py-1.5 px-1 text-center font-black text-[11px] rounded-xl transition-all border-0",
+                    isSelected
+                      ? "bg-primary text-white font-black"
+                      : "text-foreground hover:bg-muted/70"
+                  )}
+                  style={{ 
+                    backgroundColor: isSelected ? 'var(--primary, #00AE9A)' : undefined
+                  }}
+                  onClick={() => {
+                    onSelect(monthNum, viewYear);
+                    onClose();
+                  }}
+                >
+                  {mes}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1736,12 +2002,10 @@ export function EmprestimoForm({
 
           <div className="col-span-1">
             <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data 1º Vencimento</label>
-            <input
-              required
-              type="date"
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-2 md:px-4 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-xs md:text-sm h-[44px] text-on-surface"
+            <StyledDatePicker
               value={formData.data_primeiro_vencimento}
-              onChange={e => setFormData({ ...formData, data_primeiro_vencimento: e.target.value })}
+              onChange={val => setFormData({ ...formData, data_primeiro_vencimento: val })}
+              className="w-100 h-[44px]"
             />
           </div>
 
@@ -1819,8 +2083,7 @@ export function PayoffModal({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // No novo sistema virtual, precisamos PROJETAR as parcelas para a simulação, 
-  // pois elas não existem mais no banco de dados se não estiverem pagas.
+  // Projeção das parcelas futuras para a simulação de quitação
   const futureInstallments = useMemo(() => {
     const projected: Despesa[] = [];
     const isLoan = !!loan;
@@ -1841,64 +2104,69 @@ export function PayoffModal({
       const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
       const vencStr = format(dataVenc, 'yyyy-MM-dd');
 
-      // Só incluímos se for posterior à data de referência E não estiver paga no banco
-      if (vencStr > refDate) {
-        const jaPaga = installments.find(inst =>
-          Number(inst.parcela_atual) === Number(i) &&
-          (inst.status === 'Pago' || inst.status === 'Recebido') &&
-          (isLoan ? Number(inst.emprestimo_id) === Number(loan.id) : Number(inst.conta_fixa_id) === Number((item as any)?.conta_fixa_id))
-        );
+      // Inclui se não estiver paga no banco
+      const jaPaga = installments.find(inst =>
+        Number(inst.parcela_atual) === Number(i) &&
+        (inst.status === 'Pago' || inst.status === 'Recebido') &&
+        (isLoan ? Number(inst.emprestimo_id) === Number(loan.id) : Number(inst.conta_fixa_id) === Number((item as any)?.conta_fixa_id))
+      );
 
-        if (!jaPaga) {
-          let comp = '';
-          if (competenciaInicial && i > 1) {
-            const [m, y] = competenciaInicial.split('/').map(Number);
-            const baseDate = new Date(y, m - 1, 1);
-            comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
-          } else {
-            comp = calcularCompetencia(dataVenc);
-          }
-
-          projected.push({
-            id: isLoan ? (-i - (loan.id * 2000)) : (-i - ((item as any)?.conta_fixa_id * 3000)),
-            descricao: config.descricao,
-            valor: valorBase,
-            status: 'Em aberto',
-            vencimento: vencStr,
-            competencia: comp,
-            parcela_atual: i,
-            parcela_total: totalParcelas,
-            emprestimo_id: isLoan ? loan.id : undefined,
-            conta_fixa_id: !isLoan ? (item as any)?.conta_fixa_id : undefined,
-            titular_id: config.titular_id
-          } as Despesa);
+      if (!jaPaga) {
+        let comp = '';
+        if (competenciaInicial && i > 1) {
+          const [m, y] = competenciaInicial.split('/').map(Number);
+          const baseDate = new Date(y, m - 1, 1);
+          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+        } else {
+          comp = calcularCompetencia(dataVenc);
         }
+
+        projected.push({
+          id: isLoan ? (-i - (loan.id * 2000)) : (-i - ((item as any)?.conta_fixa_id * 3000)),
+          descricao: config.descricao,
+          valor: valorBase,
+          status: 'Em aberto',
+          vencimento: vencStr,
+          competencia: comp,
+          parcela_atual: i,
+          parcela_total: totalParcelas,
+          emprestimo_id: isLoan ? loan.id : undefined,
+          conta_fixa_id: !isLoan ? (item as any)?.conta_fixa_id : undefined,
+          titular_id: config.titular_id
+        } as Despesa);
       }
     }
     return projected;
-  }, [loan, item, installments, refDate]);
+  }, [loan, item, installments]);
 
-  const simulation = futureInstallments.map(i => {
-    // Se for empréstimo, calcula VP com a taxa. Se for fixa, VP = Valor Nominal (desconto 0)
-    const taxa = loan?.taxa_mensal_percentual || 0;
+  const simulation = useMemo(() => {
+    const taxa = loan?.taxa_mensal_percentual || 1.15;
+    return futureInstallments.map(i => {
+      const { vp, discount } = (taxa > 0 && i.vencimento && i.vencimento !== '-')
+        ? calculatePresentValue(i.valor, taxa, i.vencimento, parseISO(refDate))
+        : { vp: i.valor, discount: 0 };
 
-    const { vp, discount } = taxa > 0
-      ? calculatePresentValue(i.valor, taxa, i.vencimento, parseISO(refDate))
-      : { vp: i.valor, discount: 0 };
+      return { ...i, vp, discount };
+    });
+  }, [futureInstallments, loan, refDate]);
 
-    return { ...i, vp, discount };
-  });
+  // Pre-select all parcels by default on first load
+  useEffect(() => {
+    if (simulation.length > 0 && selectedIds.length === 0) {
+      setSelectedIds(simulation.map(i => i.id));
+    }
+  }, [simulation]);
 
   const selectedParcelas = simulation.filter(i => selectedIds.includes(i.id));
   const totalNominal = selectedParcelas.reduce((acc, i) => acc + i.valor, 0);
   const totalVP = selectedParcelas.reduce((acc, i) => acc + i.vp, 0);
-  const totalDiscount = totalNominal - totalVP;
+  const totalDiscount = Math.max(0, totalNominal - totalVP);
+  const discountPercent = totalNominal > 0 ? (totalDiscount / totalNominal) * 100 : 0;
 
   const handleConfirm = async () => {
     if (selectedParcelas.length === 0) return;
     setIsSubmitting(true);
     try {
-      // Passamos as parcelas com o valor ATUALIZADO pelo desconto (VP)
       await onConfirmPayoff(selectedParcelas.map(p => ({ ...p, valor: p.vp } as any)));
       onClose();
     } catch (error) {
@@ -1908,62 +2176,80 @@ export function PayoffModal({
     }
   };
 
-  const headerTitle = loan?.descricao || item?.descricao || 'Antecipação';
+  const headerTitle = loan?.descricao || item?.descricao || 'Contrato de Dívida';
+  const taxaMensal = loan?.taxa_mensal_percentual || 1.15;
 
   return (
-    <>
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-success/10 p-2 rounded-xl text-success">
-            <span className="material-symbols-outlined">calculate</span>
-          </div>
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted">Planejamento de Quitação</span>
-            <h1 className="text-2xl font-black text-navy leading-none">{headerTitle}</h1>
+    <div className="space-y-4">
+      {/* Header (Clean, rate below title, clear on right for close X) */}
+      <div className="d-flex align-items-center gap-3 border-b border-border pb-3.5 pe-8">
+        <div 
+          className="d-flex align-items-center justify-content-center rounded-2xl flex-shrink-0"
+          style={{ 
+            width: '42px', 
+            height: '42px', 
+            background: 'rgba(0, 174, 154, 0.15)', 
+            color: 'var(--primary, #00AE9A)',
+            border: '1px solid rgba(0, 174, 154, 0.25)' 
+          }}
+        >
+          <i className="fa-solid fa-calculator text-base"></i>
+        </div>
+        <div className="flex-grow-1 min-w-0">
+          <h2 className="text-lg md:text-xl font-black text-foreground m-0 leading-tight truncate">{headerTitle}</h2>
+          <div className="text-xs text-muted mt-0.5 font-medium">
+            Taxa de Juros: <span className="font-bold text-foreground">{taxaMensal}% ao mês</span>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="space-y-6">
-        <div className="bg-primary/5 p-3 rounded-2xl border border-primary/10 d-flex align-items-center justify-content-between gap-3">
-          <div className="flex-grow-1">
-            <label className="text-[11px] font-bold uppercase text-muted mb-0 block">Referência de Hoje</label>
-            {loan && (
-              <div className="text-[9px] text-muted opacity-75 font-medium">Juros: {loan.taxa_mensal_percentual}% ao mês</div>
-            )}
-          </div>
-          <input
-            type="date"
-            className="bg-white border-none ring-1 ring-primary/20 rounded-pill px-3 py-1.5 font-bold text-navy focus:ring-primary focus:outline-none text-xs"
-            style={{ minWidth: '150px' }}
-            value={refDate}
-            onChange={e => setRefDate(e.target.value)}
-          />
+      {/* Reference Date Selector (Estiloso com StyledDatePicker) */}
+      <div className="d-flex align-items-center justify-content-between bg-card p-2.5 rounded-2xl border border-border gap-2">
+        <div className="d-flex align-items-center gap-2">
+          <i className="fa-solid fa-calendar-day text-primary text-xs"></i>
+          <span className="text-xs font-bold text-muted">Data de Referência:</span>
+        </div>
+        <StyledDatePicker
+          value={refDate}
+          onChange={setRefDate}
+        />
+      </div>
+
+      {/* 2 Cards Apenas (Como era antes) */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Card 1: Selecionado */}
+        <div className="bg-card border border-border rounded-2xl p-3 text-center d-flex flex-column justify-content-between min-h-[85px] shadow-sm">
+          <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
+          <div className="text-lg md:text-xl font-black text-foreground my-0.5">{formatCurrency(totalNominal)}</div>
+          <div className="text-xs font-bold text-muted">{selectedParcelas.length} de {simulation.length} itens</div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-xl py-2.5 px-3 text-center flex flex-column justify-content-between min-h-[90px]">
-            <div className="text-[10px] font-bold text-muted uppercase leading-tight">Selecionado</div>
-            <div className="text-xl font-black text-navy my-1">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalNominal)}</div>
-            <div className="text-[12px] font-bold text-muted leading-tight">{selectedParcelas.length} itens</div>
-          </div>
-          <div className="bg-navy rounded-xl py-2.5 px-3 text-center text-white shadow-lg flex flex-column justify-content-between min-h-[90px]">
-            <div className="text-[10px] font-bold text-white/60 uppercase leading-tight">Valor a Pagar</div>
-            <div className="text-xl font-black my-1">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalVP)}</div>
-            <div className="text-sm text-success font-black leading-tight">
-              {totalDiscount > 0 ? `-${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalDiscount)}` : '\u00A0'}
-            </div>
+        {/* Card 2: Valor a Pagar (Hoje / VP) */}
+        <div 
+          className="rounded-2xl p-3 text-center d-flex flex-column justify-content-between min-h-[85px] shadow-md"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.2), rgba(0, 53, 62, 0.4))',
+            border: '1px solid rgba(0, 174, 154, 0.35)'
+          }}
+        >
+          <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar</div>
+          <div className="text-lg md:text-xl font-black text-primary my-0.5">{formatCurrency(totalVP)}</div>
+          <div className="text-xs font-bold text-success">
+            {totalDiscount > 0 ? `- ${formatCurrency(totalDiscount)}` : '\u00A0'}
           </div>
         </div>
+      </div>
 
-        <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar border rounded-xl overflow-hidden">
-          <table className="table table-hover align-middle mb-0 d-none d-md-table">
-            <thead className="sticky top-0 bg-slate-50 z-10">
-              <tr className="border-b">
-                <th style={{ width: '40px' }} className="px-3 py-2">
+      {/* Table of Installments (Sem rolagem horizontal) */}
+      <div className="border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="custom-scrollbar" style={{ maxHeight: '240px', overflowY: 'auto', overflowX: 'hidden' }}>
+          <table className="styled-table mb-0 w-100" style={{ tableLayout: 'fixed' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
+              <tr>
+                <th style={{ width: '38px', textAlign: 'center' }}>
                   <input
                     type="checkbox"
-                    className="form-check-input mt-0"
+                    className="form-check-input cursor-pointer"
                     checked={simulation.length > 0 && selectedIds.length === simulation.length}
                     onChange={(e) => {
                       if (e.target.checked) setSelectedIds(simulation.map(i => i.id));
@@ -1971,106 +2257,97 @@ export function PayoffModal({
                     }}
                   />
                 </th>
-                <th className="text-[9px] font-black uppercase text-muted text-center">Parc.</th>
-                <th className="text-[9px] font-black uppercase text-muted text-center">Venc.</th>
-                <th className="text-[9px] font-black uppercase text-muted text-center d-none d-md-table-cell">Comp.</th>
-                <th className="text-[9px] font-black uppercase text-muted text-end">V. Presente</th>
-                <th className="text-[9px] font-black uppercase text-muted text-end">Desconto</th>
+                <th style={{ width: '75px', textAlign: 'center' }}>Parcela</th>
+                <th style={{ width: '95px', textAlign: 'center' }}>Vencimento</th>
+                <th style={{ textAlign: 'right' }}>V. Presente</th>
+                <th style={{ textAlign: 'right' }}>Desconto</th>
               </tr>
             </thead>
             <tbody>
-              {simulation.map(i => (
-                <tr
-                  key={i.id}
-                  className={cn("cursor-pointer", selectedIds.includes(i.id) && "bg-primary/5")}
-                  onClick={() => {
-                    setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                  }}
-                >
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      className="form-check-input mt-0"
-                      checked={selectedIds.includes(i.id)}
-                      readOnly
-                    />
+              {simulation.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-6 text-muted italic">
+                    Nenhuma parcela futura encontrada para quitação.
                   </td>
-                  <td className="py-2 text-[11px] font-bold text-navy text-center">{i.parcela_atual}/{i.parcela_total}</td>
-                  <td className="py-2 text-[10px] text-muted text-center">{i.vencimento.split('-').reverse().join('/')}</td>
-                  <td className="py-2 text-[11px] text-muted text-center d-none d-md-table-cell">{i.competencia}</td>
-                  <td className="py-2 text-[11px] font-black text-navy text-end">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</td>
-                  <td className="py-2 text-[10px] font-bold text-success text-end">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</td>
                 </tr>
-              ))}
+              ) : (
+                simulation.map(i => {
+                  const isSelected = selectedIds.includes(i.id);
+                  return (
+                    <tr
+                      key={i.id}
+                      className={cn("cursor-pointer transition-colors", isSelected && "bg-primary/5")}
+                      onClick={() => {
+                        setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+                      }}
+                    >
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="form-check-input cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+                          }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="badge-tag badge-pending" style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+                          {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
+                        {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                        {formatCurrency(i.vp)}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
+                        {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
-
-          {/* Mobile List View */}
-          <div className="d-md-none p-1 space-y-1">
-            {simulation.map(i => {
-              const isSelected = selectedIds.includes(i.id);
-              return (
-                <div 
-                  key={i.id}
-                  onClick={() => setSelectedIds(prev => isSelected ? prev.filter(id => id !== i.id) : [...prev, i.id])}
-                  className={cn(
-                    "sicoob-list-item !mb-1 !gap-2",
-                    isSelected ? "ring-1 ring-primary/30 bg-primary/5" : ""
-                  )}
-                >
-                  <div className="flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      className="form-check-input mt-0"
-                      checked={isSelected}
-                      readOnly
-                    />
-                  </div>
-                  <div className="sicoob-list-content">
-                    <div className="text-[11px] font-bold text-navy leading-tight">Parc. {i.parcela_atual}/{i.parcela_total}</div>
-                    <div className="text-[9px] text-muted">{i.vencimento.split('-').reverse().join('/')}</div>
-                  </div>
-                  <div className="sicoob-list-value">
-                    <div className="text-[11px] font-black text-navy leading-tight">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.vp)}</div>
-                    <div className="text-[9px] text-success font-bold">-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(i.discount)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {simulation.length === 0 && (
-            <div className="text-center py-8 text-muted italic text-sm">Nenhuma parcela futura encontrada.</div>
-          )}
-        </div>
-
-        <div className="pt-4 d-flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-grow-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-3 rounded-pill transition-all text-xs uppercase tracking-widest border-0"
-          >
-            Sair
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={selectedIds.length === 0 || isSubmitting}
-            className={cn(
-              "flex-grow-1 font-black rounded-pill transition-all d-flex align-items-center justify-content-center gap-2 text-xs uppercase tracking-widest border-0",
-              selectedIds.length === 0
-                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                : "bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/20"
-            )}
-            style={{ height: '48px' }}
-          >
-            {isSubmitting ? (
-              <span className="spinner-border spinner-border-sm"></span>
-            ) : (
-              "Pagar"
-            )}
-          </button>
         </div>
       </div>
-    </>
+
+      {/* Action Footer Buttons */}
+      <div className="d-flex align-items-center justify-content-end gap-3 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn btn-outline-secondary rounded-pill px-4 py-2 text-xs font-bold uppercase tracking-wider"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={selectedIds.length === 0 || isSubmitting}
+          className={cn(
+            "btn rounded-pill px-5 py-2.5 text-xs font-black uppercase tracking-wider d-flex align-items-center gap-2 shadow-lg transition-all",
+            selectedIds.length === 0
+              ? "btn-secondary opacity-50 cursor-not-allowed"
+              : "btn-primary shadow-primary/20"
+          )}
+        >
+          {isSubmitting ? (
+            <>
+              <span className="spinner-border spinner-border-sm" role="status"></span>
+              <span>Processando...</span>
+            </>
+          ) : (
+            <>
+              <i className="fa-solid fa-check"></i>
+              <span>Confirmar</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 
