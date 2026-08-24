@@ -102,23 +102,13 @@ export function KPICards({
                 {monthsShort[month - 1]} {year}
               </span>
             </div>
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="btn btn-sm btn-link p-1 text-muted hover:text-foreground"
-                onClick={toggleVisibility}
-                title={isHidden ? 'Exibir valores' : 'Ocultar valores'}
-              >
-                {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={onOpenPeriodModal}
-                className="bg-card-hover border border-border text-foreground rounded-pill px-3 py-1 d-flex align-items-center gap-1 transition-all active:scale-95 shadow-sm"
-              >
-                <span className="font-bold text-[10px] tracking-wider uppercase">Período</span>
-                <ChevronRight className="w-3 h-3 opacity-50" />
-              </button>
-            </div>
+            <button
+              onClick={onOpenPeriodModal}
+              className="bg-card-hover border border-border text-foreground rounded-pill px-3 py-1 d-flex align-items-center gap-1 transition-all active:scale-95 shadow-sm"
+            >
+              <span className="font-bold text-[10px] tracking-wider uppercase">Período</span>
+              <ChevronRight className="w-3 h-3 opacity-50" />
+            </button>
           </div>
         )}
 
@@ -126,10 +116,13 @@ export function KPICards({
           <span className="text-[11px] font-bold text-muted uppercase tracking-wider block mb-0.5">
             Saldo Disponível / Margem
           </span>
-          <div className={cn('text-2xl font-black tracking-tight', isHidden && 'hidden-amount')} style={{ color: '#10b981' }}>
+          <div
+            className={cn('text-2xl font-black tracking-tight sensitive-val', stats.margem < 0 ? 'text-danger' : 'text-success', isHidden && 'hidden-amount')}
+            style={{ color: stats.margem < 0 ? '#ef4444' : '#10b981' }}
+          >
             {formatHidden(stats.margem)}
           </div>
-          <span className="badge-tag badge-paid text-[10px] mt-1 inline-block">
+          <span className={cn('badge-tag text-[10px] mt-1 inline-block', stats.margem < 0 ? 'badge-overdue' : 'badge-paid')}>
             {marginPercentage}% de Margem Livre
           </span>
         </div>
@@ -213,32 +206,27 @@ export function KPICards({
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Saldo Líquido</span>
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="toggle-visibility"
-                onClick={toggleVisibility}
-                title={isHidden ? 'Exibir valores' : 'Ocultar valores'}
-              >
-                {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
-              <div 
-                className="kpi-icon-wrap" 
-                style={{ 
-                  background: 'rgba(16, 185, 129, 0.22)', 
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.35)'
-                }}
-              >
-                <Scale className="w-4 h-4 text-success" style={{ color: '#10b981' }} />
-              </div>
+            <div 
+              className="kpi-icon-wrap" 
+              style={{ 
+                background: stats.margem < 0 ? 'rgba(239, 68, 68, 0.22)' : 'rgba(16, 185, 129, 0.22)', 
+                color: stats.margem < 0 ? '#ef4444' : '#10b981',
+                border: stats.margem < 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+              }}
+            >
+              <Scale className={cn('w-4 h-4', stats.margem < 0 ? 'text-danger' : 'text-success')} style={{ color: stats.margem < 0 ? '#ef4444' : '#10b981' }} />
             </div>
           </div>
-          <div className={cn('kpi-val text-success sensitive-val', isHidden && 'hidden-amount')} style={{ color: '#10b981' }}>
+          <div
+            className={cn('kpi-val sensitive-val', stats.margem < 0 ? 'text-danger' : 'text-success', isHidden && 'hidden-amount')}
+            style={{ color: stats.margem < 0 ? '#ef4444' : '#10b981' }}
+          >
             {formatHidden(stats.margem)}
           </div>
           <div className="kpi-footer">
-            <span className="badge-tag badge-paid">{marginPercentage}% de Margem</span>
+            <span className={cn('badge-tag', stats.margem < 0 ? 'badge-overdue' : 'badge-paid')}>
+              {marginPercentage}% de Margem
+            </span>
           </div>
         </div>
 
@@ -302,6 +290,11 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0]?.payload || {};
+      const receitas = typeof data.receitas === 'number' ? data.receitas : (payload.find((p: any) => p.dataKey === 'receitas')?.value || 0);
+      const despesas = typeof data.despesas === 'number' ? data.despesas : (payload.find((p: any) => p.dataKey === 'despesas')?.value || 0);
+      const saldoLiquido = receitas - despesas;
+
       return (
         <div
           className="p-3 rounded-xl shadow-2xl border border-border"
@@ -309,26 +302,53 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
             background: 'rgba(15, 15, 20, 0.95)',
             color: '#fff',
             backdropFilter: 'blur(10px)',
-            fontSize: '13px'
+            fontSize: '13px',
+            minWidth: '190px'
           }}
         >
-          <div className="font-bold text-gray-300 mb-1.5">{label}</div>
+          <div className="font-bold text-gray-300 mb-2">{label}</div>
           {payload.map((entry: any, index: number) => (
-            <div key={`item-${index}`} className="d-flex align-items-center gap-2 mb-1">
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: entry.color || entry.stroke
-                }}
-              />
-              <span className="text-gray-400">{entry.name}:</span>
+            <div key={`item-${index}`} className="d-flex align-items-center justify-content-between gap-3 mb-1.5">
+              <div className="d-flex align-items-center gap-2">
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: entry.color || entry.stroke
+                  }}
+                />
+                <span className="text-gray-400">{entry.name}:</span>
+              </div>
               <span className="font-bold">
                 {isHidden ? 'R$ •••••' : formatCurrency(entry.value)}
               </span>
             </div>
           ))}
+
+          {/* Saldo Líquido no Tooltip */}
+          <div
+            className="d-flex align-items-center justify-content-between gap-3 pt-2 mt-2"
+            style={{ borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}
+          >
+            <div className="d-flex align-items-center gap-2">
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: saldoLiquido >= 0 ? '#10b981' : '#ef4444'
+                }}
+              />
+              <span className="text-gray-200 font-semibold">Saldo Líquido:</span>
+            </div>
+            <span
+              className="font-bold"
+              style={{ color: saldoLiquido >= 0 ? '#10b981' : '#ef4444' }}
+            >
+              {isHidden ? 'R$ •••••' : formatCurrency(saldoLiquido)}
+            </span>
+          </div>
         </div>
       );
     }
@@ -751,16 +771,9 @@ export function ExtratoTableWidget({
             <span>Extrato de Lançamentos Recentes</span>
           </h3>
           <span className="panel-subtitle">
-            {transactions.length} movimentações no período ({despesas.length} despesas e {receitas.length} receitas)
+            {despesas.length} despesas e {receitas.length} receitas
           </span>
         </div>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={onViewAll}
-        >
-          Ver Todos
-        </button>
       </div>
 
       {/* Mobile View: Lista de Transações em Cards (Sem rolagem horizontal) */}
@@ -797,14 +810,12 @@ export function ExtratoTableWidget({
                     <div className="font-bold text-xs text-foreground truncate">
                       {tx.desc}
                     </div>
-                    <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-wrap mt-0.5">
-                      <span>{tx.vencimento}</span>
-                      <span>•</span>
-                      <span className="badge-tag" style={{ padding: '1px 5px', fontSize: '9px' }}>{tx.cat}</span>
+                    <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-nowrap overflow-hidden mt-0.5">
+                      <span className="flex-shrink-0">{tx.vencimento}</span>
                       {tx.titular && (
                         <>
-                          <span>•</span>
-                          <span>{tx.titular}</span>
+                          <span className="flex-shrink-0">•</span>
+                          <span className="truncate" style={{ maxWidth: '120px' }}>{tx.titular}</span>
                         </>
                       )}
                     </div>

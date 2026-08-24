@@ -96,6 +96,7 @@ export function CartoesView({
 }: CartoesViewProps) {
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [discountRate, setDiscountRate] = useState<number>(1.15); // 1.15% a.m.
 
   // Build enhanced cards list
@@ -357,7 +358,7 @@ export function CartoesView({
       {/* 3. Grid 2 Colunas no Desktop: Detalhamento da Fatura (Esquerda) + Consolidado & Gráfico 6 Meses (Direita) */}
       <div className="grid-2col" style={{ gap: '16px' }}>
         {/* Coluna 1: Detalhamento da Fatura */}
-        <div className="card-panel py-3 px-3.5 mb-0 d-flex flex-column justify-content-between">
+        <div className="card-panel py-3 px-3.5 mb-0 d-flex flex-column justify-content-between order-2 md:order-1 order-md-1">
           <div>
             <div className="panel-header flex-wrap align-items-center justify-content-between gap-2 mb-2">
               <div>
@@ -371,8 +372,9 @@ export function CartoesView({
               </div>
 
               {/* Search bar no cabeçalho ao lado do título */}
-              <div className="ms-auto">
-                <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-2.5 py-1" style={{ minWidth: '170px', maxWidth: '230px' }}>
+              <div className="ms-auto d-flex align-items-center">
+                {/* Desktop: Barra de busca com campo de texto */}
+                <div className="d-none d-md-flex align-items-center bg-muted/40 border border-border rounded-xl px-2.5 py-1" style={{ minWidth: '170px', maxWidth: '230px' }}>
                   <Search className="w-3.5 h-3.5 text-muted me-1.5 flex-shrink-0" />
                   <input
                     type="text"
@@ -389,6 +391,43 @@ export function CartoesView({
                     >
                       <i className="fa-solid fa-xmark" style={{ fontSize: '11px' }}></i>
                     </button>
+                  )}
+                </div>
+
+                {/* Mobile: Apenas o ícone de lupa */}
+                <div className="d-md-none">
+                  {!isMobileSearchOpen && !searchTerm ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-icon bg-muted/30 border border-border rounded-xl p-1.5 text-muted hover:text-foreground d-flex align-items-center justify-content-center"
+                      onClick={() => setIsMobileSearchOpen(true)}
+                      title="Buscar compras"
+                      style={{ width: '32px', height: '32px' }}
+                    >
+                      <Search className="w-4 h-4 text-muted" />
+                    </button>
+                  ) : (
+                    <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-2 py-1 gap-1.5 animate-in fade-in zoom-in-95 duration-150" style={{ width: '150px' }}>
+                      <Search className="w-3.5 h-3.5 text-muted flex-shrink-0" />
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Buscar..."
+                        className="form-control border-0 p-0 shadow-none bg-transparent text-xs font-medium w-100"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="border-0 bg-transparent text-muted cursor-pointer p-0"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setIsMobileSearchOpen(false);
+                        }}
+                      >
+                        <i className="fa-solid fa-xmark" style={{ fontSize: '11px' }}></i>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -563,7 +602,7 @@ export function CartoesView({
         </div>
 
         {/* Coluna 2: Card Consolidado com Total de Faturas + Gráfico de Linha dos Próximos 6 Meses */}
-        <div className="card-panel py-3 px-3.5 mb-0 d-flex flex-column justify-content-between">
+        <div className="card-panel py-3 px-3.5 mb-0 d-flex flex-column justify-content-between order-1 md:order-2 order-md-2">
           <div>
             <div className="panel-header mb-2">
               <div>

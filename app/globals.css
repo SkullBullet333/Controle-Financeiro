@@ -1308,11 +1308,12 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     background-color: var(--sicoob-teal);
     color: white;
     padding: 8px 15px 10px 15px; /* Shorter padding */
-    margin: -15px -15px 12px -15px; /* Full width edge-to-edge */
+    margin: -12px -12px 12px -12px; /* Full width edge-to-edge */
     border-radius: 0; /* Straight edge for "de fora a fora" look */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    position: relative;
-    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
   
   .sicoob-mobile-header .user-greeting {
@@ -2422,6 +2423,26 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
 
 /* MOBILE RESPONSIVE HARDENING (Prevents horizontal overflow and ugly text breaks) */
 @media (max-width: 768px) {
+  /* Hide all scrollbar tracks and thumbs on mobile for a clean native app feel */
+  *::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar,
+  .table-responsive::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  *,
+  .custom-scrollbar,
+  .table-responsive,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
   html, body {
     overflow-x: hidden !important;
     width: 100% !important;

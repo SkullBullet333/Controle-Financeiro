@@ -396,14 +396,25 @@ export function DespesasReceitasView({
                         )}
                       </div>
 
-                      <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-wrap">
-                        <span>{tx.vencimento}</span>
-                        <span>•</span>
-                        <span className="badge-tag" style={{ padding: '1px 5px', fontSize: '9px' }}>{tx.cat}</span>
+                      <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-nowrap overflow-hidden">
+                        <span className="flex-shrink-0">{tx.vencimento}</span>
+                        <span className="flex-shrink-0">•</span>
+                        <span
+                          className="badge-tag truncate flex-shrink-0"
+                          style={{
+                            padding: '1px 5px',
+                            fontSize: '9px',
+                            maxWidth: '90px',
+                            display: 'inline-block'
+                          }}
+                          title={tx.cat}
+                        >
+                          {tx.cat}
+                        </span>
                         {tx.titular && (
                           <>
-                            <span>•</span>
-                            <span className="text-muted-foreground">{tx.titular}</span>
+                            <span className="flex-shrink-0">•</span>
+                            <span className="text-muted-foreground truncate" style={{ maxWidth: '85px' }}>{tx.titular}</span>
                           </>
                         )}
                       </div>

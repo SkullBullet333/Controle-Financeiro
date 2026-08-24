@@ -37,15 +37,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.98, opacity: 0, y: 5 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full max-w-[640px] bg-surface-container-lowest rounded-xl md:rounded-2xl shadow-premium p-6 md:p-10 relative overflow-y-auto max-h-[95vh] md:max-h-[85vh] border border-border"
+            className="w-full max-w-[640px] bg-surface-container-lowest rounded-2xl shadow-premium p-4 sm:p-6 md:p-8 relative overflow-y-auto max-h-[92vh] md:max-h-[85vh] border border-border"
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <button
               type="button"
-              className="absolute top-4 right-4 md:top-8 md:right-8 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+              className="absolute top-3.5 right-3.5 md:top-6 md:right-6 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
               onClick={onClose}
             >
-              <X size={20} className="md:w-6 md:h-6" />
+              <X size={18} className="md:w-5 md:h-5" />
             </button>
             {children}
           </motion.div>
@@ -1331,13 +1331,15 @@ export function StyledDatePicker({
   onChange,
   placeholder = "Selecione a data",
   className,
-  placement = 'top'
+  placement = 'top',
+  align = 'left'
 }: {
   value: string;
   onChange: (dateStr: string) => void;
   placeholder?: string;
   className?: string;
   placement?: 'top' | 'bottom';
+  align?: 'left' | 'right';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1476,16 +1478,17 @@ export function StyledDatePicker({
         <i className={cn("fa-solid fa-chevron-down text-[10px] text-muted transition-transform ms-auto", isOpen && "rotate-180")}></i>
       </button>
 
-      {/* Floating Popover Calendar (Opens Above by Default) */}
+      {/* Floating Popover Calendar */}
       {isOpen && (
         <div 
           className="position-absolute bg-card border border-border rounded-3xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
           style={{
             bottom: placement === 'bottom' ? undefined : 'calc(100% + 8px)',
             top: placement === 'bottom' ? 'calc(100% + 8px)' : undefined,
-            left: 0,
+            left: align === 'right' ? 'auto' : 0,
+            right: align === 'right' ? 0 : 'auto',
             width: '275px',
-            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.6)',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.6)',
             background: 'var(--card, #12141c)',
             zIndex: 1050
           }}
@@ -2081,6 +2084,8 @@ export function PayoffModal({
 }) {
   const [refDate, setRefDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [simulationMode, setSimulationMode] = useState<'budget' | 'manual'>('budget');
+  const [budgetAmount, setBudgetAmount] = useState<string>('1000');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Projeção das parcelas futuras para a simulação de quitação
@@ -2150,18 +2155,57 @@ export function PayoffModal({
     });
   }, [futureInstallments, loan, refDate]);
 
-  // Pre-select all parcels by default on first load
+  // Simulação automática de trás pra frente no modo "budget"
   useEffect(() => {
-    if (simulation.length > 0 && selectedIds.length === 0) {
+    if (simulationMode === 'budget') {
+      const budgetNum = parseFloat(budgetAmount) || 0;
+      if (budgetNum <= 0 || simulation.length === 0) {
+        setSelectedIds([]);
+        return;
+      }
+
+      // Ordena de trás para frente (maior parcela_atual primeiro)
+      const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
+      let runningBudget = budgetNum;
+      const matchedIds: number[] = [];
+
+      for (const p of reversed) {
+        if (runningBudget >= p.vp) {
+          matchedIds.push(p.id);
+          runningBudget -= p.vp;
+        } else {
+          break; // Sequencial de trás pra frente
+        }
+      }
+      setSelectedIds(matchedIds);
+    }
+  }, [simulationMode, budgetAmount, simulation]);
+
+  // Inicialização padrão para modo manual se vazio
+  useEffect(() => {
+    if (simulationMode === 'manual' && simulation.length > 0 && selectedIds.length === 0) {
       setSelectedIds(simulation.map(i => i.id));
     }
-  }, [simulation]);
+  }, [simulationMode, simulation]);
 
   const selectedParcelas = simulation.filter(i => selectedIds.includes(i.id));
+  const sortedSelectedParcelas = useMemo(() => {
+    return [...selectedParcelas].sort((a, b) => a.parcela_atual - b.parcela_atual);
+  }, [selectedParcelas]);
+
   const totalNominal = selectedParcelas.reduce((acc, i) => acc + i.valor, 0);
   const totalVP = selectedParcelas.reduce((acc, i) => acc + i.vp, 0);
   const totalDiscount = Math.max(0, totalNominal - totalVP);
   const discountPercent = totalNominal > 0 ? (totalDiscount / totalNominal) * 100 : 0;
+  const totalNominalAll = simulation.reduce((acc, i) => acc + i.valor, 0);
+  const cheapestVP = simulation.length > 0 ? Math.min(...simulation.map(i => i.vp)) : 0;
+  const budgetNum = parseFloat(budgetAmount) || 0;
+  const leftoverBudget = Math.max(0, budgetNum - totalVP);
+
+  const selectLastN = (n: number) => {
+    const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
+    setSelectedIds(reversed.slice(0, n).map(i => i.id));
+  };
 
   const handleConfirm = async () => {
     if (selectedParcelas.length === 0) return;
@@ -2180,146 +2224,515 @@ export function PayoffModal({
   const taxaMensal = loan?.taxa_mensal_percentual || 1.15;
 
   return (
-    <div className="space-y-4">
-      {/* Header (Clean, rate below title, clear on right for close X) */}
-      <div className="d-flex align-items-center gap-3 border-b border-border pb-3.5 pe-8">
-        <div 
-          className="d-flex align-items-center justify-content-center rounded-2xl flex-shrink-0"
-          style={{ 
-            width: '42px', 
-            height: '42px', 
-            background: 'rgba(0, 174, 154, 0.15)', 
-            color: 'var(--primary, #00AE9A)',
-            border: '1px solid rgba(0, 174, 154, 0.25)' 
-          }}
-        >
-          <i className="fa-solid fa-calculator text-base"></i>
-        </div>
-        <div className="flex-grow-1 min-w-0">
-          <h2 className="text-lg md:text-xl font-black text-foreground m-0 leading-tight truncate">{headerTitle}</h2>
-          <div className="text-xs text-muted mt-0.5 font-medium">
-            Taxa de Juros: <span className="font-bold text-foreground">{taxaMensal}% ao mês</span>
+    <div className="space-y-3">
+      {/* Header (Título + Taxa + Data de Referência) */}
+      <div className="d-flex align-items-center justify-content-between gap-2 border-b border-border pb-2.5 pe-7">
+        <div className="d-flex align-items-center gap-2.5 min-w-0">
+          <div 
+            className="d-flex align-items-center justify-content-center rounded-xl flex-shrink-0"
+            style={{ 
+              width: '36px', 
+              height: '36px', 
+              background: 'rgba(0, 174, 154, 0.15)', 
+              color: 'var(--primary, #00AE9A)',
+              border: '1px solid rgba(0, 174, 154, 0.25)' 
+            }}
+          >
+            <i className="fa-solid fa-calculator text-sm"></i>
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base md:text-lg font-black text-foreground m-0 leading-tight truncate">{headerTitle}</h2>
+            <div className="text-[11px] text-muted font-medium">
+              Taxa de Juros: <span className="font-bold text-foreground">{taxaMensal}% a.m.</span>
+            </div>
           </div>
         </div>
+
+        {/* Data de Referência no Header (Abre para baixo à esquerda) */}
+        <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <span className="text-[11px] font-bold text-muted d-none sm:inline">Data Ref:</span>
+          <StyledDatePicker
+            value={refDate}
+            onChange={setRefDate}
+            placement="bottom"
+            align="right"
+          />
+        </div>
       </div>
 
-      {/* Reference Date Selector (Estiloso com StyledDatePicker) */}
-      <div className="d-flex align-items-center justify-content-between bg-card p-2.5 rounded-2xl border border-border gap-2">
-        <div className="d-flex align-items-center gap-2">
-          <i className="fa-solid fa-calendar-day text-primary text-xs"></i>
-          <span className="text-xs font-bold text-muted">Data de Referência:</span>
-        </div>
-        <StyledDatePicker
-          value={refDate}
-          onChange={setRefDate}
-        />
-      </div>
-
-      {/* 2 Cards Apenas (Como era antes) */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Card 1: Selecionado */}
-        <div className="bg-card border border-border rounded-2xl p-3 text-center d-flex flex-column justify-content-between min-h-[85px] shadow-sm">
-          <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
-          <div className="text-lg md:text-xl font-black text-foreground my-0.5">{formatCurrency(totalNominal)}</div>
-          <div className="text-xs font-bold text-muted">{selectedParcelas.length} de {simulation.length} itens</div>
-        </div>
-
-        {/* Card 2: Valor a Pagar (Hoje / VP) */}
-        <div 
-          className="rounded-2xl p-3 text-center d-flex flex-column justify-content-between min-h-[85px] shadow-md"
-          style={{ 
-            background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.2), rgba(0, 53, 62, 0.4))',
-            border: '1px solid rgba(0, 174, 154, 0.35)'
+      {/* Abas Estilo Pasta / Catálogo com canto superior direito bem arredondado */}
+      <div className="d-flex align-items-end gap-2 px-1 border-b border-border pt-1.5">
+        <button
+          type="button"
+          className={cn(
+            "px-4 py-2 text-xs md:text-sm font-black transition-all border-t-2 border-x d-flex align-items-center gap-2 position-relative cursor-pointer select-none",
+            simulationMode === 'budget'
+              ? "bg-card border-t-primary border-x-border text-primary -mb-[1px] pb-2.5 z-10 shadow-sm"
+              : "bg-surface-container-low/80 border-t-transparent border-x-transparent text-muted hover:text-foreground hover:bg-surface-container-high"
+          )}
+          style={{
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '18px',
+            borderBottomLeftRadius: '0px',
+            borderBottomRightRadius: '0px'
           }}
+          onClick={() => setSimulationMode('budget')}
         >
-          <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar</div>
-          <div className="text-lg md:text-xl font-black text-primary my-0.5">{formatCurrency(totalVP)}</div>
-          <div className="text-xs font-bold text-success">
-            {totalDiscount > 0 ? `- ${formatCurrency(totalDiscount)}` : '\u00A0'}
-          </div>
-        </div>
+          <i className={cn("fa-solid text-xs", simulationMode === 'budget' ? "fa-folder-open text-primary" : "fa-folder text-muted")}></i>
+          <span>Valor</span>
+        </button>
+
+        <button
+          type="button"
+          className={cn(
+            "px-4 py-2 text-xs md:text-sm font-black transition-all border-t-2 border-x d-flex align-items-center gap-2 position-relative cursor-pointer select-none",
+            simulationMode === 'manual'
+              ? "bg-card border-t-primary border-x-border text-primary -mb-[1px] pb-2.5 z-10 shadow-sm"
+              : "bg-surface-container-low/80 border-t-transparent border-x-transparent text-muted hover:text-foreground hover:bg-surface-container-high"
+          )}
+          style={{
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '18px',
+            borderBottomLeftRadius: '0px',
+            borderBottomRightRadius: '0px'
+          }}
+          onClick={() => setSimulationMode('manual')}
+        >
+          <i className={cn("fa-solid text-xs", simulationMode === 'manual' ? "fa-book-open text-primary" : "fa-book text-muted")}></i>
+          <span>Parcelas</span>
+        </button>
       </div>
 
-      {/* Table of Installments (Sem rolagem horizontal) */}
-      <div className="border border-border rounded-2xl overflow-hidden shadow-sm">
-        <div className="custom-scrollbar" style={{ maxHeight: '240px', overflowY: 'auto', overflowX: 'hidden' }}>
-          <table className="styled-table mb-0 w-100" style={{ tableLayout: 'fixed' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
-              <tr>
-                <th style={{ width: '38px', textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    className="form-check-input cursor-pointer"
-                    checked={simulation.length > 0 && selectedIds.length === simulation.length}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedIds(simulation.map(i => i.id));
-                      else setSelectedIds([]);
-                    }}
-                  />
-                </th>
-                <th style={{ width: '75px', textAlign: 'center' }}>Parcela</th>
-                <th style={{ width: '95px', textAlign: 'center' }}>Vencimento</th>
-                <th style={{ textAlign: 'right' }}>V. Presente</th>
-                <th style={{ textAlign: 'right' }}>Desconto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {simulation.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-6 text-muted italic">
-                    Nenhuma parcela futura encontrada para quitação.
-                  </td>
-                </tr>
-              ) : (
-                simulation.map(i => {
-                  const isSelected = selectedIds.includes(i.id);
-                  return (
-                    <tr
-                      key={i.id}
-                      className={cn("cursor-pointer transition-colors", isSelected && "bg-primary/5")}
-                      onClick={() => {
-                        setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                      }}
-                    >
-                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="form-check-input cursor-pointer"
-                          checked={isSelected}
-                          onChange={() => {
-                            setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                          }}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="badge-tag badge-pending" style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+      {/* ========================================================================= */}
+      {/* ABA 1: SIMULAR POR VALOR DISPONÍVEL (Traz apenas as parcelas que abate)    */}
+      {/* ========================================================================= */}
+      {simulationMode === 'budget' && (
+        <div className="space-y-2.5 animate-in fade-in duration-150">
+          {/* Caixa Integrada Padronizada */}
+          <div className="bg-card border border-border rounded-2xl p-3 md:p-3.5 space-y-2.5">
+            {/* Linha 1: Input com padding fixo + Atalhos */}
+            <div className="d-flex align-items-center gap-2 min-h-[38px]">
+              <div className="position-relative flex-grow-1">
+                <span className="position-absolute start-3 top-1/2 -translate-y-1/2 font-black text-xs sm:text-sm text-primary pointer-events-none select-none">
+                  R$
+                </span>
+                <input
+                  type="number"
+                  step="50"
+                  min="0"
+                  placeholder="Digite o valor disponível"
+                  className="form-control rounded-xl py-2 pe-2 font-black text-sm md:text-base bg-surface-container-lowest border-border text-foreground"
+                  style={{ paddingLeft: '40px' }}
+                  value={budgetAmount}
+                  onChange={(e) => setBudgetAmount(e.target.value)}
+                />
+              </div>
+              <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                {[500, 1000, 2000].map(val => (
+                  <button
+                    key={`chip-${val}`}
+                    type="button"
+                    className={cn(
+                      "badge-tag cursor-pointer border transition-all",
+                      Number(budgetAmount) === val ? "badge-paid border-primary" : "badge-neutral border-border hover:border-primary/50"
+                    )}
+                    style={{ padding: '5px 8px', fontSize: '10px', fontWeight: 700 }}
+                    onClick={() => setBudgetAmount(String(val))}
+                  >
+                    {val >= 1000 ? `${val / 1000}k` : val}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-lg py-1 px-2.5 text-[10px] md:text-xs font-bold"
+                  onClick={() => setBudgetAmount(String(Math.ceil(totalNominalAll)))}
+                  title="Preencher com o total da dívida"
+                >
+                  Tudo
+                </button>
+              </div>
+            </div>
+
+            {/* Linha 2: 2 Mini Cards de Resumo */}
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
+              <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
+                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Parcelas Abatidas</div>
+                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>
+                  {formatCurrency(totalNominal)}
+                </div>
+                <div className="text-[10px] md:text-xs font-bold text-muted truncate">
+                  {selectedParcelas.length} de {simulation.length} itens
+                </div>
+              </div>
+
+              <div 
+                className="rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.15), rgba(0, 53, 62, 0.3))',
+                  border: '1px solid rgba(0, 174, 154, 0.3)'
+                }}
+              >
+                <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar (VP)</div>
+                <div className="text-sm md:text-lg font-black text-primary my-0.5 truncate">
+                  {formatCurrency(totalVP)}
+                </div>
+                <div className="text-[10px] md:text-xs font-bold text-success truncate">
+                  {totalDiscount > 0 ? `Economia: - ${formatCurrency(totalDiscount)}` : 'Sem juros'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header Padronizado */}
+          <div className="d-flex align-items-center justify-content-between px-1 h-[24px]">
+            <span className="text-xs font-bold text-foreground d-flex align-items-center gap-1.5">
+              <i className="fa-solid fa-layer-group text-primary"></i>
+              <span>Parcelas que você abate:</span>
+            </span>
+          </div>
+
+          {/* Mobile View: Altura Fixa Padronizada */}
+          <div className="d-md-none space-y-1.5 h-[180px] overflow-y-auto custom-scrollbar p-0.5">
+            {selectedParcelas.length === 0 ? (
+              <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 text-muted italic text-xs bg-card border border-border rounded-xl">
+                <i className="fa-solid fa-coins fs-4 text-muted opacity-40 mb-1.5 d-block"></i>
+                {budgetNum > 0 
+                  ? `O valor de ${formatCurrency(budgetNum)} não é suficiente para abater a última parcela (${formatCurrency(cheapestVP)}).` 
+                  : "Digite um valor acima para simular as parcelas abatidas de trás pra frente."
+                }
+              </div>
+            ) : (
+              sortedSelectedParcelas.map(i => (
+                <div
+                  key={`mob-budget-${i.id}`}
+                  className="bg-card border border-primary/40 rounded-xl p-2 d-flex align-items-center justify-content-between gap-2 shadow-sm bg-primary/5"
+                >
+                  <div className="d-flex align-items-center gap-2 min-w-0">
+                    <div className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle flex-shrink-0" style={{ width: '20px', height: '20px' }}>
+                      <i className="fa-solid fa-check text-[9px]"></i>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="d-flex align-items-center gap-1.5">
+                        <span className="badge-tag badge-paid text-[9px] py-0.5 px-1.5 font-bold">
                           {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
                         </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
-                        {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
-                        {formatCurrency(i.vp)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
-                        {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
+                        <span className="text-[10px] font-semibold text-muted">
+                          {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
+                        </span>
+                      </div>
+                      <div className="text-[9px] text-muted">
+                        Nominal: <span className="font-semibold text-foreground">{formatCurrency(i.valor)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-end flex-shrink-0">
+                    <div className="font-black text-xs text-primary">
+                      {formatCurrency(i.vp)}
+                    </div>
+                    {i.discount > 0 ? (
+                      <div className="text-[9px] font-bold text-success">
+                        - {formatCurrency(i.discount)}
+                      </div>
+                    ) : (
+                      <div className="text-[9px] text-muted">sem desc.</div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View: Altura Fixa Padronizada */}
+          <div className="border border-border rounded-xl overflow-hidden shadow-sm d-none d-md-block h-[280px]">
+            <div className="custom-scrollbar h-100 overflow-y-auto">
+              <table className="styled-table mb-0 w-100">
+                <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
+                  <tr>
+                    <th style={{ width: '38px', textAlign: 'center' }}>#</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Parcela</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Vencimento</th>
+                    <th style={{ textAlign: 'right' }}>Valor Nominal</th>
+                    <th style={{ textAlign: 'right' }}>V. Presente (VP)</th>
+                    <th style={{ textAlign: 'right' }}>Desconto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedParcelas.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-muted italic text-sm">
+                        <i className="fa-solid fa-coins fs-3 text-muted opacity-40 mb-2 d-block"></i>
+                        {budgetNum > 0 
+                          ? `O valor de ${formatCurrency(budgetNum)} não é suficiente para abater a última parcela (${formatCurrency(cheapestVP)}).` 
+                          : "Digite um valor acima para simular quantas parcelas serão abatidas."
+                        }
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ) : (
+                    sortedSelectedParcelas.map((i, index) => (
+                      <tr key={i.id} className="bg-primary/5">
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="badge bg-primary text-white rounded-circle p-1" style={{ width: '18px', height: '18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="badge-tag badge-paid" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                            {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
+                          {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
+                        </td>
+                        <td style={{ textAlign: 'right' }} className="text-muted font-medium text-xs">
+                          {formatCurrency(i.valor)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                          {formatCurrency(i.vp)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
+                          {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ABA 2: SELEÇÃO MANUAL / CATÁLOGO (Permite escolher todas/quaisquer)        */}
+      {/* ========================================================================= */}
+      {simulationMode === 'manual' && (
+        <div className="space-y-2.5 animate-in fade-in duration-150">
+          {/* Caixa Integrada Padronizada */}
+          <div className="bg-card border border-border rounded-2xl p-3 md:p-3.5 space-y-2.5">
+            {/* Linha 1: Atalhos de seleção com mesma altura */}
+            <div className="d-flex align-items-center justify-content-between min-h-[38px] flex-wrap gap-1">
+              <span className="text-[11px] font-bold text-muted ps-1">Atalhos de trás pra frente:</span>
+              <div className="d-flex align-items-center gap-1.5 ms-auto">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
+                  onClick={() => selectLastN(3)}
+                >
+                  3 Últimas
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
+                  onClick={() => selectLastN(6)}
+                >
+                  6 Últimas
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
+                  onClick={() => setSelectedIds(simulation.map(i => i.id))}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-muted hover:text-danger p-1 text-[10px] font-bold"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            {/* Linha 2: 2 Mini Cards de Resumo */}
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
+              <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
+                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
+                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>
+                  {formatCurrency(totalNominal)}
+                </div>
+                <div className="text-[10px] md:text-xs font-bold text-muted">{selectedParcelas.length} de {simulation.length} itens</div>
+              </div>
+
+              <div 
+                className="rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.15), rgba(0, 53, 62, 0.3))',
+                  border: '1px solid rgba(0, 174, 154, 0.3)'
+                }}
+              >
+                <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar (VP)</div>
+                <div className="text-sm md:text-lg font-black text-primary my-0.5 truncate" title={formatCurrency(totalVP)}>
+                  {formatCurrency(totalVP)}
+                </div>
+                <div className="text-[10px] md:text-xs font-bold text-success truncate">
+                  {totalDiscount > 0 ? `Economia: - ${formatCurrency(totalDiscount)}` : 'Sem desconto'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header Padronizado */}
+          <div className="d-flex align-items-center justify-content-between px-1 h-[24px]">
+            <span className="text-xs font-bold text-muted">Parcelas Futuras:</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-link p-0 text-xs font-bold text-primary text-decoration-none"
+              onClick={() => {
+                if (selectedIds.length === simulation.length) {
+                  setSelectedIds([]);
+                } else {
+                  setSelectedIds(simulation.map(i => i.id));
+                }
+              }}
+            >
+              {selectedIds.length === simulation.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+            </button>
+          </div>
+
+          {/* Mobile View: Altura Fixa Padronizada */}
+          <div className="d-md-none space-y-1.5 h-[180px] overflow-y-auto custom-scrollbar p-0.5">
+            {simulation.length === 0 ? (
+              <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 text-muted italic text-xs">
+                Nenhuma parcela futura encontrada.
+              </div>
+            ) : (
+              simulation.map(i => {
+                const isSelected = selectedIds.includes(i.id);
+                return (
+                  <div
+                    key={`mob-manual-${i.id}`}
+                    className={cn(
+                      "bg-card border rounded-xl p-2 d-flex align-items-center justify-content-between gap-2 transition-all cursor-pointer shadow-sm",
+                      isSelected ? "border-primary bg-primary/5" : "border-border opacity-70"
+                    )}
+                    onClick={() => {
+                      setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+                    }}
+                  >
+                    <div className="d-flex align-items-center gap-2 min-w-0">
+                      <input
+                        type="checkbox"
+                        className="form-check-input cursor-pointer flex-shrink-0 m-0"
+                        checked={isSelected}
+                        onChange={() => {}}
+                      />
+                      <div className="min-w-0">
+                        <div className="d-flex align-items-center gap-1.5">
+                          <span className="badge-tag badge-pending text-[9px] py-0.5 px-1.5 font-bold">
+                            {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
+                          </span>
+                          <span className="text-[10px] font-semibold text-muted">
+                            {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-muted">
+                          Nominal: <span className="font-semibold text-foreground">{formatCurrency(i.valor)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-end flex-shrink-0">
+                      <div className="font-black text-xs text-primary">
+                        {formatCurrency(i.vp)}
+                      </div>
+                      {i.discount > 0 ? (
+                        <div className="text-[9px] font-bold text-success">
+                          - {formatCurrency(i.discount)}
+                        </div>
+                      ) : (
+                        <div className="text-[9px] text-muted">sem desc.</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View: Altura Fixa Padronizada */}
+          <div className="border border-border rounded-xl overflow-hidden shadow-sm d-none d-md-block h-[280px]">
+            <div className="custom-scrollbar h-100 overflow-y-auto">
+              <table className="styled-table mb-0 w-100">
+                <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
+                  <tr>
+                    <th style={{ width: '38px', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        className="form-check-input cursor-pointer"
+                        checked={simulation.length > 0 && selectedIds.length === simulation.length}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedIds(simulation.map(i => i.id));
+                          else setSelectedIds([]);
+                        }}
+                      />
+                    </th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Parcela</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Vencimento</th>
+                    <th style={{ textAlign: 'right' }}>V. Presente</th>
+                    <th style={{ textAlign: 'right' }}>Desconto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simulation.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-10 text-muted italic text-sm">
+                        Nenhuma parcela futura encontrada para quitação.
+                      </td>
+                    </tr>
+                  ) : (
+                    simulation.map(i => {
+                      const isSelected = selectedIds.includes(i.id);
+                      return (
+                        <tr
+                          key={i.id}
+                          className={cn("cursor-pointer transition-colors", isSelected && "bg-primary/5")}
+                          onClick={() => {
+                            setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+                          }}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="form-check-input cursor-pointer"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+                              }}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="badge-tag badge-pending" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                              {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
+                            {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                            {formatCurrency(i.vp)}
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
+                            {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Footer Buttons */}
-      <div className="d-flex align-items-center justify-content-end gap-3 pt-1">
+      <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-t border-border mt-2">
         <button
           type="button"
           onClick={onClose}
-          className="btn btn-outline-secondary rounded-pill px-4 py-2 text-xs font-bold uppercase tracking-wider"
+          className="btn btn-outline-secondary rounded-pill px-4 py-1.5 text-xs font-bold uppercase tracking-wider"
         >
           Cancelar
         </button>
@@ -2328,7 +2741,7 @@ export function PayoffModal({
           onClick={handleConfirm}
           disabled={selectedIds.length === 0 || isSubmitting}
           className={cn(
-            "btn rounded-pill px-5 py-2.5 text-xs font-black uppercase tracking-wider d-flex align-items-center gap-2 shadow-lg transition-all",
+            "btn rounded-pill px-5 py-2 text-xs font-black uppercase tracking-wider d-flex align-items-center gap-2 shadow-md transition-all",
             selectedIds.length === 0
               ? "btn-secondary opacity-50 cursor-not-allowed"
               : "btn-primary shadow-primary/20"
