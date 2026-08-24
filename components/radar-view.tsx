@@ -1,37 +1,30 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { Titular, CartaoConfig, Despesa, Receita, Emprestimo, ContaFixaConfig, CartaoTransacao } from '@/lib/types';
-import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
-import { 
-  Wand2, 
-  ShieldCheck, 
-  AlertTriangle, 
-  PiggyBank, 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar, 
-  Search, 
-  Sparkles, 
-  Calculator, 
+import { calculatePresentValue, projetarProximoVencimento, calcularCompetencia } from '@/lib/finance-service';
+import {
+  Wand2,
+  ShieldCheck,
+  AlertTriangle,
+  PiggyBank,
+  TrendingUp,
+  TrendingDown,
+  Calculator,
   ArrowDownRight,
-  Layers,
-  RotateCcw,
-  Percent,
-  Banknote,
-  Filter
+  Layers
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend, 
-  CartesianGrid, 
-  Line, 
-  ComposedChart 
+import {
+  ResponsiveContainer,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  Line,
+  ComposedChart
 } from 'recharts';
 import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths, addMonths } from 'date-fns';
 
@@ -66,10 +59,6 @@ export function RadarFinanceiroView({
   onPayoff,
   isHidden = false
 }: RadarFinanceiroViewProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLoanId, setSelectedLoanId] = useState<number | 'all'>('all');
-  const [showLoanFilters, setShowLoanFilters] = useState(false);
-
   const competenciaAtual = `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
   const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -87,11 +76,11 @@ export function RadarFinanceiroView({
       for (let i = 1; i <= loan.total_parcelas; i++) {
         const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimoDia, diaOriginal);
         const vStr = format(dataVenc, 'yyyy-MM-dd');
-        
+
         const exists = despesas.find(
           (d) => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i)
         );
-        
+
         let comp = '';
         if (loan.competencia_inicial) {
           const [m, y] = loan.competencia_inicial.split('/').map(Number);
@@ -125,13 +114,11 @@ export function RadarFinanceiroView({
     }, [] as Despesa[]);
   }, [emprestimos, despesas, activeFilterId]);
 
-  // Grouped loans summary: each row is one single debt/contract
+  // Contratos calculados e filtrados para EXCLUIR quitados (VP <= 0 ou sem parcelas a vencer)
   const loanContractsSummary = useMemo(() => {
     return emprestimos
       .filter((loan) => {
         if (activeFilterId && Number(loan.titular_id) !== Number(activeFilterId)) return false;
-        if (selectedLoanId !== 'all' && Number(loan.id) !== Number(selectedLoanId)) return false;
-        if (searchTerm && !loan.descricao?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
         return true;
       })
       .map((loan) => {
@@ -140,7 +127,7 @@ export function RadarFinanceiroView({
 
         // Find all installments for this loan
         const loanInstallments = projectedLoans.filter((d) => Number(d.emprestimo_id) === Number(loan.id));
-        
+
         // Find which installments are already paid
         const paidInstallments = despesas.filter(
           (d) => Number(d.emprestimo_id) === Number(loan.id) && (d.status === 'Pago' || d.status === 'Recebido')
@@ -149,7 +136,7 @@ export function RadarFinanceiroView({
 
         // Unpaid installments
         const openInsts = loanInstallments.filter((d) => !paidNumbers.has(Number(d.parcela_atual)));
-        
+
         // Current open parcel (e.g. 5) vs total (e.g. 10)
         const nextParcela = openInsts.length > 0 ? Math.min(...openInsts.map((d) => Number(d.parcela_atual))) : loan.total_parcelas;
         const parcelaDisplay = `${String(nextParcela).padStart(2, '0')}/${String(loan.total_parcelas).padStart(2, '0')}`;
@@ -183,10 +170,13 @@ export function RadarFinanceiroView({
           totalDiscount,
           totalVP,
           openCount: openInsts.length,
-          totalParcelas: loan.total_parcelas
+          totalParcelas: loan.total_parcelas,
+          isQuitado: openInsts.length === 0 || totalNominal <= 0 || totalVP <= 0
         };
-      });
-  }, [emprestimos, projectedLoans, despesas, titulares, activeFilterId, selectedLoanId, searchTerm]);
+      })
+      // Não exibir empréstimos quitados (VP <= 0 ou 0 parcelas em aberto)
+      .filter((c) => !c.isQuitado && c.totalVP > 0 && c.openCount > 0);
+  }, [emprestimos, projectedLoans, despesas, titulares, activeFilterId]);
 
   // Debt & Present Value Calculations
   const debtStats = useMemo(() => {
@@ -219,7 +209,7 @@ export function RadarFinanceiroView({
     return score;
   }, [totalDespesasMesAtual, totalReceitasMesAtual]);
 
-  // 8-Month Projection Chart Data
+  // 8-Month Projection Chart Data (Projeção Completa: Físicos, Recorrentes Fixos, Empréstimos e Cartões)
   const projectionChartData = useMemo(() => {
     const data = [];
     let tempMonth = currentMonth;
@@ -231,23 +221,150 @@ export function RadarFinanceiroView({
       const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const label = `${monthNames[Number(mStr) - 1]}/${String(tempYear).slice(2)}`;
 
-      // Standard revenues
-      const totalRec = receitas
-        .filter((r) => r.competencia === comp)
-        .reduce((s, r) => s + Number(r.valor || 0), 0);
-
-      // Despesas fixas e empréstimos
-      const totalDesp = despesas
-        .filter((d) => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura '))
-        .reduce((s, d) => s + Number(d.valor || 0), 0);
-
-      // Faturas de cartão
-      const cardFats = allProjectedCartaoTransacoes
-        .filter((c) => {
-          const matchTitular = activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true;
-          return matchTitular && c.competencia === comp;
+      // 1. RECEITAS
+      // 1.1 Receitas físicas
+      const baseRec = receitas
+        .filter((r) => {
+          const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
+          return matchTitular && r.competencia === comp;
         })
-        .reduce((s, c) => s + Number(c.valor || 0), 0);
+        .reduce((sum, r) => sum + Number(r.valor || 0), 0);
+
+      // 1.2 Receitas virtuais recorrentes (contasFixas com tipo 'receita')
+      let virtualRec = 0;
+      contasFixas
+        .filter((c) => c.tipo === 'receita' && (activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true))
+        .forEach((cfg) => {
+          const dataInicial = parseISO(cfg.data_inicio);
+          const diaOriginal = getDate(dataInicial);
+          const isUltimoDia = isLastDayOfMonth(dataInicial);
+          const limit = cfg.total_parcelas || 36;
+
+          for (let p = 1; p <= limit; p++) {
+            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
+            let cComp = '';
+            if (cfg.competencia_inicial) {
+              const [m, y] = cfg.competencia_inicial.split('/').map(Number);
+              const baseDate = new Date(y, m - 1, 1);
+              cComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
+            } else {
+              cComp = calcularCompetencia(dataVenc);
+            }
+
+            if (cComp === comp) {
+              const existeNoBanco = receitas.find(
+                (r) => Number(r.conta_fixa_id) === Number(cfg.id) && r.competencia === comp
+              );
+              if (!existeNoBanco) {
+                virtualRec += Number(cfg.valor_mensal || 0);
+              }
+            }
+          }
+        });
+
+      const totalRec = baseRec + virtualRec;
+
+      // 2. DESPESAS FIXAS E REGULARES
+      // 2.1 Despesas físicas regulares (não faturas de cartão)
+      const baseDesp = despesas
+        .filter((d) => {
+          const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
+          return matchTitular && d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura ');
+        })
+        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
+
+      // 2.2 Despesas virtuais recorrentes (contasFixas de despesa não cartão)
+      let virtualFixed = 0;
+      contasFixas
+        .filter((c) => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id && (activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true))
+        .forEach((cfg) => {
+          const dataInicial = parseISO(cfg.data_inicio);
+          const diaOriginal = getDate(dataInicial);
+          const isUltimoDia = isLastDayOfMonth(dataInicial);
+          const limit = cfg.total_parcelas || 36;
+
+          for (let p = 1; p <= limit; p++) {
+            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
+            let fComp = '';
+            if (cfg.competencia_inicial) {
+              const [m, y] = cfg.competencia_inicial.split('/').map(Number);
+              const baseDate = new Date(y, m - 1, 1);
+              fComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
+            } else {
+              fComp = calcularCompetencia(dataVenc);
+            }
+
+            if (fComp === comp) {
+              const existeNoBanco = despesas.find(
+                (d) => Number(d.conta_fixa_id) === Number(cfg.id) && Number(d.parcela_atual) === Number(p)
+              );
+              if (!existeNoBanco) {
+                virtualFixed += Number(cfg.valor_mensal || 0);
+              }
+            }
+          }
+        });
+
+      // 2.3 Parcelas virtuais de empréstimos
+      let virtualLoans = 0;
+      emprestimos
+        .filter((loan) => (activeFilterId ? Number(loan.titular_id) === Number(activeFilterId) : true))
+        .forEach((loan) => {
+          const dataInicial = parseISO(loan.data_primeiro_vencimento);
+          const diaOriginal = getDate(dataInicial);
+          const isUltimoDia = isLastDayOfMonth(dataInicial);
+
+          for (let p = 1; p <= loan.total_parcelas; p++) {
+            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
+            let lComp = '';
+            if (loan.competencia_inicial) {
+              const [m, y] = loan.competencia_inicial.split('/').map(Number);
+              const baseDate = new Date(y, m - 1, 1);
+              lComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
+            } else {
+              lComp = calcularCompetencia(dataVenc);
+            }
+
+            if (lComp === comp) {
+              const existeNoBanco = despesas.find(
+                (d) => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(p)
+              );
+              if (!existeNoBanco) {
+                virtualLoans += Number(loan.valor_parcela || 0);
+              }
+            }
+          }
+        });
+
+      const totalDesp = baseDesp + virtualFixed + virtualLoans;
+
+      // 3. FATURAS DE CARTÃO (Projetadas & Físicas)
+      let cardFats = 0;
+      cartoes
+        .filter((card) => (activeFilterId ? Number(card.titular_id) === Number(activeFilterId) : true))
+        .forEach((card) => {
+          const cardTransactionsTotal = allProjectedCartaoTransacoes
+            .filter((ct) => {
+              const matchTitular = activeFilterId ? Number(ct.titular_id) === Number(activeFilterId) : true;
+              return matchTitular && ct.cartao_id === card.id && ct.competencia === comp;
+            })
+            .reduce((sum, ct) => sum + Number(ct.valor || 0), 0);
+
+          const existingInDB = despesas.find(
+            (f) =>
+              f.competencia === comp &&
+              (f.isSummary || f.descricao?.startsWith('Fatura ')) &&
+              (f.cartao_vencimento_id === card.id || f.descricao?.includes(card.nome_cartao))
+          );
+
+          if (existingInDB) {
+            cardFats += existingInDB.status === 'Pago'
+              ? Number(existingInDB.valor || 0)
+              : (cardTransactionsTotal || Number(existingInDB.valor || 0));
+          } else if (cardTransactionsTotal > 0) {
+            cardFats += cardTransactionsTotal;
+          }
+        });
 
       const totalOutflow = totalDesp + cardFats;
       const saldo = totalRec - totalOutflow;
@@ -269,33 +386,79 @@ export function RadarFinanceiroView({
       }
     }
     return data;
-  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, activeFilterId]);
+  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, contasFixas, emprestimos, cartoes, activeFilterId]);
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Toolbar */}
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-sm">
-        <div className="d-flex align-items-center gap-2">
-          <Wand2 className="w-5 h-5 text-primary" />
-          <span className="font-bold text-sm text-foreground">Radar de Inteligência & Amortização</span>
+    <div className="space-y-4">
+      {/* 1. Header Toolbar (Segmentações em botões pills idênticas à aba Despesas & Receitas) */}
+      <div
+        className="card-panel py-2 px-3.5 mb-3 d-none d-md-flex flex-row align-items-center justify-content-between w-100"
+        style={{ flexDirection: 'row', gap: '10px', flexWrap: 'nowrap' }}
+      >
+        <div className="d-flex flex-row align-items-center gap-2 flex-nowrap flex-shrink-0 me-auto">
+          {/* Segmentação de Titular por Botões Pills */}
+          <div className="range-presets flex-shrink-0">
+            <button
+              type="button"
+              className={cn("range-preset-btn", !activeFilterId && "active")}
+              onClick={() => onFilterChange(null)}
+            >
+              Família Completa
+            </button>
+            {titulares.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={cn("range-preset-btn", activeFilterId === t.id && "active")}
+                onClick={() => onFilterChange(t.id)}
+              >
+                {t.nome}
+              </button>
+            ))}
+          </div>
+
+          {activeFilterId && (
+            <button
+              type="button"
+              className="btn btn-link text-danger font-bold text-xs text-decoration-none p-0 ms-1 flex-shrink-0 whitespace-nowrap d-flex align-items-center"
+              style={{ height: '34px' }}
+              onClick={() => onFilterChange(null)}
+            >
+              <i className="fa-solid fa-filter-circle-xmark me-1"></i> Limpar Filtro
+            </button>
+          )}
         </div>
 
-        <div className="d-flex align-items-center gap-2 ms-auto w-100 w-md-auto">
-          {/* Member Filter */}
-          <select
-            className="form-select text-xs font-medium border-border rounded-xl bg-card w-100"
-            style={{ padding: '8px 12px' }}
-            value={activeFilterId || 'all'}
-            onChange={(e) => {
-              const val = e.target.value;
-              onFilterChange(val === 'all' ? null : Number(val));
-            }}
+        {/* Badge Informativo à Direita */}
+        <div className="d-flex align-items-center gap-2 ms-auto flex-shrink-0 flex-nowrap">
+          <div className="badge-tag badge-paid py-1.5 px-3 rounded-xl text-xs font-bold d-flex align-items-center gap-1.5">
+            <Wand2 className="w-3.5 h-3.5 text-primary" />
+            <span>Radar Ativo</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 1.1 Mobile Toolbar */}
+      <div className="card-panel py-2.5 px-3 mb-3 d-md-none space-y-2">
+        {/* Titular Pills no Mobile */}
+        <div className="range-presets w-100 justify-content-between flex-wrap gap-1">
+          <button
+            type="button"
+            className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", !activeFilterId && "active")}
+            onClick={() => onFilterChange(null)}
           >
-            <option value="all">Família Completa</option>
-            {titulares.map((t) => (
-              <option key={t.id} value={t.id}>{t.nome}</option>
-            ))}
-          </select>
+            Família
+          </button>
+          {titulares.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", activeFilterId === t.id && "active")}
+              onClick={() => onFilterChange(t.id)}
+            >
+              {t.nome}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -353,7 +516,7 @@ export function RadarFinanceiroView({
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Score de Saúde</span>
-            <div 
+            <div
               className="kpi-icon-wrap"
               style={{
                 background: healthScore >= 75 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
@@ -374,50 +537,77 @@ export function RadarFinanceiroView({
         </div>
       </div>
 
-      {/* 3. Cards de Inteligência & Metas (Lado a lado em 3 colunas) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+      {/* 3. Cards de Inteligência & Metas com Plano de Fundo Premium e Fronteira Visual Padronizada */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
         {/* Reserva de Emergência */}
-        <div className="radar-card">
-          <div className="radar-icon-box" style={{ background: 'var(--success-glow, rgba(16, 185, 129, 0.2))', color: 'var(--success, #10b981)' }}>
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="flex-grow-1">
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Reserva de Emergência</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              6.4 meses de despesas cobertas (Meta familiar: 6 meses).
-            </p>
-            <div style={{ height: '6px', width: '100%', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: '100%', height: '100%', background: 'var(--success, #10b981)' }}></div>
+        <div
+          className="card-panel py-3.5 px-4"
+          style={{
+            background: 'linear-gradient(135deg, var(--card) 0%, var(--card-elevated, #181d2c) 100%)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px'
+          }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <div className="kpi-icon-wrap" style={{ background: 'var(--success-glow, rgba(16, 185, 129, 0.2))', color: 'var(--success, #10b981)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div className="flex-grow-1">
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Reserva de Emergência</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                6.4 meses de despesas cobertas (Meta familiar: 6 meses).
+              </p>
+              <div style={{ height: '6px', width: '100%', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '100%', background: 'var(--success, #10b981)' }}></div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Alerta de Contratos & Financiamentos */}
-        <div className="radar-card">
-          <div className="radar-icon-box" style={{ background: 'var(--warning-glow, rgba(245, 158, 11, 0.2))', color: 'var(--warning, #f59e0b)' }}>
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div className="flex-grow-1">
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Contratos & Financiamentos</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {emprestimos.length} contratos ativos somando {formatCurrency(emprestimos.reduce((s, e) => s + Number(e.valor_parcela || 0), 0))}/mês.
-            </p>
-            <span className="badge-tag badge-pending" style={{ fontSize: '0.72rem' }}>Amortização Disponível</span>
+        <div
+          className="card-panel py-3.5 px-4"
+          style={{
+            background: 'linear-gradient(135deg, var(--card) 0%, var(--card-elevated, #181d2c) 100%)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px'
+          }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <div className="kpi-icon-wrap" style={{ background: 'var(--warning-glow, rgba(245, 158, 11, 0.2))', color: 'var(--warning, #f59e0b)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="flex-grow-1">
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Contratos & Financiamentos</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                {loanContractsSummary.length} contratos ativos somando {formatCurrency(loanContractsSummary.reduce((s: number, c: any) => s + Number(c.loan?.valor_parcela || 0), 0))}/mês.
+              </p>
+              <span className="badge-tag badge-pending" style={{ fontSize: '0.72rem' }}>Amortização Disponível</span>
+            </div>
           </div>
         </div>
 
-        {/* Metas Familiares & VP */}
-        <div className="radar-card">
-          <div className="radar-icon-box" style={{ background: 'var(--primary-glow, rgba(0, 174, 154, 0.25))', color: 'var(--primary, #00AE9A)' }}>
-            <PiggyBank className="w-5 h-5" />
-          </div>
-          <div className="flex-grow-1">
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Potencial de Economia</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {formatCurrency(debtStats.totalDiscount)} de juros poupados ao antecipar parcelas.
-            </p>
-            <div style={{ height: '6px', width: '100%', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, Math.max(15, debtStats.discountPercent * 4))}%`, height: '100%', background: 'var(--primary, #00AE9A)' }}></div>
+        {/* Metas Familiares & VP / Potencial de Economia */}
+        <div
+          className="card-panel py-3.5 px-4"
+          style={{
+            background: 'linear-gradient(135deg, var(--card) 0%, var(--card-elevated, #181d2c) 100%)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px'
+          }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <div className="kpi-icon-wrap" style={{ background: 'var(--primary-glow, rgba(0, 174, 154, 0.25))', color: 'var(--primary, #00AE9A)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PiggyBank className="w-5 h-5" />
+            </div>
+            <div className="flex-grow-1">
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Potencial de Economia</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                {formatCurrency(debtStats.totalDiscount)} de juros poupados ao antecipar parcelas.
+              </p>
+              <div style={{ height: '6px', width: '100%', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, Math.max(15, debtStats.discountPercent * 4))}%`, height: '100%', background: 'var(--primary, #00AE9A)' }}></div>
+              </div>
             </div>
           </div>
         </div>
@@ -429,50 +619,101 @@ export function RadarFinanceiroView({
           <div>
             <h3 className="panel-title">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <span>Projeção de Fluxo de Caixa (Próximos 8 Meses)</span>
+              <span>Projeção de Fluxo de Caixa</span>
             </h3>
             <span className="panel-subtitle">
-              Receitas previstas vs. despesas projetadas e faturas de cartões
+              Receitas vs. despesas projetadas
             </span>
           </div>
         </div>
 
-        <div style={{ height: '260px', minHeight: '260px', maxHeight: '260px', width: '100%', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
-          <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={projectionChartData} margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} vertical={false} />
-              <XAxis 
-                dataKey="label" 
-                stroke="var(--text-muted)" 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false} 
+        <div style={{ height: '270px', minHeight: '270px', maxHeight: '270px', width: '100%', minWidth: 0, position: 'relative' }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <ComposedChart data={projectionChartData} margin={{ top: 15, right: 15, bottom: 20, left: 6 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 11, fontWeight: 600 }}
+                tickLine={false}
+                axisLine={false}
+                dy={6}
               />
-              <YAxis 
-                stroke="var(--text-muted)" 
-                fontSize={11} 
-                tickLine={false} 
-                axisLine={false} 
-                tickFormatter={(val) => `R$ ${val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val}`}
+              <YAxis
+                width={58}
+                tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 11, fontWeight: 600 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `R$ ${(val / 1000).toFixed(1)}k`}
               />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'var(--card-elevated, #151720)',
-                  borderColor: 'var(--border)',
-                  borderRadius: '16px',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.7)',
-                  color: 'var(--text)'
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div
+                        className="p-3 rounded-2xl border border-border shadow-2xl space-y-1.5"
+                        style={{
+                          background: 'var(--card-elevated, #151720)',
+                          backdropFilter: 'blur(16px)',
+                          minWidth: '220px'
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-between border-b border-border/50 pb-1 mb-1.5">
+                          <span className="font-bold text-xs text-foreground">Competência {data.comp}</span>
+                          <span className="badge-tag badge-neutral text-[10px] py-0 px-1.5">{data.label}</span>
+                        </div>
+
+                        <div className="d-flex align-items-center justify-content-between text-xs">
+                          <span className="text-muted d-flex align-items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#10b981' }}></span>
+                            Receitas:
+                          </span>
+                          <strong className="text-success">{formatCurrency(data.receitas)}</strong>
+                        </div>
+
+                        <div className="d-flex align-items-center justify-content-between text-xs">
+                          <span className="text-muted d-flex align-items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }}></span>
+                            Despesas Fixas:
+                          </span>
+                          <strong className="text-danger">{formatCurrency(data.despesas)}</strong>
+                        </div>
+
+                        {data.faturas > 0 && (
+                          <div className="d-flex align-items-center justify-content-between text-xs">
+                            <span className="text-muted d-flex align-items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#f59e0b' }}></span>
+                              Cartões:
+                            </span>
+                            <strong style={{ color: '#f59e0b' }}>{formatCurrency(data.faturas)}</strong>
+                          </div>
+                        )}
+
+                        <div className="d-flex align-items-center justify-content-between text-xs pt-1 border-t border-border/40">
+                          <span className="font-semibold text-foreground">Total Saídas:</span>
+                          <strong className="text-danger">{formatCurrency(data.totalDespesas)}</strong>
+                        </div>
+
+                        <div className="d-flex align-items-center justify-content-between text-xs pt-1 border-t border-border/40">
+                          <span className="font-bold text-foreground">Saldo Líquido:</span>
+                          <strong className={cn("font-black", data.saldo >= 0 ? "text-success" : "text-danger")} style={{ color: data.saldo >= 0 ? '#10b981' : '#ef4444' }}>
+                            {data.saldo >= 0 ? '+' : ''}{formatCurrency(data.saldo)}
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
-                formatter={(val: any) => [formatCurrency(Number(val)), '']}
               />
-              <Legend 
-                verticalAlign="top" 
-                height={36} 
+              <Legend
+                verticalAlign="top"
+                height={36}
                 formatter={(value) => <span style={{ color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}>{value}</span>}
               />
               <Bar dataKey="receitas" name="Receitas Previstas" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="totalDespesas" name="Despesas + Cartões" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Line type="monotone" dataKey="saldo" name="Saldo Líquido Projetado" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+              <Bar dataKey="totalDespesas" name="Despesas  Previstas" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Line type="monotone" dataKey="saldo" name="Saldo Líquido" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -480,128 +721,22 @@ export function RadarFinanceiroView({
 
       {/* 5. Tabela Exclusiva: Empréstimos e Financiamentos (Simulação & Amortização de Juros) */}
       <div className="card-panel">
-        <div className="panel-header flex-wrap gap-2">
+        <div className="panel-header flex-wrap gap-2 mb-3">
           <div>
             <h3 className="panel-title">
               <Layers className="w-5 h-5 text-primary" />
-              <span>Simulação & Amortização de Dívidas (Empréstimos e Financiamentos)</span>
+              <span>Simulação & Amortização de Dívidas</span>
             </h3>
             <span className="panel-subtitle">
-              Resumo por contrato de dívida com cálculo de quitação antecipada e desconto de juros
+              Cálculo de quitação antecipada e desconto de juros
             </span>
           </div>
 
-          {/* Desktop Filter by Specific Loan Contract */}
-          {emprestimos.length > 1 && (
-            <div className="ms-auto d-none d-md-block">
-              <select
-                className="form-select text-xs font-medium border-border rounded-xl bg-card"
-                style={{ width: 'auto', padding: '6px 12px' }}
-                value={selectedLoanId}
-                onChange={(e) => setSelectedLoanId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              >
-                <option value="all">Todos os Contratos</option>
-                {emprestimos.map((e) => (
-                  <option key={e.id} value={e.id}>{e.descricao}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Desktop Search bar */}
-        <div className="mb-3 d-none d-md-block">
-          <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-3 py-2">
-            <Search className="w-4 h-4 text-muted me-2" />
-            <input
-              type="text"
-              placeholder="Buscar contrato de empréstimo ou financiamento..."
-              className="form-control border-0 p-0 shadow-none bg-transparent text-sm font-medium"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                className="border-0 bg-transparent text-muted cursor-pointer"
-                onClick={() => setSearchTerm('')}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            )}
+          <div className="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+            <span className="badge-tag badge-neutral text-xs font-semibold">
+              {loanContractsSummary.length} {loanContractsSummary.length === 1 ? 'contrato ativo' : 'contratos ativos'}
+            </span>
           </div>
-        </div>
-
-        {/* Mobile Filter Toolbar (Com botão de alternar segmentações verticais) */}
-        <div className="d-md-none mb-3 space-y-2">
-          <div className="d-flex align-items-center gap-2">
-            <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-3 py-2 flex-grow-1">
-              <Search className="w-4 h-4 text-muted me-2 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Buscar contrato..."
-                className="form-control border-0 p-0 shadow-none bg-transparent text-xs font-medium"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  className="border-0 bg-transparent text-muted cursor-pointer p-0"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <i className="fa-solid fa-xmark"></i>
-                </button>
-              )}
-            </div>
-
-            {emprestimos.length > 1 && (
-              <button
-                type="button"
-                className={cn(
-                  "btn btn-sm d-flex align-items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs transition-all shadow-sm flex-shrink-0",
-                  showLoanFilters || selectedLoanId !== 'all'
-                    ? "bg-primary text-white border-primary"
-                    : "bg-card-hover border-border text-foreground"
-                )}
-                onClick={() => setShowLoanFilters(!showLoanFilters)}
-              >
-                <Filter className="w-3.5 h-3.5" />
-                <span>Filtros</span>
-              </button>
-            )}
-          </div>
-
-          {/* Segmentação Vertical no Mobile */}
-          {showLoanFilters && emprestimos.length > 1 && (
-            <div className="pt-2 border-top border-border/40 animate-in fade-in slide-in-from-top-2 duration-200">
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
-                Contrato / Empréstimo
-              </label>
-              <select
-                className="form-select text-xs font-medium border-border rounded-xl bg-card w-100 mb-1"
-                value={selectedLoanId}
-                onChange={(e) => setSelectedLoanId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              >
-                <option value="all">Todos os Contratos</option>
-                {emprestimos.map((e) => (
-                  <option key={e.id} value={e.id}>{e.descricao}</option>
-                ))}
-              </select>
-
-              {selectedLoanId !== 'all' && (
-                <div className="text-end pt-1">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-link text-danger font-bold text-xs p-0 text-decoration-none"
-                    onClick={() => setSelectedLoanId('all')}
-                  >
-                    <i className="fa-solid fa-filter-circle-xmark me-1"></i> Limpar Filtro
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Loans Table */}
@@ -670,12 +805,12 @@ export function RadarFinanceiroView({
             <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
               <tr>
                 <th>Titular</th>
-                <th>Contrato / Descrição</th>
+                <th>Contrato</th>
                 <th style={{ textAlign: 'center' }}>Parcela</th>
-                <th style={{ textAlign: 'center' }}>Término / Quitação</th>
+                <th style={{ textAlign: 'center' }}>Vencimento</th>
                 <th style={{ textAlign: 'right' }}>Valor Nominal</th>
                 <th style={{ textAlign: 'right' }}>Desconto VP</th>
-                <th style={{ textAlign: 'right' }}>Valor Presente (Quitação Hoje)</th>
+                <th style={{ textAlign: 'right' }}>Valor Presente</th>
                 <th style={{ textAlign: 'center' }}>Ação</th>
               </tr>
             </thead>
@@ -719,7 +854,7 @@ export function RadarFinanceiroView({
                         title="Simular antecipação de parcelas e desconto de juros"
                       >
                         <Calculator className="w-3.5 h-3.5" />
-                        <span>Simular Antecipação</span>
+                        <span>Simular</span>
                       </button>
                     </td>
                   </tr>

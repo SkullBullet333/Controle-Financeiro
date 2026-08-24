@@ -44,12 +44,18 @@ export function Sidebar({
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
     >
-      {/* Brand Logo conforme completo_prototype.html */}
+      {/* Brand Logo */}
       <div className="brand-logo">
-        <div className="brand-icon">
-          <i className="fa-solid fa-chart-pie"></i>
+        <div className="brand-icon overflow-hidden position-relative p-1">
+          <Image 
+            src="/icons/icon-192.png" 
+            alt="Controle Financeiro" 
+            width={42} 
+            height={42} 
+            className="rounded-xl object-fit-cover"
+          />
         </div>
-        <span className="brand-title">Radar Financeiro</span>
+        <span className="brand-title">Controle Financeiro</span>
       </div>
       
       {/* Nav Menu */}
@@ -120,6 +126,7 @@ interface TopbarProps {
   user: Profile | null;
   themeColor?: string;
   themeMode?: 'light' | 'dark' | 'black';
+  setThemeMode?: (mode: 'light' | 'dark' | 'black') => void;
   toggleDarkMode?: () => void;
   alertas?: { vencidas: Despesa[], vencendoHoje: Despesa[] };
   onOpenModal?: (type: 'profile' | 'settings' | 'titular' | 'cartao' | 'emprestimo' | 'despesa') => void;
@@ -129,7 +136,7 @@ interface TopbarProps {
 
 export function Topbar({ 
   title, month, year, onChangeMonth, onLogout, onOpenPeriodModal, onBack, 
-  showBackButton, user, themeColor, themeMode = 'black', toggleDarkMode, alertas, onOpenModal,
+  showBackButton, user, themeColor, themeMode = 'black', setThemeMode, toggleDarkMode, alertas, onOpenModal,
   isHidden = false, onToggleVisibility
 }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -151,10 +158,10 @@ export function Topbar({
   const getTitle = () => {
     switch (title) {
       case 'dashboard': return 'Dashboard Financeiro';
+      case 'cartoes': return 'Meus Cartões de Crédito';
       case 'extrato':
       case 'geral':
       case 'receitas': return 'Despesas & Receitas';
-      case 'cartoes': return 'Meus Cartões de Crédito';
       case 'radar': return 'Radar Financeiro';
       case 'config': return 'Definições & Configurações';
       default: return title;
@@ -164,10 +171,10 @@ export function Topbar({
   const getTitleIcon = () => {
     switch (title) {
       case 'dashboard': return 'fa-house';
+      case 'cartoes': return 'fa-credit-card';
       case 'extrato':
       case 'geral':
       case 'receitas': return 'fa-list-check';
-      case 'cartoes': return 'fa-credit-card';
       case 'radar': return 'fa-wand-magic-sparkles';
       case 'config': return 'fa-gear';
       default: return 'fa-chart-pie';
@@ -280,95 +287,165 @@ export function Topbar({
         </div>
       </div>
 
-      {/* Mobile Notification Bottom Sheet */}
+      {/* Centered Notification Modal (Conforme completo_prototype.html) */}
       {showNotifications && (
-        <>
-          <div className="d-md-none fixed inset-0 bg-black/20 backdrop-blur-sm" style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setShowNotifications(false)}></div>
-          <div className="d-md-none" style={{ position: 'fixed', bottom: 0, left: 0, width: '100%', zIndex: 9999, maxHeight: '70vh', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: '2rem 2rem 0 0', boxShadow: '0 -4px 40px rgba(0,0,0,0.18)' }}>
-            <div className="p-4 border-b border-border d-flex align-items-center justify-content-between">
-              <h5 className="m-0 font-bold text-sm d-flex align-items-center gap-2 text-foreground">
-                <i className="fa-regular fa-bell text-primary"></i> Central de Notificações
-              </h5>
-              <button onClick={() => setShowNotifications(false)} className="btn-icon p-1 hover:bg-muted rounded-full">
-                <span className="material-symbols-outlined text-muted-foreground">close</span>
+        <div 
+          className="modal-overlay active" 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowNotifications(false);
+          }}
+        >
+          <div 
+            className="modal-card animate-in zoom-in-95 duration-200"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '26px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+              overflow: 'hidden'
+            }}
+          >
+            <div 
+              className="modal-header"
+              style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <h3 
+                className="modal-title m-0" 
+                style={{
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: 'var(--text)'
+                }}
+              >
+                <i className="fa-regular fa-bell text-primary"></i>
+                <span>Central de Notificações</span>
+              </h3>
+              <button 
+                type="button"
+                className="modal-close"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.4rem',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  lineHeight: 1
+                }}
+                onClick={() => setShowNotifications(false)}
+              >
+                &times;
               </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div 
+              className="modal-body"
+              style={{
+                padding: '24px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
               {totalAlertas === 0 ? (
-                <div className="py-10 text-center text-muted-foreground">
-                  <i className="fa-regular fa-circle-check text-success fs-3 mb-2 d-block"></i>
-                  <p className="small font-bold">Tudo em dia! Nenhuma notificação pendente.</p>
+                <div className="py-8 text-center" style={{ color: 'var(--text-muted)' }}>
+                  <i className="fa-regular fa-circle-check text-success fs-2 mb-2 d-block"></i>
+                  <p className="small m-0 font-medium">Tudo em dia! Nenhuma pendência para este período.</p>
                 </div>
               ) : (
                 <>
-                  {alertas?.vencidas?.map(d => (
-                    <div 
-                      key={`mob-venc-${d.id}`}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid #ef4444',
-                        padding: '14px',
-                        borderRadius: '14px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: '#ef4444', fontSize: '0.85rem' }}>
-                          <i className="fa-solid fa-circle-exclamation me-1"></i> Conta Vencida
-                        </strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
-                          {d.vencimento ? formatDate(d.vencimento) : 'Vencida'}
-                        </span>
+                  {alertas?.vencidas && alertas.vencidas.length > 0 && (
+                    alertas.vencidas.map(d => (
+                      <div 
+                        key={`notif-venc-${d.id}`}
+                        style={{
+                          background: 'var(--danger-glow, rgba(239, 68, 68, 0.15))',
+                          border: '1px solid var(--danger, #ef4444)',
+                          padding: '14px',
+                          borderRadius: '14px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ color: 'var(--danger, #ef4444)', fontSize: '0.85rem' }}>
+                            <i className="fa-solid fa-circle-exclamation me-1.5"></i> Conta Vencida
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {d.vencimento ? formatDate(d.vencimento) : 'Vencida'}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.85rem', marginTop: '6px', marginBottom: 0, color: 'var(--text)' }}>
+                          <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) venceu em {d.vencimento ? formatDate(d.vencimento) : 'data anterior'}.
+                        </p>
                       </div>
-                      <p style={{ fontSize: '0.85rem', marginTop: '4px', marginBottom: 0, color: 'var(--text, #fff)' }}>
-                        <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) venceu em {d.vencimento ? formatDate(d.vencimento) : 'data anterior'}.
-                      </p>
-                    </div>
-                  ))}
+                    ))
+                  )}
 
-                  {alertas?.vencendoHoje?.map(d => (
-                    <div 
-                      key={`mob-hoje-${d.id}`}
-                      style={{
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid #f59e0b',
-                        padding: '14px',
-                        borderRadius: '14px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
-                          <i className="fa-solid fa-clock me-1"></i> Vence Hoje
-                        </strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>Hoje</span>
+                  {alertas?.vencendoHoje && alertas.vencendoHoje.length > 0 && (
+                    alertas.vencendoHoje.map(d => (
+                      <div 
+                        key={`notif-hoje-${d.id}`}
+                        style={{
+                          background: 'var(--warning-glow, rgba(245, 158, 11, 0.15))',
+                          border: '1px solid var(--warning, #f59e0b)',
+                          padding: '14px',
+                          borderRadius: '14px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ color: 'var(--warning, #f59e0b)', fontSize: '0.85rem' }}>
+                            <i className="fa-solid fa-clock me-1.5"></i> Vence Hoje
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Hoje</span>
+                        </div>
+                        <p style={{ fontSize: '0.85rem', marginTop: '6px', marginBottom: 0, color: 'var(--text)' }}>
+                          <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) tem vencimento hoje.
+                        </p>
                       </div>
-                      <p style={{ fontSize: '0.85rem', marginTop: '4px', marginBottom: 0, color: 'var(--text, #fff)' }}>
-                        <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) tem vencimento hoje.
-                      </p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </>
               )}
             </div>
-
-            <div className="p-3 border-t border-border" style={{ background: 'var(--card)' }}>
-              <button onClick={() => setShowNotifications(false)} className="btn w-100 py-3 rounded-xl fw-black text-xs text-uppercase tracking-widest bg-card border-border shadow-sm">
-                Fechar
-              </button>
-            </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Standard Desktop Topbar (Conforme completo_prototype.html) */}
       <header className="topbar mb-4 d-none d-md-flex">
         <div className="page-header-title">
-          <i className={cn("fa-solid", getTitleIcon(), "text-primary")}></i>
-          <span id="page-title">{getTitle()}</span>
+          <i className={cn("fa-solid", getTitleIcon(), "text-primary")} id="topbar-icon"></i>
+          <span id="topbar-title">{getTitle()}</span>
         </div>
 
         <div className="topbar-actions">
-          {/* Eye Toggle Button (Ocultar / Exibir Valores ao lado do tema) */}
+          {/* Eye Toggle Button (Ocultar / Exibir Valores) */}
           {onToggleVisibility && (
             <button 
               type="button"
@@ -383,19 +460,6 @@ export function Topbar({
             </button>
           )}
 
-          {/* Theme Switcher (Apenas Ícone) */}
-          <button 
-            type="button"
-            className="btn-icon" 
-            title={`Tema atual: ${themeMode === 'black' ? 'Midnight Black' : themeMode === 'dark' ? 'Dark Deep' : 'Light Mode'}. Clique para alternar.`} 
-            onClick={toggleDarkMode}
-          >
-            <i className={cn(
-              "fa-solid transition-all",
-              themeMode === 'light' ? "fa-sun text-warning" : themeMode === 'dark' ? "fa-cloud-moon text-primary" : "fa-moon"
-            )}></i>
-          </button>
-
           {/* Notification Bell */}
           <div className="position-relative">
             <button 
@@ -409,108 +473,40 @@ export function Topbar({
                 <span className="badge-dot"></span>
               )}
             </button>
-
-            {showNotifications && (
-              <>
-                <div className="fixed inset-0 z-[2999]" onClick={() => setShowNotifications(false)}></div>
-                <div 
-                  className="absolute right-0 top-full mt-3 w-[360px] rounded-2xl shadow-2xl z-[3000] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300"
-                  style={{
-                    background: 'var(--card, #0f1016)',
-                    border: '1px solid var(--border, rgba(255,255,255,0.08))',
-                    boxShadow: '0 16px 40px rgba(0,0,0,0.8)'
-                  }}
-                >
-                  <div 
-                    className="p-4 border-b d-flex align-items-center justify-content-between"
-                    style={{
-                      borderColor: 'var(--border, rgba(255,255,255,0.08))',
-                      background: 'var(--card-hover, #151720)'
-                    }}
-                  >
-                    <h5 className="m-0 font-bold text-sm d-flex align-items-center gap-2" style={{ color: 'var(--text, #fff)' }}>
-                      <i className="fa-regular fa-bell text-primary"></i>
-                      <span>Central de Notificações</span>
-                    </h5>
-                    <button 
-                      type="button"
-                      onClick={() => setShowNotifications(false)}
-                      className="border-0 bg-transparent cursor-pointer p-0"
-                      style={{ fontSize: '1.3rem', color: 'var(--text-muted, #94a3b8)', lineHeight: 1 }}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                  
-                  <div 
-                    className="max-h-[460px] overflow-y-auto p-3.5 custom-scrollbar" 
-                    style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-                  >
-                    {totalAlertas === 0 ? (
-                      <div className="py-8 text-center" style={{ color: 'var(--text-muted, #94a3b8)' }}>
-                        <i className="fa-regular fa-circle-check text-success fs-3 mb-2 d-block"></i>
-                        <p className="small m-0 font-medium">Tudo em dia! Nenhuma pendência para este período.</p>
-                      </div>
-                    ) : (
-                      <>
-                        {alertas?.vencidas && alertas.vencidas.length > 0 && (
-                          alertas.vencidas.map(d => (
-                            <div 
-                              key={`desk-venc-${d.id}`}
-                              style={{
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                border: '1px solid #ef4444',
-                                padding: '14px',
-                                borderRadius: '14px'
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <strong style={{ color: '#ef4444', fontSize: '0.85rem' }}>
-                                  <i className="fa-solid fa-circle-exclamation me-1"></i> Conta Vencida
-                                </strong>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
-                                  {d.vencimento ? formatDate(d.vencimento) : 'Vencida'}
-                                </span>
-                              </div>
-                              <p style={{ fontSize: '0.85rem', marginTop: '4px', marginBottom: 0, color: 'var(--text, #fff)' }}>
-                                <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) venceu em {d.vencimento ? formatDate(d.vencimento) : 'data anterior'}.
-                              </p>
-                            </div>
-                          ))
-                        )}
-
-                        {alertas?.vencendoHoje && alertas.vencendoHoje.length > 0 && (
-                          alertas.vencendoHoje.map(d => (
-                            <div 
-                              key={`desk-hoje-${d.id}`}
-                              style={{
-                                background: 'rgba(245, 158, 11, 0.15)',
-                                border: '1px solid #f59e0b',
-                                padding: '14px',
-                                borderRadius: '14px'
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <strong style={{ color: '#f59e0b', fontSize: '0.85rem' }}>
-                                  <i className="fa-solid fa-clock me-1"></i> Vence Hoje
-                                </strong>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>Hoje</span>
-                              </div>
-                              <p style={{ fontSize: '0.85rem', marginTop: '4px', marginBottom: 0, color: 'var(--text, #fff)' }}>
-                                <strong>{d.descricao}</strong> ({formatCurrency(d.valor)}) tem vencimento hoje.
-                              </p>
-                            </div>
-                          ))
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
 
-          {/* Month / Year Navigator (No lugar do Novo Lançamento) */}
+          {/* Theme Switcher Pills (Conforme completo_prototype.html) */}
+          <div className="theme-picker">
+            <button 
+              type="button"
+              className={cn("theme-pill", themeMode === 'black' && "active")}
+              onClick={() => setThemeMode ? setThemeMode('black') : toggleDarkMode?.()}
+              title="Midnight Black"
+            >
+              <i className="fa-solid fa-moon"></i>
+              <span>Midnight</span>
+            </button>
+            <button 
+              type="button"
+              className={cn("theme-pill", themeMode === 'dark' && "active")}
+              onClick={() => setThemeMode ? setThemeMode('dark') : toggleDarkMode?.()}
+              title="Dark Deep"
+            >
+              <i className="fa-solid fa-cloud-moon"></i>
+              <span>Dark Deep</span>
+            </button>
+            <button 
+              type="button"
+              className={cn("theme-pill", themeMode === 'light' && "active")}
+              onClick={() => setThemeMode ? setThemeMode('light') : toggleDarkMode?.()}
+              title="Light Mode"
+            >
+              <i className="fa-solid fa-sun"></i>
+              <span>Light</span>
+            </button>
+          </div>
+
+          {/* Month / Year Navigator (Posicionado à direita no lugar de Novo Lançamento) */}
           {title !== 'config' && (
             <div className="period-navigator">
               <button 
@@ -528,7 +524,7 @@ export function Topbar({
                 title="Clique para selecionar o período"
               >
                 <i className="fa-regular fa-calendar text-primary"></i>
-                <span>{months[month - 1]} {year}</span>
+                <span id="desktop-period">{months[month - 1]} {year}</span>
               </div>
               
               <button 

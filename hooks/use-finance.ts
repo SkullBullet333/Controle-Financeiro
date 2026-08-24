@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, salvarContaFixaConfig, deletarContaFixaConfig } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, salvarContaFixaConfig, deletarContaFixaConfig, renomearCategoriaEmLote } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 import { setCompressedCache, getCompressedCache, clearUserCompressedCache } from '@/lib/compressed-cache';
 
@@ -502,6 +502,7 @@ export function useFinance(activeView: string) {
 
   const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
     if (!user || !familyId) return;
+    const previousDespesas = despesas;
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
@@ -510,7 +511,22 @@ export function useFinance(activeView: string) {
 
       if (!item) return;
 
-      // REGRAS ESPECIAIS PARA EMPRÉSTIMOS
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO ESTADO LOCAL (0ms de atraso)
+      if (isVirtual) {
+        // Ao pagar/atualizar um item virtual, insere-o imediatamente no estado local
+        setDespesas(prev => [
+          ...prev.filter(d => !(item.conta_fixa_id && Number(d.conta_fixa_id) === Number(item.conta_fixa_id) && Number(d.parcela_atual) === Number(item.parcela_atual))),
+          { ...item, ...updates, isSummary: false, id: id } as Despesa
+        ]);
+      } else if (item.emprestimo_id && updates.status === 'Em aberto') {
+        // Ao reabrir empréstimo físico, remove do banco/estado físico para voltar a ser projetado virtualmente
+        setDespesas(prev => prev.filter(d => d.id !== id));
+      } else {
+        // Item físico existente: altera status instantaneamente
+        setDespesas(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+      }
+
+      // REGRAS ESPECIAIS PARA EMPRÉSTIMOS NO BANCO
       if (item.emprestimo_id) {
         if (!isVirtual && updates.status === 'Em aberto') {
           const { error } = await supabase.from('despesas').delete().eq('id', id);
@@ -529,13 +545,16 @@ export function useFinance(activeView: string) {
 
       await fetchData();
     } catch (error: any) {
-      console.error('Error updating despesa:', error);
+      console.error('Error updating despesa (rolling back optimistic update):', error);
+      setDespesas(previousDespesas);
     }
   };
 
   const deleteDespesa = async (id: number) => {
     if (!user) return;
+    const previousDespesas = despesas;
     try {
+      setDespesas(prev => prev.filter(d => d.id !== id));
       const { data: item } = await supabase.from('despesas').select('competencia').eq('id', id).single();
       const { error } = await supabase.from('despesas').delete().eq('id', id);
       if (error) throw error;
@@ -543,12 +562,15 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Error deleting despesa:', error);
+      setDespesas(previousDespesas);
     }
   };
 
   const deleteCartaoTransacao = async (id: number) => {
     if (!user) return;
+    const previousTransacoes = cartaoTransacoes;
     try {
+      setCartaoTransacoes(prev => prev.filter(c => c.id !== id));
       const { data: item } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
       const { error } = await supabase.from('cartoes').delete().eq('id', id);
       if (error) throw error;
@@ -556,12 +578,17 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Error deleting cartao transacao:', error);
+      setCartaoTransacoes(previousTransacoes);
     }
   };
 
   const updateCartaoTransacao = async (id: number, updates: Partial<CartaoTransacao>) => {
     if (!user) return;
+    const previousTransacoes = cartaoTransacoes;
     try {
+      // Atualização otimista imediata
+      setCartaoTransacoes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+
       // 1. Obter competência atual para recalcular faturas se necessário
       const { data: item } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
       
@@ -582,6 +609,7 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Error updating cartao transacao:', error);
+      setCartaoTransacoes(previousTransacoes);
     }
   };
 
@@ -597,6 +625,7 @@ export function useFinance(activeView: string) {
 
   const updateReceita = async (id: number, updates: Partial<Receita>) => {
     if (!user || !familyId) return;
+    const previousReceitas = receitas;
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
@@ -604,6 +633,16 @@ export function useFinance(activeView: string) {
         : receitas.find(r => r.id === id);
 
       if (!item) return;
+
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO ESTADO LOCAL (0ms de atraso)
+      if (isVirtual) {
+        setReceitas(prev => [
+          ...prev.filter(r => !(item.conta_fixa_id && Number(r.conta_fixa_id) === Number(item.conta_fixa_id) && r.competencia === item.competencia)),
+          { ...item, ...updates, id: id } as Receita
+        ]);
+      } else {
+        setReceitas(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+      }
 
       if (isVirtual) {
         const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
@@ -614,7 +653,8 @@ export function useFinance(activeView: string) {
       
       await fetchData();
     } catch (error) {
-      console.error('Error updating receita:', error);
+      console.error('Error updating receita (rolling back optimistic update):', error);
+      setReceitas(previousReceitas);
     }
   };
 
@@ -805,6 +845,29 @@ export function useFinance(activeView: string) {
       console.error('Error updating nota:', error);
     }
   };
+
+  const renameCategory = async (oldCategory: string, newCategory: string) => {
+    if (!user || !familyId || !oldCategory || !newCategory) return;
+    const oldCat = oldCategory.trim();
+    const newCat = newCategory.trim();
+    if (oldCat === newCat) return;
+
+    try {
+      // 1. Atualização otimista no estado local
+      setDespesas(prev => prev.map(d => (d.categoria?.trim() === oldCat ? { ...d, categoria: newCat } : d)));
+      setContasFixas(prev => prev.map(c => (c.categoria?.trim() === oldCat ? { ...c, categoria: newCat } : c)));
+      setCartaoTransacoes(prev => prev.map(t => (t.categoria?.trim() === oldCat ? { ...t, categoria: newCat } : t)));
+
+      // 2. Persistir em lote no Supabase
+      await renomearCategoriaEmLote(oldCat, newCat, familyId, user.id);
+
+      await fetchData();
+    } catch (error) {
+      console.error('Erro ao renomear categoria em lote:', error);
+      await fetchData();
+    }
+  };
+
 
 
 
@@ -1721,6 +1784,7 @@ export function useFinance(activeView: string) {
     toggleLembrete,
     deleteLembrete,
     avisosConfig,
-    updateAvisosConfig
+    updateAvisosConfig,
+    renameCategory
   };
 }

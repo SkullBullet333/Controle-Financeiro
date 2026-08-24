@@ -1459,65 +1459,68 @@ export function StyledDatePicker({
 
   return (
     <div className={cn("position-relative", className ? "w-100" : "")} ref={containerRef} style={{ display: className ? 'block' : 'inline-block' }}>
-      {/* Trigger Button with Extra Rounded Corners */}
+      {/* Trigger Button with Soft Rounded Corners */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "btn btn-sm d-flex align-items-center justify-content-between gap-2 px-3.5 py-2 border border-border bg-card transition-all shadow-sm hover:border-primary text-start",
-          className || "min-w-[135px]"
+          "btn btn-sm d-flex align-items-center justify-content-between gap-2 px-4 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] transition-all shadow-xs text-start border-0 text-foreground",
+          className || "min-w-[140px]"
         )}
-        style={{ borderRadius: '18px' }}
+        style={{ borderRadius: '14px' }}
       >
-        <div className="d-flex align-items-center gap-2">
-          <i className="fa-solid fa-calendar-days text-primary text-xs"></i>
-          <span className="text-xs font-bold text-foreground">
+        <div className="d-flex align-items-center gap-2.5">
+          <i className="fa-solid fa-calendar-days text-primary text-xs opacity-90"></i>
+          <span className="text-sm font-normal text-foreground">
             {value ? formatDate(value) : placeholder}
           </span>
         </div>
-        <i className={cn("fa-solid fa-chevron-down text-[10px] text-muted transition-transform ms-auto", isOpen && "rotate-180")}></i>
+        <i className={cn("fa-solid fa-chevron-down text-[10px] text-muted transition-transform ms-auto opacity-70", isOpen && "rotate-180")}></i>
       </button>
 
       {/* Floating Popover Calendar */}
       {isOpen && (
         <div 
-          className="position-absolute bg-card border border-border rounded-3xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+          className="position-absolute bg-card border border-white/10 p-3.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
           style={{
             bottom: placement === 'bottom' ? undefined : 'calc(100% + 8px)',
             top: placement === 'bottom' ? 'calc(100% + 8px)' : undefined,
             left: align === 'right' ? 'auto' : 0,
             right: align === 'right' ? 0 : 'auto',
-            width: '275px',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.6)',
-            background: 'var(--card, #12141c)',
+            width: '280px',
+            borderRadius: '20px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.85)',
+            background: 'var(--card-elevated, #131620)',
             zIndex: 1050
           }}
         >
           {/* Header with Month / Year Navigation */}
-          <div className="d-flex align-items-center justify-content-between mb-2.5 px-1">
+          <div className="d-flex align-items-center justify-content-between mb-3 px-1">
             <button
               type="button"
-              className="btn btn-sm btn-link p-1 text-muted hover:text-primary"
+              className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1 cursor-pointer"
+              style={{ width: '28px', height: '28px', borderRadius: '9999px' }}
               onClick={handlePrevMonth}
             >
-              <i className="fa-solid fa-chevron-left text-xs"></i>
+              <i className="fa-solid fa-chevron-left text-[11px]"></i>
             </button>
-            <div className="text-xs font-black text-foreground">
-              {monthNames[viewMonth]} <span className="text-primary">{viewYear}</span>
+            <div className="text-xs font-medium text-foreground tracking-tight">
+              {monthNames[viewMonth]} <span className="text-primary font-normal">{viewYear}</span>
             </div>
             <button
               type="button"
-              className="btn btn-sm btn-link p-1 text-muted hover:text-primary"
+              className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1 cursor-pointer"
+              style={{ width: '28px', height: '28px', borderRadius: '9999px' }}
               onClick={handleNextMonth}
             >
-              <i className="fa-solid fa-chevron-right text-xs"></i>
+              <i className="fa-solid fa-chevron-right text-[11px]"></i>
             </button>
           </div>
 
           {/* Days of Week */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-1">
+          <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
             {daysOfWeek.map((d, i) => (
-              <span key={i} className="text-[10px] font-black text-muted uppercase">
+              <span key={i} className="text-[10px] font-normal text-muted opacity-60">
                 {d}
               </span>
             ))}
@@ -1538,15 +1541,16 @@ export function StyledDatePicker({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-8 h-8 rounded-xl d-flex align-items-center justify-content-center text-xs font-bold transition-all border-0",
+                    "w-8 h-8 d-flex align-items-center justify-content-center text-xs font-normal transition-all border-0 cursor-pointer",
                     isSelected
-                      ? "bg-primary text-white shadow-sm shadow-primary/30"
+                      ? "bg-primary text-white font-medium shadow-sm"
                       : item.isCurrentMonth
-                        ? "text-foreground hover:bg-muted"
-                        : "text-muted opacity-30 hover:bg-muted/50",
-                    isToday && !isSelected && "ring-1 ring-primary/40 text-primary font-black"
+                        ? "text-foreground hover:bg-white/10"
+                        : "text-muted opacity-25 hover:bg-white/5",
+                    isToday && !isSelected && "ring-1 ring-primary/40 text-primary font-medium"
                   )}
                   style={{
+                    borderRadius: '10px',
                     backgroundColor: isSelected ? 'var(--primary)' : undefined
                   }}
                 >
@@ -1557,17 +1561,17 @@ export function StyledDatePicker({
           </div>
 
           {/* Quick Footer Action */}
-          <div className="d-flex align-items-center justify-content-between pt-2.5 mt-2 border-t border-border">
+          <div className="d-flex align-items-center justify-content-between pt-2.5 mt-2.5 border-t border-white/[0.04]">
             <button
               type="button"
-              className="btn btn-link p-0 text-[11px] font-bold text-primary hover:underline"
+              className="btn btn-link p-0 text-[11px] font-normal text-primary hover:underline"
               onClick={handleSelectToday}
             >
-              <i className="fa-solid fa-bolt me-1"></i>Hoje
+              <i className="fa-solid fa-bolt me-1 text-[10px]"></i>Hoje
             </button>
             <button
               type="button"
-              className="btn btn-link p-0 text-[11px] font-bold text-muted hover:text-danger"
+              className="btn btn-link p-0 text-[11px] font-normal text-muted hover:text-danger"
               onClick={() => {
                 onChange('');
                 setIsOpen(false);
@@ -2765,16 +2769,18 @@ export function PayoffModal({
 }
 
 // ---------------------------------------------------------
-// NOVO: ExpenseSettingsModal
-// ---------------------------------------------------------
-
 export function ExpenseSettingsModal({
   isOpen,
   onClose,
-  emprestimos,
-  contasFixas,
+  emprestimos = [],
+  contasFixas = [],
+  despesas = [],
   onEditEmprestimo,
   onEditContaFixa,
+  onSaveEmprestimo,
+  onSaveContaFixa,
+  onRenameCategory,
+  onUpdateDespesa,
   onDeleteEmprestimo,
   onDeleteContaFixa,
   themeColor,
@@ -2786,8 +2792,13 @@ export function ExpenseSettingsModal({
   onClose: () => void;
   emprestimos: Emprestimo[];
   contasFixas: ContaFixaConfig[];
-  onEditEmprestimo: (loan: Emprestimo) => void;
-  onEditContaFixa: (config: ContaFixaConfig) => void;
+  despesas?: Despesa[];
+  onEditEmprestimo?: (loan: Emprestimo) => void;
+  onEditContaFixa?: (config: ContaFixaConfig) => void;
+  onSaveEmprestimo?: (loan: Partial<Emprestimo>) => Promise<any> | void;
+  onSaveContaFixa?: (id: number, config: Partial<ContaFixaConfig>) => Promise<any> | void;
+  onRenameCategory?: (oldCat: string, newCat: string) => Promise<any> | void;
+  onUpdateDespesa?: (id: number, updates: Partial<Despesa>) => Promise<any> | void;
   onDeleteEmprestimo: (id: number) => void;
   onDeleteContaFixa: (id: number) => void;
   themeColor: string;
@@ -2796,146 +2807,791 @@ export function ExpenseSettingsModal({
   initialTab?: string;
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [inlineEdit, setInlineEdit] = useState<{
+    type: 'emprestimo' | 'conta_fixa';
+    item: any;
+  } | null>(null);
+  const [inlineCategoryEdit, setInlineCategoryEdit] = useState<{
+    oldName: string;
+    newName: string;
+  } | null>(null);
+  const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<string | null>(null);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state for inline editing
+  const [editDescricao, setEditDescricao] = useState('');
+  const [editValor, setEditValor] = useState<number | string>('');
+  const [editData, setEditData] = useState('');
+  const [editTotalParcelas, setEditTotalParcelas] = useState<number | string>('');
+  const [editParcelaAtual, setEditParcelaAtual] = useState<number | string>('');
+  const [editTaxa, setEditTaxa] = useState<number | string>('');
+  const [editCategoria, setEditCategoria] = useState('');
+
+  // Category stats calculation
+  const categoryStats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const defaults = ['MERCADO', 'TRANSPORTE', 'ALIMENTAÇÃO', 'MORADIA', 'SAÚDE', 'LAZER', 'EDUCAÇÃO', 'COMPRAS', 'OUTROS'];
+    defaults.forEach(d => { counts[d] = 0; });
+
+    despesas.forEach(d => {
+      const c = d.categoria?.trim() || 'OUTROS';
+      counts[c] = (counts[c] || 0) + 1;
+    });
+
+    contasFixas.forEach(f => {
+      if (f.categoria) {
+        const c = f.categoria.trim();
+        counts[c] = (counts[c] || 0) + 1;
+      }
+    });
+
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [despesas, contasFixas]);
 
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
+      setInlineEdit(null);
+      setInlineCategoryEdit(null);
     }
   }, [isOpen, initialTab]);
 
+  const handleStartEdit = (type: 'emprestimo' | 'conta_fixa', item: any) => {
+    setInlineEdit({ type, item });
+    setInlineCategoryEdit(null);
+    if (type === 'emprestimo') {
+      setEditDescricao(item.descricao || '');
+      setEditValor(item.valor_parcela || '');
+      setEditData(item.data_primeiro_vencimento || '');
+      setEditTotalParcelas(item.total_parcelas || '');
+      setEditParcelaAtual(item.parcela_atual || 1);
+      setEditTaxa(item.taxa_mensal_percentual !== undefined ? item.taxa_mensal_percentual : '');
+    } else {
+      setEditDescricao(item.descricao || '');
+      setEditValor(item.valor_mensal || '');
+      setEditData(item.data_inicio || '');
+      setEditCategoria(item.categoria || '');
+      setEditTotalParcelas(item.total_parcelas || '');
+      setEditParcelaAtual(item.parcela_atual || 1);
+    }
+  };
+
+  const handleSaveInline = async () => {
+    if (!inlineEdit) return;
+    setIsSaving(true);
+    try {
+      if (inlineEdit.type === 'emprestimo') {
+        const payload: Partial<Emprestimo> = {
+          id: inlineEdit.item.id,
+          descricao: editDescricao,
+          valor_parcela: Number(editValor) || 0,
+          total_parcelas: Number(editTotalParcelas) || 0,
+          parcela_atual: Number(editParcelaAtual) || 1,
+          taxa_mensal_percentual: editTaxa !== '' ? Number(editTaxa) : 0,
+          ...(editData ? { data_primeiro_vencimento: editData } : {})
+        };
+        if (onSaveEmprestimo) {
+          await onSaveEmprestimo(payload);
+        } else if (onEditEmprestimo) {
+          onEditEmprestimo({ ...inlineEdit.item, ...payload });
+        }
+      } else {
+        const payload: Partial<ContaFixaConfig> = {
+          descricao: editDescricao,
+          valor_mensal: Number(editValor) || 0,
+          categoria: editCategoria,
+          total_parcelas: Number(editTotalParcelas) > 0 ? Number(editTotalParcelas) : null,
+          parcela_atual: Number(editParcelaAtual) || 1,
+          ...(editData ? { data_inicio: editData } : {})
+        };
+        if (onSaveContaFixa) {
+          await onSaveContaFixa(inlineEdit.item.id, payload);
+        } else if (onEditContaFixa) {
+          onEditContaFixa({ ...inlineEdit.item, ...payload });
+        }
+      }
+      setInlineEdit(null);
+    } catch (err) {
+      console.error('Erro ao salvar ajuste in-place:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCategoryInline = async () => {
+    if (!inlineCategoryEdit || !inlineCategoryEdit.newName.trim()) return;
+    setIsSaving(true);
+    try {
+      if (onRenameCategory) {
+        await onRenameCategory(inlineCategoryEdit.oldName, inlineCategoryEdit.newName.trim());
+      }
+      setInlineCategoryEdit(null);
+    } catch (err) {
+      console.error('Erro ao renomear categoria em lote:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!isOpen) return null;
+
+  // Contagens por aba
+  const countEmprestimos = emprestimos.length;
+  const countParcelados = contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id && (c.total_parcelas || 0) > 0).length;
+  const countRecorrentes = contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id && (!c.total_parcelas || c.total_parcelas === 0)).length;
+  const countCartoesRec = contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !!c.cartao_id && (!c.total_parcelas || c.total_parcelas === 0)).length;
+  const countCartoesParc = contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !!c.cartao_id && (c.total_parcelas || 0) > 0).length;
+  const countRecRecorrentes = contasFixas.filter(c => c.tipo === 'receita' && (!c.total_parcelas || c.total_parcelas === 0)).length;
+  const countRecParceladas = contasFixas.filter(c => c.tipo === 'receita' && (c.total_parcelas || 0) > 0).length;
+  const countCategorias = categoryStats.length;
+
+  const activeThemeColor = themeColor || 'var(--primary, #00AE9A)';
 
   const sections = [
     {
       title: 'DESPESAS',
       tabs: [
-        { id: 'emprestimos', label: 'Empréstimos', icon: 'account_balance' },
-        { id: 'parcelados', label: 'Parcelados', icon: 'inventory_2' },
-        { id: 'recorrentes', label: 'Recorrentes', icon: 'event_repeat' },
+        { id: 'emprestimos', label: 'Empréstimos', icon: 'fa-solid fa-landmark', count: countEmprestimos },
+        { id: 'parcelados', label: 'Gastos Parcelados', icon: 'fa-solid fa-boxes-stacked', count: countParcelados },
+        { id: 'recorrentes', label: 'Despesas Fixas', icon: 'fa-solid fa-repeat', count: countRecorrentes },
       ]
     },
     {
-      title: 'CARTÕES',
+      title: 'CARTÕES DE CRÉDITO',
       tabs: [
-        { id: 'cartoes_rec', label: 'Recorrentes', icon: 'credit_card' },
-        { id: 'cartoes_parc', label: 'Parcelados', icon: 'calendar_month' },
+        { id: 'cartoes_rec', label: 'Assinaturas Recorr.', icon: 'fa-solid fa-credit-card', count: countCartoesRec },
+        { id: 'cartoes_parc', label: 'Compras Parceladas', icon: 'fa-solid fa-calendar-days', count: countCartoesParc },
       ]
     },
     {
       title: 'RECEITAS',
       tabs: [
-        { id: 'rec_recorrentes', label: 'Recorrentes', icon: 'autorenew' },
-        { id: 'rec_parceladas', label: 'Fixas / Parc.', icon: 'layers' },
+        { id: 'rec_recorrentes', label: 'Receitas Fixas', icon: 'fa-solid fa-arrow-trend-up', count: countRecRecorrentes },
+        { id: 'rec_parceladas', label: 'Receitas Parceladas', icon: 'fa-solid fa-layer-group', count: countRecParceladas },
+      ]
+    },
+    {
+      title: 'GERENCIAMENTO',
+      tabs: [
+        { id: 'categorias', label: 'Categorias de Despesa', icon: 'fa-solid fa-tags', count: countCategorias },
       ]
     }
   ];
 
   const renderContent = () => {
-    // Modo específico para as cores e fontes (Light, Dark/Azul, Black/Preto)
-    const isLight = themeMode === 'light';
-    const isBlack = themeMode === 'black';
+    // ── MODO DE EDIÇÃO DE CATEGORIA EM LOTE ──
+    if (inlineCategoryEdit) {
+      return (
+        <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+          <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setInlineCategoryEdit(null)}
+                className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
+                title="Voltar para a lista"
+                style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+              >
+                <i className="fa-solid fa-arrow-left text-xs"></i>
+              </button>
+              <div>
+                <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                  Renomear Categoria
+                </h3>
+                <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
+                  Atualização em lote em todas as tabelas e histórico financeiro.
+                </span>
+              </div>
+            </div>
+          </header>
 
-    const cardBgClass = isLight 
-      ? "bg-slate-50/70 border border-slate-200/60 shadow-sm" 
-      : (isBlack 
-          ? "bg-neutral-900/50 border border-neutral-850/80 shadow-md" 
-          : "bg-slate-800/30 border border-slate-800/80 shadow-md");
+          <div className="flex-grow-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs text-muted mb-1 font-normal">Categoria Atual:</div>
+                <div className="text-base font-medium text-foreground d-flex align-items-center gap-2">
+                  <i className="fa-solid fa-tag text-xs" style={{ color: activeThemeColor }}></i>
+                  <span>{inlineCategoryEdit.oldName}</span>
+                </div>
+              </div>
 
-    const cardHoverClass = isLight 
-      ? "hover:bg-slate-100/70 hover:shadow-md" 
-      : (isBlack 
-          ? "hover:bg-neutral-900/80 hover:shadow-md" 
-          : "hover:bg-slate-800/60 hover:shadow-md");
-          
-    const cardTitleClass = isLight 
-      ? "text-slate-800 font-bold text-sm tracking-tight leading-tight" 
-      : "text-slate-100 font-bold text-sm tracking-tight leading-tight";
+              <div>
+                <label className="block text-xs font-normal text-muted mb-1.5">Novo Nome da Categoria</label>
+                <input
+                  type="text"
+                  value={inlineCategoryEdit.newName}
+                  onChange={(e) => setInlineCategoryEdit({ ...inlineCategoryEdit, newName: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                  style={{ borderRadius: '14px' }}
+                  placeholder="Digite o novo nome..."
+                  autoFocus
+                />
+                <span className="text-[11px] text-muted block mt-1.5 font-normal opacity-60">
+                  Aviso: Todas as despesas e transações com este nome serão atualizadas instantaneamente.
+                </span>
+              </div>
+            </div>
+          </div>
 
-    const cardMetaClass = isLight 
-      ? "text-[11px] text-slate-600 font-bold uppercase tracking-tighter opacity-90" 
-      : "text-[11px] text-slate-400 font-bold uppercase tracking-tighter opacity-80";
+          <footer className="flex-shrink-0 p-4 px-6 border-t border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setInlineCategoryEdit(null)}
+              className="px-4 py-2 border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground text-xs font-normal transition-all cursor-pointer"
+              style={{ borderRadius: '12px' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveCategoryInline}
+              disabled={isSaving || !inlineCategoryEdit.newName.trim()}
+              className="px-5 py-2 border-0 text-white text-xs font-medium transition-all shadow-sm cursor-pointer d-flex align-items-center gap-2"
+              style={{ backgroundColor: activeThemeColor, borderRadius: '12px' }}
+            >
+              {isSaving ? (
+                <>
+                  <i className="fa-solid fa-circle-notch fa-spin text-xs"></i>
+                  <span>Atualizando em Lote...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-check text-xs"></i>
+                  <span>Salvar e Atualizar Tudo</span>
+                </>
+              )}
+            </button>
+          </footer>
+        </div>
+      );
+    }
 
-    const headerTitleClass = isLight 
-      ? "text-xl font-headline font-black text-slate-800 m-0" 
-      : "text-xl font-headline font-black text-slate-100 m-0";
+    // ── MODO DE EDIÇÃO IN-LINE (NO MESMO POP-UP) ──
+    if (inlineEdit) {
+      const isLoan = inlineEdit.type === 'emprestimo';
 
-    const headerSubtitleClass = isLight 
-      ? "hidden md:block text-slate-500 text-xs m-0 mt-1" 
-      : "hidden md:block text-muted-foreground text-xs m-0 mt-1";
+      return (
+        <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+          {/* Header do Editor */}
+          <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between gap-3">
+            <div className="d-flex align-items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setInlineEdit(null)}
+                className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
+                title="Voltar para a lista"
+                style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+              >
+                <i className="fa-solid fa-arrow-left text-xs"></i>
+              </button>
+              <div>
+                <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                  Editar {isLoan ? 'Contrato de Empréstimo' : 'Configuração Fixa'}
+                </h3>
+                <span className="text-xs text-muted block mt-0.5 font-normal">
+                  Ajuste os valores e prazos diretamente aqui.
+                </span>
+              </div>
+            </div>
+          </header>
 
-    const emptyStateClass = isLight 
-      ? "py-24 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50 d-flex flex-column align-items-center justify-content-center" 
-      : (isBlack 
-          ? "py-24 text-center border-2 border-dashed border-neutral-800 rounded-[2rem] bg-neutral-950/20 d-flex flex-column align-items-center justify-content-center" 
-          : "py-24 text-center border-2 border-dashed border-slate-800/60 rounded-[2rem] bg-slate-900/10 d-flex flex-column align-items-center justify-content-center");
+          {/* Formulário de Edição */}
+          <div className="flex-grow-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="max-w-lg mx-auto space-y-4">
+              {/* Descrição */}
+              <div>
+                <label className="block text-xs font-normal text-muted mb-1.5">Descrição / Identificação</label>
+                <input
+                  type="text"
+                  value={editDescricao}
+                  onChange={(e) => setEditDescricao(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                  style={{ borderRadius: '14px' }}
+                  placeholder="Ex: Empréstimo Caixa, Aluguel, Netflix..."
+                />
+              </div>
 
-    const emptyTextClass = isLight 
-      ? "font-headline font-bold text-slate-400 text-uppercase tracking-widest text-[10px] mt-2" 
-      : "font-headline font-bold text-muted-foreground text-uppercase tracking-widest text-[10px] mt-2";
+              {/* Grid 2 Colunas: Valor e Data */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-normal text-muted mb-1.5">Valor Mensal (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editValor}
+                    onChange={(e) => setEditValor(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                    style={{ borderRadius: '14px' }}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-normal text-muted mb-1.5">Data / 1º Vencimento</label>
+                  <StyledDatePicker
+                    value={editData}
+                    onChange={(val) => setEditData(val)}
+                    placement="bottom"
+                    className="w-full"
+                    placeholder="Selecione a data"
+                  />
+                </div>
+              </div>
 
-    const categoryBadgeClass = isLight
-      ? "text-slate-700 bg-slate-200/70 border border-slate-300/30"
-      : "text-slate-400 bg-slate-800/40 border border-slate-700/20";
+              {/* Campos de Parcelamento */}
+              {isLoan ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-normal text-muted mb-1.5">Total de Parcelas</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editTotalParcelas}
+                        onChange={(e) => setEditTotalParcelas(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                        style={{ borderRadius: '14px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-normal text-muted mb-1.5">Parcela Atual</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editParcelaAtual}
+                        onChange={(e) => setEditParcelaAtual(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                        style={{ borderRadius: '14px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-normal text-muted mb-1.5">Taxa de Juros Mensal (% a.m.)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editTaxa}
+                      onChange={(e) => setEditTaxa(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                      style={{ borderRadius: '14px' }}
+                      placeholder="Ex: 1.99"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-normal text-muted mb-1.5">Categoria</label>
+                    <input
+                      type="text"
+                      value={editCategoria}
+                      onChange={(e) => setEditCategoria(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                      style={{ borderRadius: '14px' }}
+                      placeholder="Ex: Moradia, Assinaturas, Lazer..."
+                    />
+                  </div>
+
+                  {Number(editTotalParcelas) > 0 && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-normal text-muted mb-1.5">Total de Parcelas</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editTotalParcelas}
+                          onChange={(e) => setEditTotalParcelas(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                          style={{ borderRadius: '14px' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-normal text-muted mb-1.5">Parcela Atual</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editParcelaAtual}
+                          onChange={(e) => setEditParcelaAtual(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                          style={{ borderRadius: '14px' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Botões do Rodapé de Edição */}
+          <footer className="flex-shrink-0 p-4 px-6 border-t border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setInlineEdit(null)}
+              className="px-4 py-2 border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground text-xs font-normal transition-all cursor-pointer"
+              style={{ borderRadius: '12px' }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveInline}
+              disabled={isSaving || !editDescricao}
+              className="px-5 py-2 border-0 text-white text-xs font-medium transition-all shadow-sm cursor-pointer d-flex align-items-center gap-2"
+              style={{ backgroundColor: activeThemeColor, borderRadius: '12px' }}
+            >
+              {isSaving ? (
+                <>
+                  <i className="fa-solid fa-circle-notch fa-spin text-xs"></i>
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-check text-xs"></i>
+                  <span>Salvar Alterações</span>
+                </>
+              )}
+            </button>
+          </footer>
+        </div>
+      );
+    }
 
     switch (activeTab) {
-      case 'emprestimos':
-        return (
-          <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-6 md:px-10 pt-6 md:pt-10 pb-5 bg-card border-bottom border-border/30">
-              <h3 className={headerTitleClass}>Contratos de Empréstimo</h3>
-              <p className={headerSubtitleClass}>Gerencie as configurações mestre e taxas de juros de seus empréstimos ativos.</p>
-            </header>
+      case 'categorias':
+        if (selectedCategoryForDetails) {
+          const matchingExpenses = despesas.filter(d => {
+            const catName = d.categoria?.trim() || 'OUTROS';
+            const matchCat = catName.toUpperCase() === selectedCategoryForDetails.toUpperCase() || catName === selectedCategoryForDetails;
+            if (!matchCat) return false;
+            if (!categorySearchTerm) return true;
+            return d.descricao?.toLowerCase().includes(categorySearchTerm.toLowerCase()) || String(d.valor).includes(categorySearchTerm);
+          });
 
-            <div className="flex-grow-1 overflow-y-auto p-6 md:p-10 pt-6 custom-scrollbar">
-              <div className="grid gap-4">
-                {emprestimos.length === 0 ? (
-                  <div className={emptyStateClass}>
-                    <span className="material-symbols-outlined text-[54px] text-slate-400/60 dark:text-muted-foreground/40" style={{ fontVariationSettings: "'wght' 300" }}>account_balance</span>
-                    <p className={emptyTextClass}>Nenhum empréstimo cadastrado</p>
+          return (
+            <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+              {/* Header com Voltar */}
+              <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategoryForDetails(null);
+                      setCategorySearchTerm('');
+                    }}
+                    className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
+                    title="Voltar para Categorias"
+                    style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+                  >
+                    <i className="fa-solid fa-arrow-left text-xs"></i>
+                  </button>
+                  <div>
+                    <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                      Lançamentos em &quot;{selectedCategoryForDetails}&quot;
+                    </h3>
+                    <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
+                      Altere a categoria individualmente para qualquer despesa abaixo.
+                    </span>
+                  </div>
+                </div>
+                <span 
+                  className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                >
+                  {matchingExpenses.length} {matchingExpenses.length === 1 ? 'despesa' : 'despesas'}
+                </span>
+              </header>
+
+              {/* Busca rápida */}
+              <div className="px-6 pt-3 pb-1 flex-shrink-0">
+                <div className="position-relative">
+                  <i className="fa-solid fa-magnifying-glass position-absolute text-xs text-muted top-50 start-0 translate-middle-y ms-3.5 opacity-60"></i>
+                  <input
+                    type="text"
+                    value={categorySearchTerm}
+                    onChange={(e) => setCategorySearchTerm(e.target.value)}
+                    placeholder="Filtrar lançamentos por descrição ou valor..."
+                    className="w-full ps-9 pe-4 py-2 bg-white/[0.03] text-foreground text-xs font-normal focus:outline-none transition-all border-0"
+                    style={{ borderRadius: '12px' }}
+                  />
+                </div>
+              </div>
+
+              {/* Lista de Despesas */}
+              <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
+                {matchingExpenses.length === 0 ? (
+                  <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
+                    <div 
+                      className="w-12 h-12 d-flex align-items-center justify-content-center mb-3"
+                      style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
+                    >
+                      <i className="fa-solid fa-check text-xl"></i>
+                    </div>
+                    <h4 className="font-medium text-sm text-foreground mb-1">Nenhuma despesa encontrada</h4>
+                    <p className="text-xs text-muted max-w-xs m-0 font-normal opacity-75">
+                      Não há lançamentos nesta categoria com os filtros aplicados.
+                    </p>
                   </div>
                 ) : (
-                  emprestimos.map((loan) => (
+                  matchingExpenses.map((d) => (
                     <div 
-                      key={loan.id} 
-                      className={cn("p-4 rounded-2xl d-flex align-items-center justify-content-between hover:-translate-y-0.5 transition-all duration-300", cardBgClass, cardHoverClass)}
-                      style={{ borderLeft: '4px solid #D97706' }}
+                      key={d.id} 
+                      className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                      style={{ borderRadius: '16px' }}
                     >
-                      <div className="d-flex align-items-center gap-4 flex-grow-1">
-                        <div className="w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center shadow-sm" style={{ background: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : 'rgba(217, 119, 6, 0.08)', color: '#D97706' }}>
-                          <span className="material-symbols-outlined font-semibold text-lg">payments</span>
+                      <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
+                        <div 
+                          className="w-9 h-9 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
+                          style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '10px' }}
+                        >
+                          <i className="fa-solid fa-receipt text-xs"></i>
                         </div>
-                        <div>
-                          <div className={cardTitleClass}>{loan.descricao}</div>
-                          <div className="d-flex align-items-center gap-2.5 mt-1.5 flex-wrap">
-                            <span className={cardMetaClass}>
-                              Parcela: {formatCurrency(loan.valor_parcela)}
+                        <div className="min-w-0 flex-grow-1">
+                          <div className="font-medium text-sm text-foreground truncate leading-tight">{d.descricao}</div>
+                          <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
+                            <span className="text-xs font-normal text-foreground">
+                              {formatCurrency(d.valor)}
                             </span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold border border-amber-500/20">
-                              {loan.taxa_mensal_percentual}% juros
+                            <span 
+                              className="badge-tag text-[10px] py-0.5 px-2 font-normal border-0 text-muted"
+                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                            >
+                              {d.competencia || (d.vencimento ? formatDate(d.vencimento) : '')}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="d-flex gap-2">
-                        <button 
-                          onClick={() => onEditEmprestimo(loan)} 
-                          className="bg-transparent border-0 p-1.5 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
-                          title="Editar"
+
+                      {/* Seletor Rápido de Categoria Individual */}
+                      <div className="flex-shrink-0 d-flex align-items-center gap-2">
+                        <span className="text-[11px] text-muted font-normal d-none d-sm-inline opacity-60">Mover para:</span>
+                        <select
+                          value={d.categoria || 'OUTROS'}
+                          onChange={async (e) => {
+                            const newCat = e.target.value;
+                            if (onUpdateDespesa) {
+                              await onUpdateDespesa(d.id, { categoria: newCat });
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-white/[0.06] text-foreground text-xs font-normal border-0 focus:outline-none cursor-pointer hover:bg-white/[0.1] transition-all"
+                          style={{ borderRadius: '10px' }}
                         >
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                        <button 
-                          onClick={() => onDeleteEmprestimo(loan.id)} 
-                          className="bg-transparent border-0 p-1.5 text-rose-500 hover:text-rose-600 dark:hover:text-rose-450 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
-                          title="Excluir"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
+                          {categoryStats.map(c => (
+                            <option key={c.name} value={c.name} style={{ background: '#131620', color: '#ffffff' }}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   ))
                 )}
               </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+            {/* Header da Seção */}
+            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div 
+                  className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
+                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '14px' }}
+                >
+                  <i className="fa-solid fa-tags text-sm"></i>
+                </div>
+                <div>
+                  <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                    Categorias de Despesas
+                  </h3>
+                  <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
+                    Renomeie em lote ou clique para ajustar despesas individualmente.
+                  </span>
+                </div>
+              </div>
+              <span 
+                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+              >
+                {categoryStats.length} categorias
+              </span>
+            </header>
+
+            {/* Lista de Categorias */}
+            <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
+              {categoryStats.map((cat) => (
+                <div 
+                  key={cat.name} 
+                  className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                  style={{ borderRadius: '16px' }}
+                >
+                  <div 
+                    className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0 cursor-pointer"
+                    onClick={() => setSelectedCategoryForDetails(cat.name)}
+                    title="Clique para ver os lançamentos desta categoria"
+                  >
+                    <div 
+                      className="w-10 h-10 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
+                      style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '12px' }}
+                    >
+                      <i className="fa-solid fa-tag text-xs"></i>
+                    </div>
+                    <div className="min-w-0 flex-grow-1">
+                      <div className="font-medium text-sm text-foreground truncate leading-tight hover:text-primary transition-colors">
+                        {cat.name}
+                      </div>
+                      <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
+                        <span 
+                          className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
+                          style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                        >
+                          {cat.count} {cat.count === 1 ? 'lançamento' : 'lançamentos'}
+                        </span>
+                        <span className="text-[10px] text-muted opacity-50 font-normal hover:opacity-100">
+                          (clique para ver)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedCategoryForDetails(cat.name)} 
+                      className="btn btn-sm border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer d-flex align-items-center gap-1.5 px-3"
+                      title="Ver e ajustar despesas desta categoria"
+                      style={{ height: '32px', borderRadius: '12px' }}
+                    >
+                      <i className="fa-solid fa-list-ul text-xs"></i>
+                      <span className="text-xs font-normal d-none d-sm-inline">Ver Despesas</span>
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setInlineCategoryEdit({ oldName: cat.name, newName: cat.name })} 
+                      className="btn btn-sm border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer d-flex align-items-center gap-1.5 px-3"
+                      title="Renomear Categoria em Lote"
+                      style={{ height: '32px', borderRadius: '12px' }}
+                    >
+                      <i className="fa-solid fa-pen-to-square text-xs"></i>
+                      <span className="text-xs font-normal">Renomear</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'emprestimos':
+        return (
+          <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+            {/* Header da Seção */}
+            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div 
+                  className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
+                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '14px' }}
+                >
+                  <i className="fa-solid fa-landmark text-sm"></i>
+                </div>
+                <div>
+                  <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                    Contratos de Empréstimo
+                  </h3>
+                  <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
+                    Gerencie configurações mestre, taxas e cronogramas de amortização.
+                  </span>
+                </div>
+              </div>
+              <span 
+                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+              >
+                {emprestimos.length} {emprestimos.length === 1 ? 'contrato' : 'contratos'}
+              </span>
+            </header>
+
+            {/* Lista de Empréstimos */}
+            <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
+              {emprestimos.length === 0 ? (
+                <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
+                  <div 
+                    className="w-12 h-12 d-flex align-items-center justify-content-center mb-3"
+                    style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
+                  >
+                    <i className="fa-solid fa-landmark text-xl"></i>
+                  </div>
+                  <h4 className="font-medium text-sm text-foreground mb-1">Nenhum empréstimo cadastrado</h4>
+                  <p className="text-xs text-muted max-w-xs m-0 font-normal opacity-75">
+                    Cadastre contratos para simulação de quitação e cálculo automático de VP no Radar Financeiro.
+                  </p>
+                </div>
+              ) : (
+                emprestimos.map((loan) => (
+                  <div 
+                    key={loan.id} 
+                    className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                    style={{ borderRadius: '16px' }}
+                  >
+                    <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
+                      <div 
+                        className="w-10 h-10 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
+                        style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '12px' }}
+                      >
+                        <i className="fa-solid fa-hand-holding-dollar text-sm"></i>
+                      </div>
+                      <div className="min-w-0 flex-grow-1">
+                        <div className="font-medium text-sm text-foreground truncate leading-tight">{loan.descricao}</div>
+                        <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
+                          <span className="text-xs font-normal text-foreground">
+                            {formatCurrency(loan.valor_parcela)}/mês
+                          </span>
+                          <span 
+                            className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
+                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                          >
+                            {loan.total_parcelas} parcelas
+                          </span>
+                          {loan.taxa_mensal_percentual !== undefined && (
+                            <span 
+                              className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0"
+                              style={{ backgroundColor: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '9999px' }}
+                            >
+                              {loan.taxa_mensal_percentual}% a.m.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                      <button 
+                        type="button"
+                        onClick={() => handleStartEdit('emprestimo', loan)} 
+                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer"
+                        title="Editar Contrato"
+                        style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+                      >
+                        <i className="fa-solid fa-pen-to-square text-xs"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => onDeleteEmprestimo(loan.id)} 
+                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer"
+                        title="Excluir Contrato"
+                        style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+                      >
+                        <i className="fa-solid fa-trash-can text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         );
@@ -2953,87 +3609,126 @@ export function ExpenseSettingsModal({
         const filtered = contasFixas.filter(c => {
           const typeMatch = isReceitaTab ? c.tipo === 'receita' : (!c.tipo || c.tipo === 'despesa');
           const cardMatch = isCartaoTab ? !!c.cartao_id : (isReceitaTab ? true : !c.cartao_id);
-          const recurrenceMatch = isRecorrenteTab ? (!c.total_parcelas || c.total_parcelas === 0) : (c.total_parcelas && c.total_parcelas > 0);
+          const recurrenceMatch = isRecorrenteTab ? (!c.total_parcelas || c.total_parcelas === 0) : ((c.total_parcelas || 0) > 0);
           return typeMatch && cardMatch && recurrenceMatch;
         });
 
-        const activeThemeColor = themeColor;
+        const tabTitle = isReceitaTab
+          ? (isRecorrenteTab ? 'Receitas Fixas Contínuas' : 'Receitas Parceladas')
+          : isCartaoTab
+            ? (isRecorrenteTab ? 'Assinaturas no Cartão' : 'Compras Parceladas no Cartão')
+            : (isRecorrenteTab ? 'Despesas Fixas Contínuas' : 'Gastos Parcelados');
+
+        const tabSubtitle = isReceitaTab
+          ? (isRecorrenteTab ? 'Rendas fixas recorrentes mês a mês.' : 'Rendas com número definido de parcelas.')
+          : isCartaoTab
+            ? (isRecorrenteTab ? 'Serviços contínuos cobrados no cartão (ex: Netflix, Spotify).' : 'Compras parceladas diretamente em fatura.')
+            : (isRecorrenteTab ? 'Gastos fixos contínuos sem prazo de término (ex: Aluguel, Luz).' : 'Despesas com parcelas pré-determinadas.');
 
         return (
-          <div className="d-flex flex-column h-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <header className="flex-shrink-0 px-6 md:px-10 pt-6 md:pt-10 pb-5 bg-card border-bottom border-border/30">
-              <h3 className={headerTitleClass}>
-                {isReceitaTab
-                  ? (isRecorrenteTab ? 'Receitas Recorrentes' : 'Receitas Fixas / Parceladas')
-                  : (isRecorrenteTab ? 'Despesas Recorrentes' : <>Gastos <span className="md:hidden">Parc.</span><span className="hidden md:inline">Parcelados</span></>)}
-              </h3>
-              <p className={headerSubtitleClass}>
-                {isReceitaTab
-                  ? (isRecorrenteTab ? 'Configurações de rendas fixas contínuas (ex: Salário).' : 'Configurações de rendas com prazo determinado (ex: Bônus parcelado).')
-                  : (isRecorrenteTab ? 'Configurações de gastos fixos contínuos (ex: Assinaturas).' : 'Configurações de gastos fixos com prazo determinado (ex: Financiamento).')}
-              </p>
+          <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
+            {/* Header da Seção */}
+            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div 
+                  className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
+                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '14px' }}
+                >
+                  <i className={cn(isReceitaTab ? "fa-solid fa-arrow-trend-up" : isCartaoTab ? "fa-solid fa-credit-card" : "fa-solid fa-repeat", "text-sm")}></i>
+                </div>
+                <div>
+                  <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
+                    {tabTitle}
+                  </h3>
+                  <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">{tabSubtitle}</span>
+                </div>
+              </div>
+              <span 
+                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+              >
+                {filtered.length} {filtered.length === 1 ? 'item ativo' : 'itens ativos'}
+              </span>
             </header>
 
-            <div className="flex-grow-1 overflow-y-auto p-6 md:p-10 pt-6 custom-scrollbar">
-              <div className="grid gap-4">
-                {filtered.length === 0 ? (
-                  <div className={emptyStateClass}>
-                    <span className="material-symbols-outlined text-[54px] text-slate-400/60 dark:text-muted-foreground/40" style={{ fontVariationSettings: "'wght' 300" }}>
-                      {isRecorrenteTab ? 'event_repeat' : 'inventory_2'}
-                    </span>
-                    <p className={emptyTextClass}>Nenhum registro encontrado</p>
+            {/* Lista de Itens */}
+            <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
+              {filtered.length === 0 ? (
+                <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
+                  <div 
+                    className="w-12 h-12 d-flex align-items-center justify-content-center mb-3" 
+                    style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
+                  >
+                    <i className={cn(isReceitaTab ? "fa-solid fa-arrow-trend-up text-xl" : isCartaoTab ? "fa-solid fa-credit-card text-xl" : "fa-solid fa-repeat text-xl")}></i>
                   </div>
-                ) : (
-                  filtered.map((config) => {
-                    const cardColor = isReceitaTab ? '#00995D' : activeThemeColor;
-                    return (
+                  <h4 className="font-medium text-sm text-foreground mb-1">Nenhum registro encontrado</h4>
+                  <p className="text-xs text-muted max-w-xs m-0 font-normal opacity-75">
+                    Cadastre novos lançamentos recorrentes ou fixos no botão de adicionar transação.
+                  </p>
+                </div>
+              ) : (
+                filtered.map((config) => (
+                  <div 
+                    key={config.id} 
+                    className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                    style={{ borderRadius: '16px' }}
+                  >
+                    <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
                       <div 
-                        key={config.id} 
-                        className={cn("p-4 rounded-2xl d-flex align-items-center justify-content-between hover:-translate-y-0.5 transition-all duration-300", cardBgClass, cardHoverClass)}
-                        style={{ borderLeft: `4px solid ${cardColor}` }}
+                        className="w-10 h-10 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
+                        style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '12px' }}
                       >
-                        <div className="d-flex align-items-center gap-4 flex-grow-1">
-                          <div className="w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center shadow-sm" style={{ background: isDarkMode ? `${cardColor}25` : `${cardColor}10`, color: cardColor }}>
-                            <span className="material-symbols-outlined font-semibold text-lg">{isRecorrenteTab ? 'autorenew' : 'layers'}</span>
-                          </div>
-                          <div>
-                            <div className={cardTitleClass}>{config.descricao}</div>
-                            <div className="d-flex align-items-center gap-2.5 mt-1.5 flex-wrap">
-                              <span className={cardMetaClass}>
-                                {formatCurrency(config.valor_mensal)} /mês
-                              </span>
-                              {!isRecorrenteTab && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold border border-border/40">
-                                  {config.total_parcelas} parcelas
-                                </span>
-                              )}
-                              {config.categoria && (
-                                <span className={cn("text-[9px] uppercase font-black tracking-widest px-1.5 py-0.5 rounded-md", categoryBadgeClass)}>{config.categoria}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <button 
-                            onClick={() => onEditContaFixa(config)} 
-                            className="bg-transparent border-0 p-1.5 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
-                            title="Editar"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">edit</span>
-                          </button>
-                          <button 
-                            onClick={() => onDeleteContaFixa(config.id)} 
-                            className="bg-transparent border-0 p-1.5 text-rose-500 hover:text-rose-600 dark:hover:text-rose-450 hover:scale-110 active:scale-95 transition-all d-flex align-items-center justify-content-center"
-                            title="Excluir"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">delete</span>
-                          </button>
+                        <i className={cn(isReceitaTab ? "fa-solid fa-arrow-up text-sm" : isCartaoTab ? "fa-solid fa-credit-card text-sm" : "fa-solid fa-arrows-rotate text-sm")}></i>
+                      </div>
+                      <div className="min-w-0 flex-grow-1">
+                        <div className="font-medium text-sm text-foreground truncate leading-tight">{config.descricao}</div>
+                        <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
+                          <span className={cn("text-xs font-normal", isReceitaTab ? "text-success" : "text-foreground")}>
+                            {isReceitaTab ? '+' : ''}{formatCurrency(config.valor_mensal)}/mês
+                          </span>
+                          {!isRecorrenteTab && config.total_parcelas && (
+                            <span 
+                              className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
+                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                            >
+                              {config.total_parcelas} parcelas
+                            </span>
+                          )}
+                          {config.categoria && (
+                            <span 
+                              className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
+                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                            >
+                              {config.categoria}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                      <button 
+                        type="button"
+                        onClick={() => handleStartEdit('conta_fixa', config)} 
+                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer"
+                        title="Editar Configuração"
+                        style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+                      >
+                        <i className="fa-solid fa-pen-to-square text-xs"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => onDeleteContaFixa(config.id)} 
+                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer"
+                        title="Excluir Configuração"
+                        style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
+                      >
+                        <i className="fa-solid fa-trash-can text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         );
@@ -3043,12 +3738,12 @@ export function ExpenseSettingsModal({
 
   return (
     <>
-      {/* ── MOBILE: bottom-sheet ── */}
+      {/* ── MOBILE: bottom-sheet / full modal ── */}
       <div
-        className="d-md-none modal fade show d-flex flex-column justify-content-end expense-settings-modal-custom"
+        className="d-md-none modal fade show d-flex flex-column justify-content-end"
         style={{
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
           position: 'fixed',
           inset: 0,
           zIndex: 2000
@@ -3060,39 +3755,66 @@ export function ExpenseSettingsModal({
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-0">
+            {/* Header Mobile com título e botão de fechar */}
+            <div className="px-4 py-3.5 border-b border-white/[0.03] d-flex align-items-center justify-content-between bg-card-elevated/40 flex-shrink-0">
+              <div className="d-flex align-items-center gap-2.5">
+                <div 
+                  className="w-8 h-8 d-flex align-items-center justify-content-center shadow-xs"
+                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '10px' }}
+                >
+                  <i className="fa-solid fa-sliders text-sm"></i>
+                </div>
+                <span className="font-medium text-sm text-foreground">Ajustes & Contas Fixas</span>
+              </div>
+              <button 
+                type="button"
+                onClick={onClose}
+                className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1.5 cursor-pointer"
+                style={{ width: '30px', height: '30px', borderRadius: '9999px' }}
+              >
+                <i className="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
 
-            {/* Horizontal Tab Bar */}
-            <aside className={cn("border-bottom border-border d-flex flex-row overflow-auto p-2 gap-1 no-scrollbar flex-shrink-0", themeMode === 'light' ? "bg-slate-50" : (themeMode === 'dark' ? "bg-slate-900/60" : "bg-neutral-950"))}>
-              <div className="d-flex flex-row gap-1 px-1 w-100">
-                {sections.map((section) =>
-                  section.tabs.map((tab) => (
+            {/* Horizontal Scrollable Tabs em formato Pill sem bordas nos não-selecionados */}
+            <aside className="border-b border-white/[0.03] d-flex flex-row overflow-x-auto p-3 gap-2 custom-scrollbar bg-card flex-shrink-0">
+              {sections.map((section) =>
+                section.tabs.map((tab) => {
+                  const isActive = activeTab === tab.id && !inlineEdit;
+                  return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setInlineEdit(null);
+                      }}
                       className={cn(
-                        "flex-grow-1 px-1 py-2 rounded-2xl transition-all duration-300 d-flex flex-column align-items-center justify-content-center border-0",
-                        activeTab === tab.id ? "text-white shadow-lg" : "text-muted-foreground"
+                        "px-4 py-2 transition-all d-flex align-items-center gap-2 flex-shrink-0 text-xs whitespace-nowrap cursor-pointer font-normal border-0",
+                        isActive 
+                          ? "text-white font-medium shadow-sm" 
+                          : "bg-transparent text-muted hover:text-foreground hover:bg-white/5"
                       )}
                       style={{
-                        background: activeTab === tab.id ? themeColor : 'transparent',
-                        boxShadow: activeTab === tab.id ? `0 4px 12px ${themeColor}40` : 'none',
-                        borderRadius: '16px'
+                        borderRadius: '14px',
+                        ...(isActive ? { 
+                          backgroundColor: activeThemeColor, 
+                          boxShadow: `0 4px 14px ${activeThemeColor}40` 
+                        } : {})
                       }}
                     >
-                      <span
-                        className={cn("material-symbols-outlined text-[20px] md:text-[18px]", activeTab === tab.id ? "text-white" : (isDarkMode ? "text-white/60" : "text-muted-foreground"))}
-                        style={{ fontVariationSettings: activeTab === tab.id ? "'FILL' 1" : "" }}
+                      <i className={cn(tab.icon, "text-xs", isActive ? "text-white" : "opacity-75")}></i>
+                      <span>{tab.label}</span>
+                      <span 
+                        className={cn("badge-tag px-2 py-0.5 rounded-full text-[9px] font-normal border-0", isActive ? "text-white" : "text-muted")}
+                        style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px' }}
                       >
-                        {tab.icon}
+                        {tab.count}
                       </span>
-                      <span className="md:hidden text-[7px] font-black uppercase tracking-tighter whitespace-nowrap opacity-80 mt-0.5">
-                        {section.title === 'DESPESAS' ? 'Despesas' : 'Receitas'}
-                      </span>
-                      <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest whitespace-nowrap ml-2">{tab.label}</span>
                     </button>
-                  ))
-                )}
-              </div>
+                  );
+                })
+              )}
             </aside>
 
             {/* Content */}
@@ -3100,13 +3822,14 @@ export function ExpenseSettingsModal({
               <div className="flex-fill overflow-hidden position-relative">
                 {renderContent()}
               </div>
-              <div className="p-4 bg-card border-top border-border/10 flex-shrink-0">
+              <div className="p-4 bg-card-elevated/40 border-t border-white/[0.03] flex-shrink-0">
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="btn w-100 py-3 rounded-2xl fw-black text-white text-uppercase tracking-widest transition-all active:scale-95 shadow-lg border-0"
-                  style={{ backgroundColor: themeColor, fontSize: '12px' }}
+                  className="btn w-100 py-3 text-white font-medium text-xs shadow-md uppercase tracking-wider border-0"
+                  style={{ backgroundColor: activeThemeColor, borderRadius: '14px' }}
                 >
-                  Fechar Ajustes
+                  Concluir Ajustes
                 </button>
               </div>
             </main>
@@ -3114,64 +3837,92 @@ export function ExpenseSettingsModal({
         </div>
       </div>
 
-      {/* ── DESKTOP: original centered modal ── */}
+      {/* ── DESKTOP: centered luxury dialog (Estilo 1prototype.html) ── */}
       <div
-        className="d-none d-md-block modal fade show expense-settings-modal-custom"
-        style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}
+        className="d-none d-md-block modal fade show"
+        style={{ 
+          backgroundColor: 'rgba(0, 0, 0, 0.85)', 
+          backdropFilter: 'blur(20px)', 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 2000 
+        }}
         onClick={onClose}
       >
-        <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
-          <div className={cn("modal-content border-0 shadow-2xl overflow-hidden rounded-[2.5rem] border", themeMode === 'light' ? "bg-white border-slate-200" : (themeMode === 'black' ? "bg-[#000000] border-neutral-800" : "bg-card border-border/30"))} style={{ height: '700px' }}>
+        <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1020px' }}>
+          <div 
+            className="modal-content overflow-hidden bg-card border border-white/[0.04]"
+            style={{ 
+              height: '680px',
+              borderRadius: '24px',
+              boxShadow: '0 30px 70px rgba(0, 0, 0, 0.9)'
+            }}
+          >
             <div className="d-flex h-100">
-              {/* Sidebar */}
-              <aside className={cn("border-end d-flex flex-column overflow-auto py-6 px-3 gap-2 no-scrollbar flex-shrink-0", themeMode === 'light' ? "bg-slate-50/90 border-slate-200/80" : (themeMode === 'black' ? "bg-neutral-950 border-neutral-800/80" : "bg-slate-900/60 border-border/40"))} style={{ width: '230px' }}>
-                <div className="px-3 mb-6">
-                  <div className="d-flex align-items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl d-flex align-items-center justify-content-center text-white shadow-sm" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
-                      <span className="material-symbols-outlined text-lg leading-none" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+              {/* Sidebar de Categorias */}
+              <aside 
+                className="border-r border-white/[0.03] d-flex flex-column overflow-y-auto py-5 px-3.5 gap-2.5 custom-scrollbar flex-shrink-0"
+                style={{ width: '255px', background: 'var(--card-elevated, #131620)' }}
+              >
+                {/* Brand / Title Header */}
+                <div className="px-2 pb-4 mb-2 border-b border-white/[0.03]">
+                  <div className="d-flex align-items-center gap-3">
+                    <div 
+                      className="w-10 h-10 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0 border-0"
+                      style={{ background: `linear-gradient(135deg, ${activeThemeColor}, #3b82f6)`, borderRadius: '14px' }}
+                    >
+                      <i className="fa-solid fa-sliders text-base"></i>
                     </div>
-                    <span className={cn("text-lg font-headline font-black tracking-wider uppercase", themeMode === 'light' ? "text-slate-800" : "text-slate-100")}>Ajustes</span>
+                    <div>
+                      <span className="text-sm font-medium tracking-tight text-foreground block leading-tight">Configurações</span>
+                      <span className="text-[10px] text-muted font-normal block uppercase tracking-wider mt-0.5 opacity-75">Contas & Fixos</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex-grow-1 d-flex flex-column gap-4">
+                {/* Sections List */}
+                <div className="flex-grow-1 d-flex flex-column gap-3.5">
                   {sections.map((section) => (
-                    <div key={section.title} className="d-flex flex-column gap-1">
-                      <div className="px-3 mb-2">
-                        <span className={cn("text-[9.5px] font-black tracking-[.25em] uppercase", themeMode === 'light' ? "text-slate-500" : "text-slate-400/70")}>{section.title}</span>
+                    <div key={section.title} className="d-flex flex-column gap-1.5">
+                      <div className="px-2 mb-0.5">
+                        <span className="text-[9.5px] font-medium tracking-widest uppercase text-muted opacity-50">{section.title}</span>
                       </div>
                       <div className="d-flex flex-column gap-1">
                         {section.tabs.map((tab) => {
-                          const isActive = activeTab === tab.id;
+                          const isActive = activeTab === tab.id && !inlineEdit;
                           return (
                             <button
                               key={tab.id}
-                              onClick={() => setActiveTab(tab.id)}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab(tab.id);
+                                setInlineEdit(null);
+                              }}
                               className={cn(
-                                "px-3.5 py-3 rounded-2xl transition-all duration-300 d-flex align-items-center gap-3 border-0",
+                                "px-3.5 py-2.5 transition-all d-flex align-items-center justify-content-between text-start cursor-pointer font-normal border-0",
                                 isActive 
-                                  ? "text-white shadow-md font-bold" 
-                                  : (themeMode === 'light' 
-                                      ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900" 
-                                      : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-100")
+                                  ? "text-white font-medium shadow-sm" 
+                                  : "bg-transparent text-muted hover:bg-white/5 hover:text-foreground"
                               )}
-                              style={{
-                                fontSize: '11px',
-                                background: isActive 
-                                  ? `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` 
-                                  : 'transparent',
-                                boxShadow: isActive ? `0 6px 15px ${themeColor}30` : 'none',
+                              style={{ 
+                                fontSize: '11.5px',
                                 borderRadius: '14px',
-                                transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                                ...(isActive ? { 
+                                  backgroundColor: activeThemeColor,
+                                  boxShadow: `0 4px 14px ${activeThemeColor}40`
+                                } : {})
                               }}
                             >
-                              <span
-                                className={cn("material-symbols-outlined text-[18px]", isActive ? "text-white" : (isDarkMode ? "text-white/60" : "text-slate-500"))}
-                                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "" }}
+                              <div className="d-flex align-items-center gap-2.5">
+                                <i className={cn(tab.icon, "text-xs", isActive ? "text-white" : "opacity-75")}></i>
+                                <span>{tab.label}</span>
+                              </div>
+                              <span 
+                                className={cn("badge-tag px-2 py-0.5 text-[9.5px] font-normal border-0", isActive ? "text-white" : "text-muted")}
+                                style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px' }}
                               >
-                                {tab.icon}
+                                {tab.count}
                               </span>
-                              <span className="font-headline font-bold uppercase tracking-widest text-[9.5px] whitespace-nowrap">{tab.label}</span>
                             </button>
                           );
                         })}
@@ -3180,29 +3931,28 @@ export function ExpenseSettingsModal({
                   ))}
                 </div>
 
-                <div className="mt-auto"></div>
+                {/* Bottom Footer Info */}
+                <div className="mt-auto pt-3 border-t border-white/[0.03] text-center">
+                  <span className="text-[10px] text-muted font-normal block opacity-50">Ajustes Automáticos & Radar</span>
+                </div>
               </aside>
 
-              {/* Content Area */}
-              <main className="flex-fill d-flex flex-column overflow-hidden bg-card">
+              {/* Área Principal de Conteúdo */}
+              <main className="flex-fill d-flex flex-column overflow-hidden bg-card position-relative">
                 {renderContent()}
+
+                {/* Botão de Fechar no Topo Direito */}
+                <button 
+                  type="button" 
+                  className="position-absolute top-0 end-0 m-3.5 z-50 d-flex align-items-center justify-content-center border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all shadow-xs cursor-pointer"
+                  style={{ width: '34px', height: '34px', borderRadius: '9999px' }}
+                  onClick={onClose}
+                  title="Fechar Ajustes"
+                >
+                  <i className="fa-solid fa-xmark text-sm"></i>
+                </button>
               </main>
             </div>
-            
-            {/* Botão de Fechar no topo direito com micro-animação */}
-            <button 
-              type="button" 
-              className={cn(
-                "position-absolute top-0 end-0 m-6 z-50 d-flex align-items-center justify-content-center transition-all rounded-full hover:rotate-90 active:scale-90 border",
-                themeMode === 'light' 
-                  ? "bg-slate-100 text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 border-slate-200/50" 
-                  : "bg-slate-800/40 text-slate-400 hover:bg-slate-800/60 hover:text-white border-border/20 bg-card/40 backdrop-blur-sm"
-              )}
-              style={{ width: '42px', height: '42px' }}
-              onClick={onClose}
-            >
-              <span className="material-symbols-outlined font-semibold text-lg">close</span>
-            </button>
           </div>
         </div>
       </div>

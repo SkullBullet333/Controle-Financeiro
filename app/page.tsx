@@ -271,7 +271,8 @@ export default function Home() {
     toggleLembrete,
     deleteLembrete,
     avisosConfig,
-    updateAvisosConfig
+    updateAvisosConfig,
+    renameCategory
   } = useFinance(activeView);
 
 
@@ -553,6 +554,9 @@ export default function Home() {
             transacoes={filteredCartaoTransacoes}
             despesas={despesasGerais}
             totalsByCard={totalsByCard}
+            competencia={competencia}
+            currentMonth={currentMonth}
+            currentYear={currentYear}
             isHidden={isGlobalHidden}
             onOpenPayoffModal={() => {
               setModalType('payoff');
@@ -739,6 +743,7 @@ export default function Home() {
               user={userProfile}
               themeColor={themeColor}
               themeMode={themeMode}
+              setThemeMode={setThemeMode}
               toggleDarkMode={toggleDarkMode}
               alertas={alertas}
               isHidden={isGlobalHidden}
@@ -933,6 +938,7 @@ export default function Home() {
           isDarkMode={isDarkMode}
           emprestimos={emprestimos}
           contasFixas={contasFixas}
+          despesas={despesas}
           initialTab={
             activeView === 'cartoes' 
               ? 'cartoes_rec' 
@@ -940,17 +946,17 @@ export default function Home() {
                 ? 'rec_recorrentes' 
                 : 'recorrentes'
           }
-          onEditEmprestimo={(loan: Emprestimo) => {
-            setEditingItem(loan);
-            setModalType('emprestimo');
-            setIsExpenseSettingsOpen(false);
-            setIsModalOpen(true);
+          onSaveEmprestimo={async (data) => {
+            await updateEmprestimo(data);
           }}
-          onEditContaFixa={(config: ContaFixaConfig) => {
-            setEditingItem(config);
-            setModalType(config.tipo === 'receita' ? 'receita' : 'despesa');
-            setIsExpenseSettingsOpen(false);
-            setIsModalOpen(true);
+          onSaveContaFixa={async (id, data) => {
+            await updateContaFixa(id, data);
+          }}
+          onRenameCategory={async (oldCat, newCat) => {
+            await renameCategory(oldCat, newCat);
+          }}
+          onUpdateDespesa={async (id, data) => {
+            await updateDespesa(id, data);
           }}
           onDeleteEmprestimo={(id) => {
             setItemToDelete({ id, type: 'emprestimo' });

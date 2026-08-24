@@ -16,7 +16,8 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend
+  Legend,
+  ReferenceLine
 } from 'recharts';
 import {
   Eye,
@@ -167,12 +168,13 @@ export function KPICards({
       </div>
 
       {/* KPI Grid Desktop (4 Cards conforme completo_prototype.html) */}
+      {/* KPI Grid Desktop (4 Cards conforme completo_prototype.html) */}
       <div className="kpi-grid d-none d-md-grid">
         {/* Card 1: Receitas Totais */}
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Receitas Totais</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--income, #10b981)' }}>
+            <div className="kpi-icon-wrap" style={{ background: 'var(--success-glow, rgba(16, 185, 129, 0.2))', color: 'var(--success, #10b981)' }}>
               <Wallet className="w-4 h-4" />
             </div>
           </div>
@@ -189,7 +191,7 @@ export function KPICards({
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Despesas Totais</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--expense, #ef4444)' }}>
+            <div className="kpi-icon-wrap" style={{ background: 'var(--danger-glow, rgba(239, 68, 68, 0.2))', color: 'var(--danger, #ef4444)' }}>
               <Receipt className="w-4 h-4" />
             </div>
           </div>
@@ -209,17 +211,15 @@ export function KPICards({
             <div 
               className="kpi-icon-wrap" 
               style={{ 
-                background: stats.margem < 0 ? 'rgba(239, 68, 68, 0.22)' : 'rgba(16, 185, 129, 0.22)', 
-                color: stats.margem < 0 ? '#ef4444' : '#10b981',
-                border: stats.margem < 0 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+                background: stats.margem < 0 ? 'var(--danger-glow, rgba(239, 68, 68, 0.2))' : 'var(--success-glow, rgba(16, 185, 129, 0.2))', 
+                color: stats.margem < 0 ? 'var(--danger, #ef4444)' : 'var(--success, #10b981)'
               }}
             >
-              <Scale className={cn('w-4 h-4', stats.margem < 0 ? 'text-danger' : 'text-success')} style={{ color: stats.margem < 0 ? '#ef4444' : '#10b981' }} />
+              <Scale className={cn('w-4 h-4', stats.margem < 0 ? 'text-danger' : 'text-success')} />
             </div>
           </div>
           <div
             className={cn('kpi-val sensitive-val', stats.margem < 0 ? 'text-danger' : 'text-success', isHidden && 'hidden-amount')}
-            style={{ color: stats.margem < 0 ? '#ef4444' : '#10b981' }}
           >
             {formatHidden(stats.margem)}
           </div>
@@ -234,11 +234,11 @@ export function KPICards({
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Total em Aberto</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.18)', color: 'var(--purple, #8b5cf6)' }}>
+            <div className="kpi-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.2)', color: 'var(--purple, #8b5cf6)' }}>
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className={cn('kpi-val text-purple sensitive-val', isHidden && 'hidden-amount')} style={{ color: 'var(--purple, #8b5cf6)' }}>
+          <div className={cn('kpi-val text-purple sensitive-val', isHidden && 'hidden-amount')}>
             {formatHidden(stats.totalAberto)}
           </div>
           <div className="kpi-footer">
@@ -253,7 +253,7 @@ export function KPICards({
 }
 
 // ============================================================================
-// 2. GRÁFICO DE EVOLUÇÃO MENSAL (Line / Area Chart)
+// 2. GRÁFICO DE EVOLUÇÃO MENSAL (Line / Area Chart com Eixo Agrupado de Ano)
 // ============================================================================
 interface EvolucaoMensalChartProps {
   projecaoSemestral?: any[];
@@ -261,32 +261,125 @@ interface EvolucaoMensalChartProps {
 }
 
 export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }: EvolucaoMensalChartProps) {
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  // Dados mensais com indicação de ano centralizado no grupo de meses
   const chartData = useMemo(() => {
+    let rawList: any[] = [];
+
     if (!projecaoSemestral || projecaoSemestral.length === 0) {
-      return [
-        { monthName: 'Jan', receitas: 18000, despesas: 12000 },
-        { monthName: 'Fev', receitas: 19500, despesas: 11000 },
-        { monthName: 'Mar', receitas: 18000, despesas: 13500 },
-        { monthName: 'Abr', receitas: 21000, despesas: 10000 },
-        { monthName: 'Mai', receitas: 20500, despesas: 14000 },
-        { monthName: 'Jun', receitas: 22000, despesas: 9000 },
-        { monthName: 'Jul', receitas: 22400, despesas: 7810 }
+      rawList = [
+        { monthName: 'Jan', receitas: 18000, despesas: 12000, ano: currentYear },
+        { monthName: 'Fev', receitas: 19500, despesas: 11000, ano: currentYear },
+        { monthName: 'Mar', receitas: 18000, despesas: 13500, ano: currentYear },
+        { monthName: 'Abr', receitas: 21000, despesas: 10000, ano: currentYear },
+        { monthName: 'Mai', receitas: 20500, despesas: 14000, ano: currentYear },
+        { monthName: 'Jun', receitas: 22000, despesas: 9000, ano: currentYear },
+        { monthName: 'Jul', receitas: 22400, despesas: 7810, ano: currentYear },
+        { monthName: 'Ago', receitas: 21500, despesas: 8400, ano: currentYear },
+        { monthName: 'Set', receitas: 23000, despesas: 9200, ano: currentYear },
+        { monthName: 'Out', receitas: 22800, despesas: 8900, ano: currentYear },
+        { monthName: 'Nov', receitas: 24500, despesas: 11200, ano: currentYear },
+        { monthName: 'Dez', receitas: 28000, despesas: 14500, ano: currentYear }
       ];
+    } else {
+      rawList = projecaoSemestral.map((item) => {
+        let label = item.competencia;
+        let anoItem = currentYear;
+        if (typeof item.competencia === 'string' && item.competencia.includes('/')) {
+          const [m, y] = item.competencia.split('/').map(Number);
+          if (m >= 1 && m <= 12) label = monthsShort[m - 1];
+          if (y) anoItem = y < 100 ? 2000 + y : y;
+        }
+        return {
+          monthName: label,
+          receitas: Number(item.receitas || 0),
+          despesas: Number((item.despesas || 0) + (item.faturas || 0)),
+          ano: anoItem
+        };
+      });
     }
 
-    return projecaoSemestral.slice(0, 8).map((item) => {
-      let label = item.competencia;
-      if (typeof item.competencia === 'string' && item.competencia.includes('/')) {
-        const [m] = item.competencia.split('/').map(Number);
-        if (m >= 1 && m <= 12) label = monthsShort[m - 1];
+    // Identificar grupos contíguos de cada ano e calcular o índice central
+    const yearGroups: { ano: number; startIndex: number; count: number }[] = [];
+    rawList.forEach((item, idx) => {
+      const last = yearGroups[yearGroups.length - 1];
+      if (!last || last.ano !== item.ano) {
+        yearGroups.push({ ano: item.ano, startIndex: idx, count: 1 });
+      } else {
+        last.count += 1;
       }
-      return {
-        monthName: label,
-        receitas: Number(item.receitas || 0),
-        despesas: Number((item.despesas || 0) + (item.faturas || 0))
-      };
     });
-  }, [projecaoSemestral]);
+
+    const midIndices = new Set<number>();
+    yearGroups.forEach((g) => {
+      const mid = g.startIndex + Math.floor((g.count - 1) / 2);
+      midIndices.add(mid);
+    });
+
+    return rawList.map((item, idx) => ({
+      ...item,
+      showYearInMiddle: midIndices.has(idx),
+      isNewYearBoundary: idx > 0 && item.ano !== rawList[idx - 1].ano
+    }));
+  }, [projecaoSemestral, currentYear]);
+
+  const CustomGroupedTick = (props: any) => {
+    const { x, y, index, width } = props;
+    const item = chartData[index];
+    if (!item) return null;
+
+    // Calcular o meio exato entre o mês anterior e o mês atual
+    const halfStep = width && chartData.length > 1
+      ? Math.round(width / (chartData.length * 2))
+      : 24;
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        {/* Linha vertical separadora no eixo, exatamente no meio entre Dez e Jan */}
+        {item.isNewYearBoundary && (
+          <line
+            x1={-halfStep}
+            y1={0}
+            x2={-halfStep}
+            y2={24}
+            stroke="var(--text-muted, #94a3b8)"
+            strokeWidth={1.5}
+            strokeDasharray="2 2"
+            opacity={0.6}
+          />
+        )}
+
+        {/* Nome do Mês */}
+        <text
+          x={0}
+          y={0}
+          dy={8}
+          textAnchor="middle"
+          fill="var(--text-muted, #94a3b8)"
+          fontSize={11}
+          fontWeight={500}
+        >
+          {item.monthName}
+        </text>
+
+        {/* Ano centralizado no grupo de meses com a mesma cor do mês */}
+        {item.showYearInMiddle && (
+          <text
+            x={0}
+            y={0}
+            dy={22}
+            textAnchor="middle"
+            fill="var(--text-muted, #94a3b8)"
+            fontSize={10}
+            fontWeight={600}
+          >
+            {item.ano}
+          </text>
+        )}
+      </g>
+    );
+  };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -294,19 +387,22 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
       const receitas = typeof data.receitas === 'number' ? data.receitas : (payload.find((p: any) => p.dataKey === 'receitas')?.value || 0);
       const despesas = typeof data.despesas === 'number' ? data.despesas : (payload.find((p: any) => p.dataKey === 'despesas')?.value || 0);
       const saldoLiquido = receitas - despesas;
+      const anoItem = data.ano || currentYear;
 
       return (
         <div
           className="p-3 rounded-xl shadow-2xl border border-border"
           style={{
-            background: 'rgba(15, 15, 20, 0.95)',
-            color: '#fff',
+            background: 'var(--card, #131d31)',
+            color: 'var(--text, #fff)',
             backdropFilter: 'blur(10px)',
             fontSize: '13px',
             minWidth: '190px'
           }}
         >
-          <div className="font-bold text-gray-300 mb-2">{label}</div>
+          <div className="font-bold text-foreground mb-2">
+            {label} / {anoItem}
+          </div>
           {payload.map((entry: any, index: number) => (
             <div key={`item-${index}`} className="d-flex align-items-center justify-content-between gap-3 mb-1.5">
               <div className="d-flex align-items-center gap-2">
@@ -318,7 +414,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
                     backgroundColor: entry.color || entry.stroke
                   }}
                 />
-                <span className="text-gray-400">{entry.name}:</span>
+                <span className="text-muted">{entry.name}:</span>
               </div>
               <span className="font-bold">
                 {isHidden ? 'R$ •••••' : formatCurrency(entry.value)}
@@ -328,8 +424,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
 
           {/* Saldo Líquido no Tooltip */}
           <div
-            className="d-flex align-items-center justify-content-between gap-3 pt-2 mt-2"
-            style={{ borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}
+            className="d-flex align-items-center justify-content-between gap-3 pt-2 mt-2 border-top border-border"
           >
             <div className="d-flex align-items-center gap-2">
               <span
@@ -340,7 +435,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
                   backgroundColor: saldoLiquido >= 0 ? '#10b981' : '#ef4444'
                 }}
               />
-              <span className="text-gray-200 font-semibold">Saldo Líquido:</span>
+              <span className="text-foreground font-semibold">Saldo Líquido:</span>
             </div>
             <span
               className="font-bold"
@@ -365,34 +460,40 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
           </h3>
           <span className="panel-subtitle">Entradas vs. Saídas no período</span>
         </div>
-        <div className="badge-tag badge-paid text-[10px] py-0.5 px-2">2026</div>
+        <div className="badge-tag badge-paid text-[10px] py-0.5 px-2">
+          {chartData[0]?.ano || currentYear}
+        </div>
       </div>
 
       <div className="chart-container chart-height-dashboard w-100">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
+          <AreaChart
+            data={chartData}
+            margin={{ top: 8, right: 12, left: 6, bottom: 12 }}
+          >
             <defs>
               <linearGradient id="recGradCompleto" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
               </linearGradient>
               <linearGradient id="despGradCompleto" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.16} />
                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" />
             <XAxis
               dataKey="monthName"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 500 }}
-              dy={6}
+              tick={<CustomGroupedTick />}
+              interval={0}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+              width={55}
+              tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 11, fontWeight: 600 }}
               tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
             />
             <RechartsTooltip content={<CustomTooltip />} />
@@ -401,7 +502,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
               dataKey="receitas"
               name="Receitas"
               stroke="#10b981"
-              strokeWidth={2}
+              strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#recGradCompleto)"
             />
@@ -410,7 +511,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
               dataKey="despesas"
               name="Despesas"
               stroke="#ef4444"
-              strokeWidth={2}
+              strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#despGradCompleto)"
             />
@@ -422,7 +523,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
 }
 
 // ============================================================================
-// 3. GRÁFICO DE DESPESAS POR CATEGORIA (Bar Chart)
+// 3. GRÁFICO DE DESPESAS POR CATEGORIA (Enhanced Modern Bar Chart)
 // ============================================================================
 interface DespesasCategoriaChartProps {
   despesas: Despesa[];
@@ -430,38 +531,61 @@ interface DespesasCategoriaChartProps {
   isHidden?: boolean;
 }
 
-const CATEGORY_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#3b82f6', '#10b981', '#64748b', '#06b6d4', '#f43f5e'];
+const CATEGORY_COLORS = [
+  '#8b5cf6', // Roxo
+  '#ec4899', // Rosa
+  '#f59e0b', // Âmbar
+  '#3b82f6', // Azul
+  '#10b981', // Verde
+  '#06b6d4', // Ciano
+  '#f43f5e', // Vermelho Coral
+  '#64748b'  // Cinza
+];
 
-export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = false }: DespesasCategoriaChartProps) {
-  const categoryData = useMemo(() => {
+export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasCategoriaChartProps) {
+  const { categoryData, totalGasto } = useMemo(() => {
     const map: Record<string, number> = {};
     let total = 0;
 
-    // Include consolidated despesas (virtual + physical)
     despesas.forEach((d) => {
       const cat = d.categoria?.trim() || 'Outros';
-      map[cat] = (map[cat] || 0) + Number(d.valor || 0);
-      total += Number(d.valor || 0);
+      const val = Number(d.valor || 0);
+      map[cat] = (map[cat] || 0) + val;
+      total += val;
     });
 
     if (total === 0 || Object.keys(map).length === 0) {
-      return [
-        { name: 'Moradia', valor: 3500 },
-        { name: 'Alimentação', valor: 2500 },
-        { name: 'Transporte', valor: 1500 },
-        { name: 'Lazer', valor: 1500 },
-        { name: 'Outros', valor: 1000 }
-      ];
+      const mockTotal = 10000;
+      return {
+        totalGasto: mockTotal,
+        categoryData: [
+          { name: 'Moradia', valor: 3500, percent: 35 },
+          { name: 'Alimentação', valor: 2500, percent: 25 },
+          { name: 'Transporte', valor: 1500, percent: 15 },
+          { name: 'Lazer', valor: 1500, percent: 15 },
+          { name: 'Outros', valor: 1000, percent: 10 }
+        ]
+      };
     }
 
-    return Object.entries(map)
+    const items = Object.entries(map)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 7)
-      .map(([name, val]) => ({ name, valor: val }));
+      .slice(0, 6)
+      .map(([name, val]) => ({
+        name,
+        valor: val,
+        percent: Math.round((val / total) * 100)
+      }));
+
+    return {
+      totalGasto: total,
+      categoryData: items
+    };
   }, [despesas]);
 
-  const CustomBarTooltip = ({ active, payload, label }: any) => {
+  const CustomBarTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0]?.payload || {};
       return (
         <div
           className="p-3 rounded-xl shadow-2xl border border-border"
@@ -470,14 +594,17 @@ export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = fal
             color: '#fff',
             backdropFilter: 'blur(10px)',
             fontSize: '13px',
-            minWidth: '160px'
+            minWidth: '180px'
           }}
         >
-          <div className="font-bold text-gray-200 mb-1.5">{label}</div>
+          <div className="font-bold text-gray-200 mb-1.5 d-flex justify-content-between align-items-center">
+            <span>{data.name}</span>
+            <span className="badge-tag badge-pending text-[10px] py-0.5 px-1.5">{data.percent}%</span>
+          </div>
           <div className="d-flex justify-content-between gap-4">
-            <span className="text-gray-400">Valor:</span>
-            <span className="font-bold" style={{ color: '#8b5cf6' }}>
-              {isHidden ? 'R$ •••••' : formatCurrency(payload[0].value)}
+            <span className="text-gray-400">Total Gasto:</span>
+            <span className="font-bold" style={{ color: payload[0]?.fill || '#8b5cf6' }}>
+              {isHidden ? 'R$ •••••' : formatCurrency(data.valor)}
             </span>
           </div>
         </div>
@@ -488,14 +615,17 @@ export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = fal
 
   return (
     <div className="card-panel h-100 flex flex-col">
-      <div className="panel-header mb-2">
+      <div className="panel-header mb-2 flex-wrap gap-2 align-items-center justify-content-between">
         <div>
           <h3 className="panel-title">
             <PieIcon className="w-5 h-5 text-primary" />
             <span>Despesas por Categoria</span>
           </h3>
-          <span className="panel-subtitle">Distribuição por categoria no mês</span>
+          <span className="panel-subtitle">Distribuição e ranking de gastos do mês</span>
         </div>
+        <span className="badge-tag badge-pending text-[11px] py-1 px-2.5 font-bold">
+          Total: {isHidden ? '••••••' : formatCurrency(totalGasto)}
+        </span>
       </div>
 
       <div className="chart-container chart-height-dashboard w-100">
@@ -503,14 +633,14 @@ export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = fal
           <BarChart
             data={categoryData}
             layout="vertical"
-            margin={{ top: 2, right: 10, left: -10, bottom: 2 }}
+            margin={{ top: 4, right: 16, left: 10, bottom: 4 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.06)" />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" />
             <XAxis
               type="number"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+              tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 10, fontWeight: 600 }}
               tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`}
             />
             <YAxis
@@ -518,11 +648,11 @@ export function DespesasCategoriaChart({ despesas, receitas = [], isHidden = fal
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#a1a1aa', fontSize: 10 }}
-              width={75}
+              tick={{ fill: 'var(--text, #334155)', fontSize: 11, fontWeight: 700 }}
+              width={90}
             />
             <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-            <Bar dataKey="valor" name="Valor" radius={[0, 4, 4, 0]} maxBarSize={16}>
+            <Bar dataKey="valor" name="Valor" radius={[0, 8, 8, 0]} maxBarSize={20}>
               {categoryData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
@@ -754,11 +884,11 @@ export function ExtratoTableWidget({
       };
     });
 
-    // Merge and sort: overdue first, then by most recent date
+    // Merge and sort: overdue first, then closest upcoming dates (ascending)
     return [...exp, ...inc].sort((a, b) => {
       if (a.isOverdue && !b.isOverdue) return -1;
       if (!a.isOverdue && b.isOverdue) return 1;
-      return b.sortDate.localeCompare(a.sortDate);
+      return a.sortDate.localeCompare(b.sortDate);
     });
   }, [despesas, receitas, cartoes, titulares]);
 

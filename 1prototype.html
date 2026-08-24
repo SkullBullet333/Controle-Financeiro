@@ -1,0 +1,3530 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="midnight" data-primary="amber">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Apex Wealth Management | Private Banking & Investimentos</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 Pro CDN Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & THEMES (WEALTH MANAGEMENT & PRIVATE BANKING)
+       ========================================================================== */
+    :root {
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --transition-base: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      
+      /* Semantic Status Colors */
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --danger: #f43f5e;
+      --danger-glow: rgba(244, 63, 94, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --info: #3b82f6;
+      --info-glow: rgba(59, 130, 246, 0.2);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139, 92, 246, 0.2);
+      --gold: #d4af37;
+      --gold-glow: rgba(212, 175, 55, 0.25);
+
+      /* Radii */
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      --radius-full: 9999px;
+    }
+
+    /* THEME: MIDNIGHT BLACK (Default Luxury Private Banking) */
+    [data-theme="midnight"] {
+      --bg: #030407;
+      --bg-surface: #0a0c12;
+      --card: #0e111a;
+      --card-hover: #141824;
+      --card-elevated: #181d2c;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --border-focus: rgba(212, 175, 55, 0.5);
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --glass-bg: rgba(10, 12, 18, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.5);
+      --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.7);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.85);
+      --mobile-header-bg: #0a0c12;
+      --bottom-nav-bg: #0a0c12;
+      --accent-gradient: linear-gradient(135deg, #d4af37, #f59e0b);
+    }
+
+    /* THEME: DARK DEEP (Executive Deep Navy) */
+    [data-theme="dark"] {
+      --bg: #070c18;
+      --bg-surface: #0d1527;
+      --card: #121d36;
+      --card-hover: #182749;
+      --card-elevated: #1f315a;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --border-focus: rgba(59, 130, 246, 0.5);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --glass-bg: rgba(13, 21, 39, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.55);
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.75);
+      --mobile-header-bg: #0d1527;
+      --bottom-nav-bg: #0d1527;
+      --accent-gradient: linear-gradient(135deg, #3b82f6, #6366f1);
+    }
+
+    /* THEME: LIGHT MODE (Sleek Clean Private Banking) */
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-surface: #f1f5f9;
+      --card: #ffffff;
+      --card-hover: #f8fafc;
+      --card-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-subtle: rgba(0, 0, 0, 0.04);
+      --border-focus: rgba(212, 175, 55, 0.6);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --glass-bg: rgba(255, 255, 255, 0.9);
+      --glass-border: rgba(0, 0, 0, 0.08);
+      --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.1);
+      --mobile-header-bg: #ffffff;
+      --bottom-nav-bg: #ffffff;
+      --accent-gradient: linear-gradient(135deg, #d97706, #b45309);
+    }
+
+    /* PRIMARY ACCENT PALETTES */
+    [data-primary="amber"] {
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --primary-glow: rgba(245, 158, 11, 0.3);
+      --primary-subtle: rgba(245, 158, 11, 0.12);
+      --primary-gradient: linear-gradient(135deg, #fbbf24, #d97706);
+    }
+    [data-primary="green"] {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.3);
+      --primary-subtle: rgba(16, 185, 129, 0.12);
+      --primary-gradient: linear-gradient(135deg, #34d399, #059669);
+    }
+    [data-primary="blue"] {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-glow: rgba(59, 130, 246, 0.3);
+      --primary-subtle: rgba(59, 130, 246, 0.12);
+      --primary-gradient: linear-gradient(135deg, #60a5fa, #2563eb);
+    }
+    [data-primary="purple"] {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --primary-glow: rgba(139, 92, 246, 0.3);
+      --primary-subtle: rgba(139, 92, 246, 0.12);
+      --primary-gradient: linear-gradient(135deg, #a78bfa, #7c3aed);
+    }
+
+    /* ==========================================================================
+       2. BASE & RESET
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-variant-numeric: tabular-nums;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    input, select, button, textarea {
+      font-family: inherit;
+      outline: none;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       3. APP SHELL LAYOUT (DESKTOP & RESPONSIVE)
+       ========================================================================== */
+    .app-container {
+      display: flex;
+      width: 100vw;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* DESKTOP SIDEBAR */
+    .sidebar {
+      width: 275px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 18px;
+      z-index: 100;
+      flex-shrink: 0;
+      transition: var(--transition-base);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 10px 26px 10px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      box-shadow: 0 4px 18px var(--primary-glow);
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--text), var(--text-muted));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--primary);
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .nav-section-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 12px 14px 4px 14px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-base);
+      position: relative;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background: var(--card-hover);
+    }
+
+    .nav-item.active {
+      color: var(--text);
+      background: var(--primary-subtle);
+      border: 1px solid var(--primary-glow);
+      font-weight: 700;
+    }
+
+    .nav-item.active i {
+      color: var(--primary);
+    }
+
+    .nav-item i {
+      font-size: 1.1rem;
+      width: 22px;
+      text-align: center;
+      transition: var(--transition-base);
+    }
+
+    .nav-badge-count {
+      margin-left: auto;
+      background: var(--primary-glow);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--primary-glow);
+    }
+
+    .sidebar-footer {
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .custody-summary {
+      background: var(--card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .custody-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .custody-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-glow);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      transition: var(--transition-base);
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .user-profile:hover {
+      background: var(--card-hover);
+      border-color: var(--primary);
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--primary);
+      border: 2px solid var(--primary-glow);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* MAIN WRAPPER */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+      padding-bottom: 90px;
+    }
+
+    /* DESKTOP TOPBAR */
+    .topbar {
+      height: 78px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      gap: 16px;
+    }
+
+    .page-header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .page-header-title i {
+      color: var(--primary);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================================================
+       DATE RANGE PICKER CONTAINER & INPUTS (CUSTOM ELEGANTE)
+       ========================================================================== */
+    .date-filter-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 4px 10px;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-base);
+    }
+
+    .date-filter-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .date-input-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .date-input-group label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+
+    .date-text-input {
+      width: 96px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: var(--font-main);
+      padding: 4px 2px;
+      text-align: center;
+    }
+
+    .date-text-input::placeholder {
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .date-sep {
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .btn-calendar-trigger {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      transition: var(--transition-base);
+      position: relative;
+    }
+
+    .btn-calendar-trigger:hover {
+      transform: scale(1.1);
+    }
+
+    /* Native hidden picker trigger */
+    .hidden-native-date {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    /* Quick Presets Pills */
+    .range-presets {
+      display: flex;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .range-preset-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 9px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .range-preset-btn:hover {
+      color: var(--text);
+    }
+
+    .range-preset-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* BENCHMARK SELECTOR */
+    .benchmark-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-base);
+    }
+
+    .benchmark-pill:hover {
+      border-color: var(--primary);
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-base);
+      position: relative;
+    }
+
+    .btn-icon:hover {
+      color: var(--text);
+      border-color: var(--primary);
+      background: var(--card-hover);
+    }
+
+    .badge-dot {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger-glow);
+    }
+
+    /* THEME SWITCHER PILLS */
+    .theme-picker {
+      display: flex;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .theme-pill {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition-base);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .theme-pill.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* ACTION BUTTONS */
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-base);
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: var(--card-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition-base);
+    }
+
+    .btn-secondary:hover {
+      background: var(--card-hover);
+      border-color: var(--text-dim);
+    }
+
+    /* CONTENT CONTAINER */
+    .content-container {
+      padding: 28px 32px;
+      max-width: 1540px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    /* ==========================================================================
+       4. MOBILE APP BAR & PRIVATE BANKING HERO
+       ========================================================================== */
+    .mobile-header {
+      display: none;
+      padding: 14px 18px;
+      background: var(--mobile-header-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+    }
+
+    .mobile-header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mobile-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mobile-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.88rem;
+      border: 2px solid var(--primary-glow);
+    }
+
+    .mobile-greeting {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-greeting-hi {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .mobile-greeting-name {
+      font-size: 0.94rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .mobile-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* MOBILE DATE RANGE CONTROL */
+    .mobile-date-bar {
+      display: none;
+      padding: 10px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    /* HERO CARD DE PATRIMÔNIO */
+    .mobile-hero-card {
+      display: none;
+      background: linear-gradient(145deg, var(--card), var(--card-elevated));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .mobile-hero-card::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: var(--primary-glow);
+      border-radius: 50%;
+      filter: blur(50px);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .hero-label-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+    }
+
+    .hero-balance {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .hero-pills-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .hero-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hero-pill.highlight {
+      border-color: var(--primary-glow);
+      color: var(--primary);
+      background: var(--primary-subtle);
+    }
+
+    .hero-stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hero-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hero-stat-label {
+      font-size: 0.66rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hero-stat-value {
+      font-size: 0.98rem;
+      font-weight: 800;
+    }
+
+    /* ==========================================================================
+       5. MOBILE BOTTOM NAVIGATION WITH ELEVATED FAB (+)
+       ========================================================================== */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: var(--bottom-nav-bg);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      padding: 0 10px;
+    }
+
+    .mobile-bottom-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      height: 100%;
+      position: relative;
+    }
+
+    .nav-tab-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 58px;
+      height: 52px;
+      transition: var(--transition-base);
+      border-radius: var(--radius-md);
+    }
+
+    .nav-tab-btn i {
+      font-size: 1.2rem;
+      transition: var(--transition-base);
+    }
+
+    .nav-tab-btn.active {
+      color: var(--primary);
+    }
+
+    .nav-tab-btn.active i {
+      transform: translateY(-2px) scale(1.1);
+    }
+
+    .fab-slot {
+      width: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .fab-button {
+      position: absolute;
+      top: -24px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      color: #ffffff;
+      border: 4px solid var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      box-shadow: 0 8px 22px var(--primary-glow);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .fab-button:hover, .fab-button:active {
+      transform: scale(1.08) rotate(90deg);
+    }
+
+    /* ==========================================================================
+       6. KPI GRID & LUXURY METRIC CARDS
+       ========================================================================== */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-base);
+      cursor: pointer;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-glow);
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+      transition: var(--transition-base);
+    }
+
+    .kpi-card:hover::after {
+      background: var(--primary-gradient);
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .kpi-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+
+    .kpi-val {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .kpi-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-success {
+      background: var(--success-glow);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-primary {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      border: 1px solid var(--primary-glow);
+    }
+
+    .badge-warning {
+      background: var(--warning-glow);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-purple {
+      background: var(--purple-glow);
+      color: var(--purple);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .badge-info {
+      background: var(--info-glow);
+      color: var(--info);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    /* ==========================================================================
+       7. CHARTS & PANELS GRID (COM SUPORTE A CLICK & INTERATIVIDADE)
+       ========================================================================== */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr;
+      gap: 22px;
+    }
+
+    .grid-3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .card-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .chart-hint-badge {
+      font-size: 0.7rem;
+      color: var(--primary);
+      background: var(--primary-subtle);
+      border: 1px dashed var(--primary-glow);
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 700;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 275px;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       8. TABLES & ASSET GRIDS
+       ========================================================================== */
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+    }
+
+    .styled-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .styled-table th {
+      padding: 13px 16px;
+      font-size: 0.73rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      white-space: nowrap;
+    }
+
+    .styled-table td {
+      padding: 15px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .styled-table tr:hover td {
+      background: var(--card-hover);
+    }
+
+    .asset-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .asset-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .asset-info-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .asset-title {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .asset-issuer {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    /* FILTERS TOOLBAR */
+    .filter-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 7px 13px;
+      border-radius: var(--radius-full);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--primary);
+      color: var(--text);
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* ==========================================================================
+       9. VIEWS TOGGLE & ANIMATIONS
+       ========================================================================== */
+    .view-section {
+      display: none;
+      animation: fadeIn 0.35s ease-out;
+    }
+
+    .view-section.active-view {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .opportunity-card {
+      background: linear-gradient(145deg, var(--card), var(--card-elevated));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-base);
+    }
+
+    .opportunity-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .opportunity-badge-top {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+
+    /* ==========================================================================
+       10. MODALS & POPUPS
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 560px;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.92) translateY(20px);
+      transition: var(--transition-smooth);
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      overflow: hidden;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 26px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px;
+      transition: var(--transition-base);
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 24px 26px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: var(--transition-base);
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .sim-result-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sim-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    .sim-row.highlight {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--primary);
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    /* TOAST FEEDBACK */
+    .toast-notification {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card-elevated);
+      border: 1px solid var(--primary-glow);
+      color: var(--text);
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      z-index: 3000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: var(--transition-smooth);
+      pointer-events: none;
+    }
+
+    .toast-notification.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ==========================================================================
+       11. RESPONSIVE BREAKPOINTS
+       ========================================================================== */
+    @media (max-width: 1280px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+      .grid-3col {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 991px) {
+      .sidebar {
+        display: none;
+      }
+      .topbar {
+        display: none;
+      }
+      .mobile-header {
+        display: block;
+      }
+      .mobile-date-bar {
+        display: block;
+      }
+      .mobile-hero-card {
+        display: block;
+      }
+      .mobile-bottom-nav {
+        display: block;
+      }
+      .content-container {
+        padding: 16px;
+        gap: 18px;
+      }
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .kpi-card {
+        padding: 16px;
+      }
+      .kpi-val {
+        font-size: 1.3rem;
+      }
+      .grid-3col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-balance {
+        font-size: 1.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ==========================================================================
+         DESKTOP SIDEBAR (FIXA À ESQUERDA)
+         ========================================================================== -->
+    <aside class="sidebar">
+      <div class="brand-logo">
+        <div class="brand-icon">
+          <i class="fa-solid fa-gem"></i>
+        </div>
+        <div class="brand-title-wrap">
+          <span class="brand-title">Apex Wealth</span>
+          <span class="brand-subtitle">Private Banking</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <div class="nav-section-label">Gestão de Patrimônio</div>
+        <li class="nav-item active" onclick="switchView('patrimonio')">
+          <i class="fa-solid fa-landmark"></i>
+          <span>Visão Geral / Patrimônio</span>
+        </li>
+        <li class="nav-item" onclick="switchView('fundos')">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Fundos de Investimento</span>
+          <span class="nav-badge-count">6</span>
+        </li>
+        <li class="nav-item" onclick="switchView('rendafixa')">
+          <i class="fa-solid fa-building-columns"></i>
+          <span>Letras Fin. & Renda Fixa</span>
+          <span class="nav-badge-count">8</span>
+        </li>
+        <li class="nav-item" onclick="switchView('agenda')">
+          <i class="fa-regular fa-calendar-check"></i>
+          <span>Agenda & Vencimentos</span>
+        </li>
+
+        <div class="nav-section-label">Estratégia & Inteligência</div>
+        <li class="nav-item" onclick="switchView('alocacao')">
+          <i class="fa-solid fa-scale-balanced"></i>
+          <span>Alocação & Rebalancear</span>
+        </li>
+        <li class="nav-item" onclick="switchView('radar')">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Radar de Oportunidades</span>
+        </li>
+        <li class="nav-item" onclick="switchView('config')">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Custodiantes & Contas</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="custody-summary">
+          <div class="custody-badge">
+            <span class="dot"></span>
+            <span>4 Custodiantes Integrados</span>
+          </div>
+          <span style="font-size:0.75rem; font-weight:700; color:var(--primary);">D+0 OK</span>
+        </div>
+
+        <div class="user-profile" onclick="openProfileModal()">
+          <div class="avatar">RR</div>
+          <div class="user-info">
+            <span class="user-name">Rodrigo Rocha</span>
+            <span class="user-badge"><i class="fa-solid fa-shield-halved"></i> Qualificado | Arrojado</span>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="font-size:0.8rem; color:var(--text-dim);"></i>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================================================
+         MAIN WRAPPER (TOPBAR + CONTENT)
+         ========================================================================== -->
+    <div class="main-wrapper">
+
+      <!-- DESKTOP TOPBAR -->
+      <header class="topbar">
+        <div class="page-header-title">
+          <i class="fa-solid fa-landmark" id="topbar-icon"></i>
+          <span id="topbar-title">Visão Geral do Patrimônio</span>
+        </div>
+
+        <div class="topbar-actions">
+          
+          <!-- FILTROS DE DATA ELEGANTE: DATA INÍCIO E DATA FIM (DIGITÁVEL, COLÁVEL E COM FORMATADOR) -->
+          <div class="date-filter-box" title="Filtrar período da carteira">
+            <!-- Data Início -->
+            <div class="date-input-group">
+              <label for="date-start">De</label>
+              <input type="text" id="date-start" class="date-text-input" placeholder="DD/MM/AAAA" maxlength="10" value="01/09/2025" 
+                     oninput="handleDateInput(this)" onpaste="handleDatePaste(event, this)" onchange="applyCustomDateFilter()">
+              <input type="date" id="native-date-start" class="hidden-native-date" onchange="syncNativeToTextInput('native-date-start', 'date-start')">
+            </div>
+
+            <span class="date-sep"><i class="fa-solid fa-arrow-right" style="font-size:0.65rem;"></i></span>
+
+            <!-- Data Fim -->
+            <div class="date-input-group">
+              <label for="date-end">Até</label>
+              <input type="text" id="date-end" class="date-text-input" placeholder="DD/MM/AAAA" maxlength="10" value="23/08/2026" 
+                     oninput="handleDateInput(this)" onpaste="handleDatePaste(event, this)" onchange="applyCustomDateFilter()">
+              <input type="date" id="native-date-end" class="hidden-native-date" onchange="syncNativeToTextInput('native-date-end', 'date-end')">
+            </div>
+
+            <!-- Calendário Popover Trigger -->
+            <button class="btn-calendar-trigger" title="Abrir Calendário" onclick="triggerNativePicker('native-date-end')">
+              <i class="fa-regular fa-calendar-days"></i>
+            </button>
+          </div>
+
+          <!-- Quick Date Range Presets -->
+          <div class="range-presets">
+            <button class="range-preset-btn active" id="btn-preset-12m" onclick="setQuickRangePreset('12m')">12M</button>
+            <button class="range-preset-btn" id="btn-preset-ytd" onclick="setQuickRangePreset('ytd')">YTD</button>
+            <button class="range-preset-btn" id="btn-preset-24m" onclick="setQuickRangePreset('24m')">24M</button>
+            <button class="range-preset-btn" id="btn-preset-max" onclick="setQuickRangePreset('max')">Máx</button>
+          </div>
+
+          <!-- Benchmark Selector -->
+          <div class="benchmark-pill" onclick="openBenchmarkSelector()">
+            <i class="fa-solid fa-arrow-trend-up text-success"></i>
+            <span><strong>100% CDI</strong> (10,50%)</span>
+          </div>
+
+          <!-- Eye Toggle Button (Global Sensitive Values) -->
+          <button class="btn-icon" title="Ocultar/Exibir Cifras" onclick="toggleBalanceVisibility()">
+            <i class="fa-solid fa-eye" id="desktop-eye-icon"></i>
+          </button>
+
+          <!-- Theme Switcher -->
+          <div class="theme-picker">
+            <button class="theme-pill active" onclick="setTheme('midnight')" id="pill-midnight">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+            <button class="theme-pill" onclick="setTheme('dark')" id="pill-dark">
+              <i class="fa-solid fa-cloud-moon"></i>
+            </button>
+            <button class="theme-pill" onclick="setTheme('light')" id="pill-light">
+              <i class="fa-solid fa-sun"></i>
+            </button>
+          </div>
+
+          <!-- Color Accent Cycle -->
+          <button class="btn-icon" title="Trocar Acento de Cor" onclick="cyclePrimaryColor()">
+            <i class="fa-solid fa-palette text-primary"></i>
+          </button>
+
+          <!-- Notifications Bell -->
+          <button class="btn-icon" title="Central de Alertas Wealth" onclick="openNotificationModal()">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge-dot"></span>
+          </button>
+
+        </div>
+      </header>
+
+      <!-- MOBILE COMPACT HEADER (ESTILO PRIVATE BANKING APP) -->
+      <div class="mobile-header">
+        <div class="mobile-header-inner">
+          <div class="mobile-user" onclick="openProfileModal()">
+            <div class="mobile-avatar">RR</div>
+            <div class="mobile-greeting">
+              <span class="mobile-greeting-hi">Apex Private Banking</span>
+              <span class="mobile-greeting-name" id="mobile-view-title">Rodrigo Rocha</span>
+            </div>
+          </div>
+
+          <div class="mobile-header-actions">
+            <button class="btn-icon" style="width:36px; height:36px;" onclick="toggleBalanceVisibility()">
+              <i class="fa-solid fa-eye" id="mobile-eye-icon"></i>
+            </button>
+            <button class="btn-icon" style="width:36px; height:36px;" onclick="cycleThemeMobile()">
+              <i class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+            <button class="btn-icon" style="width:36px; height:36px;" onclick="openNotificationModal()">
+              <i class="fa-regular fa-bell"></i>
+              <span class="badge-dot"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE DATE RANGE BAR -->
+      <div class="mobile-date-bar">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div class="date-filter-box" style="flex:1;">
+            <input type="text" id="mob-date-start" class="date-text-input" placeholder="DD/MM/AAAA" maxlength="10" value="01/09/2025"
+                   oninput="handleDateInput(this)" onpaste="handleDatePaste(event, this)" onchange="syncMobDates()">
+            <span class="date-sep">a</span>
+            <input type="text" id="mob-date-end" class="date-text-input" placeholder="DD/MM/AAAA" maxlength="10" value="23/08/2026"
+                   oninput="handleDateInput(this)" onpaste="handleDatePaste(event, this)" onchange="syncMobDates()">
+          </div>
+          <div class="range-presets">
+            <button class="range-preset-btn active" onclick="setQuickRangePreset('12m')">12M</button>
+            <button class="range-preset-btn" onclick="setQuickRangePreset('ytd')">YTD</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN APP CONTENT -->
+      <main class="content-container">
+
+        <!-- ======================================================================
+             MOBILE HERO CARD (APENAS DISPOSITIVOS MÓVEIS)
+             ====================================================================== -->
+        <div class="mobile-hero-card">
+          <div class="hero-top">
+            <div class="hero-label-badge">
+              <i class="fa-solid fa-gem"></i>
+              <span>Patrimônio Consolidado</span>
+            </div>
+            <span class="badge-tag badge-success">+1,38% no Mês (132% CDI)</span>
+          </div>
+
+          <div class="hero-balance sensitive-val" id="mob-patrimonio-total">R$ 4.850.000,00</div>
+
+          <div class="hero-pills-row">
+            <div class="hero-pill highlight"><i class="fa-solid fa-shield-check"></i> FGC / Garantido</div>
+            <div class="hero-pill"><i class="fa-solid fa-receipt"></i> R$ 1.2M Isento IR</div>
+            <div class="hero-pill"><i class="fa-solid fa-bolt"></i> D+0: R$ 650.000</div>
+          </div>
+
+          <div class="hero-stats-row">
+            <div class="hero-stat-item">
+              <span class="hero-stat-label"><i class="fa-solid fa-arrow-trend-up text-success"></i> Rendimento Mês</span>
+              <span class="hero-stat-value text-success sensitive-val" id="mob-rendimento-mes">+ R$ 62.480,00</span>
+            </div>
+            <div class="hero-stat-item">
+              <span class="hero-stat-label"><i class="fa-solid fa-calendar-clock text-primary"></i> Vencimentos (60d)</span>
+              <span class="hero-stat-value text-primary sensitive-val" id="mob-vencimentos-60d">R$ 380.000,00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================================
+             VIEW 1: PATRIMÔNIO & DASHBOARD CONSOLIDADO
+             ====================================================================== -->
+        <section id="view-patrimonio" class="view-section active-view">
+          
+          <!-- 5 TOP KPI METRIC CARDS (CLICÁVEIS) -->
+          <div class="kpi-grid">
+            <!-- KPI 1 -->
+            <div class="kpi-card" onclick="showKpiDrilldown('patrimonio')">
+              <div class="kpi-header">
+                <span class="kpi-title">Patrimônio Aplicado</span>
+                <div class="kpi-icon-wrap" style="background: var(--primary-subtle); color: var(--primary);">
+                  <i class="fa-solid fa-vault"></i>
+                </div>
+              </div>
+              <div class="kpi-val sensitive-val" id="kpi-patrimonio">R$ 4.850.000,00</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-success"><i class="fa-solid fa-arrow-up"></i> +R$ 62.480,00</span>
+                <span>no mês (+1,38%)</span>
+              </div>
+            </div>
+
+            <!-- KPI 2 -->
+            <div class="kpi-card" onclick="showKpiDrilldown('rentabilidade')">
+              <div class="kpi-header">
+                <span class="kpi-title">Rentabilidade 12M</span>
+                <div class="kpi-icon-wrap" style="background: var(--success-glow); color: var(--success);">
+                  <i class="fa-solid fa-chart-line-up"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-success sensitive-val" id="kpi-rentabilidade">14,20% a.a.</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-success">134% do CDI</span>
+                <span>vs IPCA + 8,4%</span>
+              </div>
+            </div>
+
+            <!-- KPI 3 -->
+            <div class="kpi-card" onclick="showKpiDrilldown('rendimento')">
+              <div class="kpi-header">
+                <span class="kpi-title">Rendimento Líquido Acum.</span>
+                <div class="kpi-icon-wrap" style="background: var(--purple-glow); color: var(--purple);">
+                  <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-purple sensitive-val" id="kpi-rendimento-acum">R$ 584.200,00</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-purple">Ganho Real</span>
+                <span>após impostos</span>
+              </div>
+            </div>
+
+            <!-- KPI 4 -->
+            <div class="kpi-card" onclick="showKpiDrilldown('projecao')">
+              <div class="kpi-header">
+                <span class="kpi-title">Projeção Próx. Mês</span>
+                <div class="kpi-icon-wrap" style="background: var(--warning-glow); color: var(--warning);">
+                  <i class="fa-solid fa-wand-sparkles"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-warning sensitive-val" id="kpi-projecao">~ R$ 54.100,00</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-warning">Taxas Contratadas</span>
+                <span>(1,12% a.m.)</span>
+              </div>
+            </div>
+
+            <!-- KPI 5 -->
+            <div class="kpi-card" onclick="switchView('agenda')">
+              <div class="kpi-header">
+                <span class="kpi-title">Resgates / Venc. (60d)</span>
+                <div class="kpi-icon-wrap" style="background: var(--info-glow); color: var(--info);">
+                  <i class="fa-solid fa-calendar-check"></i>
+                </div>
+              </div>
+              <div class="kpi-val text-info sensitive-val" id="kpi-vencimentos">R$ 380.000,00</div>
+              <div class="kpi-footer">
+                <span class="badge-tag badge-info">2 LFs a Vencer</span>
+                <span>Ver Agenda &rarr;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 1: EVOLUÇÃO PATRIMONIAL VS BENCHMARKS & ALOCAÇÃO POR CLASSE (GRÁFICOS CLICÁVEIS) -->
+          <div class="grid-2col">
+            <!-- Gráfico de Linhas: Evolução vs CDI vs IPCA -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">
+                    <i class="fa-solid fa-chart-area text-primary"></i> Evolução Patrimonial vs. Benchmarks
+                  </h3>
+                  <span class="panel-subtitle">Desempenho histórico consolidado no período selecionado</span>
+                </div>
+                <div class="chart-hint-badge">
+                  <i class="fa-solid fa-hand-pointer"></i> Clique nos pontos para detalhar
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartPatrimonioEvolution"></canvas>
+              </div>
+            </div>
+
+            <!-- Gráfico Donut: Alocação por Classe de Ativo -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">
+                    <i class="fa-solid fa-chart-pie text-primary"></i> Alocação por Classe
+                  </h3>
+                  <span class="panel-subtitle">Distribuição proporcional da carteira</span>
+                </div>
+                <div class="chart-hint-badge">
+                  <i class="fa-solid fa-filter"></i> Clique na fatia p/ filtrar
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartAssetClasses"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW 2: INDEXADORES & CRONOGRAMA DE VENCIMENTOS (GRÁFICOS CLICÁVEIS) -->
+          <div class="grid-2col">
+            <!-- Gráfico de Barras Horizontais: Indexadores -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">
+                    <i class="fa-solid fa-sliders text-primary"></i> Distribuição por Indexador
+                  </h3>
+                  <span class="panel-subtitle">% atrelado a CDI, IPCA+, Prefixado e Dólar</span>
+                </div>
+                <div class="chart-hint-badge">
+                  <i class="fa-solid fa-hand-pointer"></i> Clique na barra
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartIndexers"></canvas>
+              </div>
+            </div>
+
+            <!-- Gráfico de Colunas: Vencimentos de Renda Fixa -->
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">
+                    <i class="fa-solid fa-timeline text-primary"></i> Mapa de Vencimentos (LFs & RF)
+                  </h3>
+                  <span class="panel-subtitle">Fluxo de liquidez e capital por ano de vencimento</span>
+                </div>
+                <div class="chart-hint-badge">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Clique no ano
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartMaturitySchedule"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABELA DE ATIVOS CONSOLIDADOS (TOP INVESTIMENTOS) -->
+          <div class="card-panel" id="section-consolidated-assets">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-layer-group text-primary"></i> Carteira Consolidada de Aplicações</h3>
+                <span class="panel-subtitle" id="table-filter-subtitle">Visualização completa de fundos, letras financeiras e títulos</span>
+              </div>
+              <div class="filter-toolbar">
+                <div class="filter-pills">
+                  <button class="filter-btn active" id="btn-filter-all" onclick="filterAssetTable('all')">Todos (14)</button>
+                  <button class="filter-btn" id="btn-filter-lf" onclick="filterAssetTable('lf')">Letras Financeiras (5)</button>
+                  <button class="filter-btn" id="btn-filter-fundos" onclick="filterAssetTable('fundos')">Fundos (6)</button>
+                  <button class="filter-btn" id="btn-filter-rf" onclick="filterAssetTable('rf')">Outros RF (3)</button>
+                </div>
+                <button class="btn-secondary" onclick="switchView('rendafixa')">Ver Detalhes Completos</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Ativo / Aplicação</th>
+                    <th>Emissor / Gestor & Custódia</th>
+                    <th>Taxa / Benchmark</th>
+                    <th style="text-align:right;">Valor Aplicado</th>
+                    <th style="text-align:right;">Posição Atual Líquida</th>
+                    <th>Liquidez / Carência</th>
+                    <th style="text-align:center;">Rentabilidade</th>
+                  </tr>
+                </thead>
+                <tbody id="table-consolidated-assets">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ======================================================================
+             VIEW 2: FUNDOS DE INVESTIMENTO (COTAS, COME-COTAS & LIQUIDEZ)
+             ====================================================================== -->
+        <section id="view-fundos" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-solid fa-chart-line text-primary"></i> Fundos de Investimento</h2>
+              <span class="panel-subtitle">Monitoramento de cotas diárias, estimativa de come-cotas e regras de resgate D+</span>
+            </div>
+          </div>
+
+          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="kpi-card">
+              <span class="kpi-title">Total em Fundos</span>
+              <div class="kpi-val text-primary sensitive-val">R$ 1.850.000,00</div>
+              <div class="kpi-footer">38.1% da carteira global</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Come-Cotas Projetado (Nov/26)</span>
+              <div class="kpi-val text-warning sensitive-val">~ R$ 14.820,00</div>
+              <div class="kpi-footer">Alíquota 15% semestral</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Resgates Solicitados em Curso</span>
+              <div class="kpi-val text-info sensitive-val">R$ 0,00</div>
+              <div class="kpi-footer">Nenhum resgate pendente</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Rentabilidade Média dos Fundos</span>
+              <div class="kpi-val text-success sensitive-val">15,40% a.a.</div>
+              <div class="kpi-footer">146% do CDI acumulado</div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <h3 class="panel-title"><i class="fa-solid fa-shield-halved text-primary"></i> Posição Detalhada por Fundo de Investimento</h3>
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Fundo / Estratégia</th>
+                    <th>Gestora & Custódia</th>
+                    <th>Valor da Cota</th>
+                    <th style="text-align:right;">Saldo Líquido</th>
+                    <th>Prazo Cotização (Resgate)</th>
+                    <th>Come-Cotas</th>
+                    <th style="text-align:center;">Rentab. 12M</th>
+                  </tr>
+                </thead>
+                <tbody id="table-funds-detail">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 3: LETRAS FINANCEIRAS & RENDA FIXA (LF, CDB, LCI, CRI/CRA)
+             ====================================================================== -->
+        <section id="view-rendafixa" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-solid fa-building-columns text-primary"></i> Letras Financeiras & Renda Fixa</h2>
+              <span class="panel-subtitle">LFs seniores e subordinadas, CDBs de liquidez, Debêntures e títulos incentivados</span>
+            </div>
+            <button class="btn-primary" onclick="openSimulatorModal()">
+              <i class="fa-solid fa-calculator"></i> Simular Letra Financeira
+            </button>
+          </div>
+
+          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="kpi-card">
+              <span class="kpi-title">Total em Letras Financeiras</span>
+              <div class="kpi-val text-primary sensitive-val">R$ 1.840.000,00</div>
+              <div class="kpi-footer">Taxa média ponderada: 122% CDI</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Títulos Isentos (LCI/LCA/CRI)</span>
+              <div class="kpi-val text-success sensitive-val">R$ 780.000,00</div>
+              <div class="kpi-footer">Equivalente a 128% CDI bruto</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Duration Médio</span>
+              <div class="kpi-val text-purple">2.4 Anos</div>
+              <div class="kpi-footer">Vencimento médio em 2028</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Cupom de Juros Semestrais</span>
+              <div class="kpi-val text-warning sensitive-val">R$ 38.500,00</div>
+              <div class="kpi-footer">Próximo pagamento: Out/2026</div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <h3 class="panel-title"><i class="fa-solid fa-coins text-primary"></i> Carteira de Títulos & Letras Financeiras</h3>
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Ativo & Emissor</th>
+                    <th>Tipo / Subordinação</th>
+                    <th>Taxa Contratada</th>
+                    <th style="text-align:right;">Saldo Aplicado</th>
+                    <th style="text-align:right;">Posição Bruta/Líquida</th>
+                    <th>Vencimento</th>
+                    <th>Custodiante</th>
+                  </tr>
+                </thead>
+                <tbody id="table-fixed-income-detail">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 4: AGENDA DE LIQUIDEZ & VENCIMENTOS
+             ====================================================================== -->
+        <section id="view-agenda" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-regular fa-calendar-check text-primary"></i> Agenda de Liquidez & Vencimentos</h2>
+              <span class="panel-subtitle">Cronograma completo de resgates, juros semestrais e amortizações futuras (2026 - 2030)</span>
+            </div>
+            <span class="badge-tag badge-success" style="font-size:0.85rem;">Previsibilidade de Fluxo 100% Mapeada</span>
+          </div>
+
+          <div class="grid-3col">
+            <div class="opportunity-card" style="border-left: 4px solid var(--info);">
+              <div class="panel-title" style="font-size:1rem;"><i class="fa-regular fa-calendar-days text-info"></i> Q3 / Q4 2026</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Vencimento de 2 Letras Financeiras e pagamento de juros semestrais.</p>
+              <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Volume a Liberar:</span>
+                  <span style="font-weight:800;" class="sensitive-val">R$ 380.000,00</span>
+                </div>
+                <span class="badge-tag badge-info">Reinvestimento Prioritário</span>
+              </div>
+            </div>
+
+            <div class="opportunity-card" style="border-left: 4px solid var(--primary);">
+              <div class="panel-title" style="font-size:1rem;"><i class="fa-regular fa-calendar-days text-primary"></i> Ano 2027</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Vencimento de CDB Master Prefixado e LF Banco Safra 118% CDI.</p>
+              <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Volume a Liberar:</span>
+                  <span style="font-weight:800;" class="sensitive-val">R$ 920.000,00</span>
+                </div>
+                <span class="badge-tag badge-primary">Taxa Média: 14,2% a.a.</span>
+              </div>
+            </div>
+
+            <div class="opportunity-card" style="border-left: 4px solid var(--purple);">
+              <div class="panel-title" style="font-size:1rem;"><i class="fa-regular fa-calendar-days text-purple"></i> 2028 em Diante</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Letras Financeiras Subordinadas e Debêntures de Infraestrutura de longo prazo.</p>
+              <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Volume a Liberar:</span>
+                  <span style="font-weight:800;" class="sensitive-val">R$ 1.320.000,00</span>
+                </div>
+                <span class="badge-tag badge-purple">IPCA + 6,80% a.a.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-panel">
+            <h3 class="panel-title"><i class="fa-solid fa-list-timeline text-primary"></i> Cronograma Detalhado de Eventos Financeiros</h3>
+            <div class="table-responsive">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Data Prevista</th>
+                    <th>Evento</th>
+                    <th>Ativo Envolvido</th>
+                    <th>Custodiante</th>
+                    <th style="text-align:right;">Valor Líquido Estimado</th>
+                    <th>Destino / Sugestão</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>18/10/2026</strong></td>
+                    <td><span class="badge-tag badge-warning">Vencimento de LF</span></td>
+                    <td>LF Banco Alfa 115% CDI</td>
+                    <td>XP Private</td>
+                    <td style="text-align:right; font-weight:800;" class="sensitive-val">R$ 200.000,00</td>
+                    <td>Reaplicar em LF IPCA+ 6,8%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>24/11/2026</strong></td>
+                    <td><span class="badge-tag badge-info">Vencimento de CDB</span></td>
+                    <td>CDB Banco Daycoval IPCA+ 6,10%</td>
+                    <td>BTG Pactual</td>
+                    <td style="text-align:right; font-weight:800;" class="sensitive-val">R$ 180.000,00</td>
+                    <td>Alocar em Fundo Multimercado</td>
+                  </tr>
+                  <tr>
+                    <td><strong>30/11/2026</strong></td>
+                    <td><span class="badge-tag badge-purple">Come-Cotas</span></td>
+                    <td>Fundos de Renda Fixa e Multimercado</td>
+                    <td>Consolidado</td>
+                    <td style="text-align:right; font-weight:800; color:var(--danger);" class="sensitive-val">- R$ 14.820,00</td>
+                    <td>Débito automático em cotas</td>
+                  </tr>
+                  <tr>
+                    <td><strong>15/03/2027</strong></td>
+                    <td><span class="badge-tag badge-warning">Vencimento de LF</span></td>
+                    <td>LF Itaú Subordinada 120% CDI</td>
+                    <td>Itaú Private</td>
+                    <td style="text-align:right; font-weight:800;" class="sensitive-val">R$ 500.000,00</td>
+                    <td>Renovar em LF Privada</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 5: ALOCAÇÃO & REBALANCEAMENTO DE CARTEIRA
+             ====================================================================== -->
+        <section id="view-alocacao" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-solid fa-scale-balanced text-primary"></i> Alocação & Rebalanceamento</h2>
+              <span class="panel-subtitle">Comparativo entre a Carteira Real vs. Carteira Ideal (Perfil Arrojado)</span>
+            </div>
+            <button class="btn-primary" onclick="alert('Gerando ordem de rebalanceamento automático...')">
+              <i class="fa-solid fa-arrows-rotate"></i> Executar Rebalanceamento
+            </button>
+          </div>
+
+          <div class="grid-2col">
+            <div class="card-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i class="fa-solid fa-chart-column text-primary"></i> Carteira Real vs. Carteira Alvo (%)</h3>
+                </div>
+                <div class="chart-hint-badge"><i class="fa-solid fa-hand-pointer"></i> Clique nas barras</div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartRebalance"></canvas>
+              </div>
+            </div>
+
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-calculator text-primary"></i> Sugestão de Ajuste Financeiro</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted);">
+                Sua exposição a <strong>Letras Financeiras / RF</strong> está +4% acima da meta ideal, enquanto <strong>Fundos Imobiliários e Multimercado</strong> estão ligeiramente subalocados.
+              </p>
+              
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong style="font-size:0.88rem;">Letras Financeiras (Reduzir)</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Real: 38% | Alvo: 35%</div>
+                  </div>
+                  <span class="badge-tag badge-warning">- R$ 145.000,00</span>
+                </div>
+
+                <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong style="font-size:0.88rem;">Fundos Multimercado (Aportar)</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Real: 18% | Alvo: 20%</div>
+                  </div>
+                  <span class="badge-tag badge-success">+ R$ 97.000,00</span>
+                </div>
+
+                <div style="background:var(--bg-surface); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                  <div>
+                    <strong style="font-size:0.88rem;">Fundos Imobiliários / FIIs (Aportar)</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Real: 8% | Alvo: 10%</div>
+                  </div>
+                  <span class="badge-tag badge-success">+ R$ 97.000,00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 6: RADAR DE OPORTUNIDADES WEALTH
+             ====================================================================== -->
+        <section id="view-radar" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-solid fa-wand-magic-sparkles text-primary"></i> Radar de Oportunidades & Rendimentos</h2>
+              <span class="panel-subtitle">Emissões primárias exclusivas, fundos reabertos e taxas premium recomendadas</span>
+            </div>
+            <span class="badge-tag badge-primary" style="font-size:0.85rem;">Curadoria Apex Private</span>
+          </div>
+
+          <div class="grid-3col">
+            <div class="opportunity-card">
+              <span class="badge-tag badge-success opportunity-badge-top">Emissão Primária</span>
+              <div class="panel-title"><i class="fa-solid fa-building-columns text-primary"></i> LF Banco BTG Pactual</div>
+              <div style="font-size:1.4rem; font-weight:800; color:var(--primary);">IPCA + 7,15% a.a.</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Letra Financeira Subordinada com carência de 3 anos e rating AAA.</p>
+              <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.78rem; color:var(--text-dim); display:flex; justify-content:space-between;">
+                <span>Mínimo: R$ 50.000</span>
+                <span>Vencimento: 2029</span>
+              </div>
+              <button class="btn-primary" style="width:100%; justify-content:center;" onclick="openSimulatorModal()">Simular Rentabilidade</button>
+            </div>
+
+            <div class="opportunity-card">
+              <span class="badge-tag badge-purple opportunity-badge-top">Reabertura de Fundo</span>
+              <div class="panel-title"><i class="fa-solid fa-chart-line text-purple"></i> Verde AM FIC FIM</div>
+              <div style="font-size:1.4rem; font-weight:800; color:var(--purple);">CDI + 4,5% Histórico</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Fundo Multimercado macro consagrado com capacidade limitada de captação.</p>
+              <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.78rem; color:var(--text-dim); display:flex; justify-content:space-between;">
+                <span>Mínimo: R$ 25.000</span>
+                <span>Cotização: D+30</span>
+              </div>
+              <button class="btn-primary" style="width:100%; justify-content:center;" onclick="switchView('fundos')">Ver Detalhes do Fundo</button>
+            </div>
+
+            <div class="opportunity-card">
+              <span class="badge-tag badge-warning opportunity-badge-top">Isento de IR</span>
+              <div class="panel-title"><i class="fa-solid fa-leaf text-warning"></i> CRI Kinea Agro Isento</div>
+              <div style="font-size:1.4rem; font-weight:800; color:var(--warning);">IPCA + 6,90% Isento</div>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Garantias reais em terras e recebíveis com isenção total de Imposto de Renda para PF.</p>
+              <div style="border-top:1px solid var(--border); padding-top:10px; font-size:0.78rem; color:var(--text-dim); display:flex; justify-content:space-between;">
+                <span>Mínimo: R$ 10.000</span>
+                <span>Vencimento: 2028</span>
+              </div>
+              <button class="btn-primary" style="width:100%; justify-content:center;" onclick="switchView('rendafixa')">Consultar Títulos Isentos</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================================
+             VIEW 7: CUSTODIANTES & DEFINIÇÕES DE CONTA
+             ====================================================================== -->
+        <section id="view-config" class="view-section">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" style="font-size: 1.35rem;"><i class="fa-solid fa-sliders text-primary"></i> Custodiantes & Configurações de Conta</h2>
+              <span class="panel-subtitle">Integração Open Finance, custódia consolidada e preferências de visualização</span>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-building-columns text-primary"></i> Instituições Custodiantes Conectadas</h3>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg-surface); border-radius:var(--radius-md); border:1px solid var(--border);">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="asset-icon-box" style="background:rgba(59, 130, 246, 0.2); color:#3b82f6;"><i class="fa-solid fa-b"></i></div>
+                    <div>
+                      <strong style="font-size:0.92rem;">BTG Pactual Private</strong>
+                      <div style="font-size:0.74rem; color:var(--text-muted);">Conta 09231-1 | Sincronizado há 2 min</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:800;" class="sensitive-val">R$ 2.420.000,00</div>
+                    <span class="badge-tag badge-success">Conectado D+0</span>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg-surface); border-radius:var(--radius-md); border:1px solid var(--border);">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="asset-icon-box" style="background:rgba(245, 158, 11, 0.2); color:#f59e0b;"><i class="fa-solid fa-x"></i></div>
+                    <div>
+                      <strong style="font-size:0.92rem;">XP Private Banking</strong>
+                      <div style="font-size:0.74rem; color:var(--text-muted);">Conta 44920-8 | Sincronizado há 5 min</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:800;" class="sensitive-val">R$ 1.580.000,00</div>
+                    <span class="badge-tag badge-success">Conectado D+0</span>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg-surface); border-radius:var(--radius-md); border:1px solid var(--border);">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="asset-icon-box" style="background:rgba(239, 68, 68, 0.2); color:#ef4444;"><i class="fa-solid fa-i"></i></div>
+                    <div>
+                      <strong style="font-size:0.92rem;">Itaú Personnalité / Private</strong>
+                      <div style="font-size:0.74rem; color:var(--text-muted);">Conta 12890-4 | Sincronizado há 10 min</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:800;" class="sensitive-val">R$ 600.000,00</div>
+                    <span class="badge-tag badge-success">Conectado D+0</span>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg-surface); border-radius:var(--radius-md); border:1px solid var(--border);">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="asset-icon-box" style="background:rgba(16, 185, 129, 0.2); color:#10b981;"><i class="fa-solid fa-dollar-sign"></i></div>
+                    <div>
+                      <strong style="font-size:0.92rem;">Avenue Securities (Offshore)</strong>
+                      <div style="font-size:0.74rem; color:var(--text-muted);">Conta US 78912-9 | US$ 50.000,00</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:800;" class="sensitive-val">R$ 250.000,00</div>
+                    <span class="badge-tag badge-success">Conectado D+0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-panel">
+              <h3 class="panel-title"><i class="fa-solid fa-palette text-primary"></i> Estilo Visual & Customização</h3>
+              
+              <div class="form-group">
+                <label class="form-label">Tema de Interface</label>
+                <select class="form-select" onchange="setTheme(this.value)" id="theme-selector-config">
+                  <option value="midnight">Midnight Black (Preto Absoluto / Private Banking)</option>
+                  <option value="dark">Dark Deep (Azul-marinho Executivo)</option>
+                  <option value="light">Light Mode (Claro Minimalista)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Cor de Destaque Primária</label>
+                <div style="display:flex; gap:12px; margin-top:6px;">
+                  <button title="Âmbar / Gold" style="width:40px; height:40px; border-radius:50%; background:#f59e0b; border:3px solid var(--border); cursor:pointer;" onclick="setPrimaryColor('amber')"></button>
+                  <button title="Verde Esmeralda" style="width:40px; height:40px; border-radius:50%; background:#10b981; border:3px solid var(--border); cursor:pointer;" onclick="setPrimaryColor('green')"></button>
+                  <button title="Azul Safira" style="width:40px; height:40px; border-radius:50%; background:#3b82f6; border:3px solid var(--border); cursor:pointer;" onclick="setPrimaryColor('blue')"></button>
+                  <button title="Púrpura Imperial" style="width:40px; height:40px; border-radius:50%; background:#8b5cf6; border:3px solid var(--border); cursor:pointer;" onclick="setPrimaryColor('purple')"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ==========================================================================
+         MOBILE BOTTOM NAVIGATION (APP DE PRIVATE BANKING COM FAB CENTRAL)
+         ========================================================================== -->
+    <nav class="mobile-bottom-nav">
+      <div class="mobile-bottom-inner">
+        <button class="nav-tab-btn active" id="mob-nav-patrimonio" onclick="switchView('patrimonio')">
+          <i class="fa-solid fa-landmark"></i>
+          <span>Patrimônio</span>
+        </button>
+
+        <button class="nav-tab-btn" id="mob-nav-fundos" onclick="switchView('fundos')">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Ativos</span>
+        </button>
+
+        <div class="fab-slot">
+          <button class="fab-button" onclick="openSimulatorModal()" title="Simular Letra Financeira">
+            <i class="fa-solid fa-calculator"></i>
+          </button>
+        </div>
+
+        <button class="nav-tab-btn" id="mob-nav-agenda" onclick="switchView('agenda')">
+          <i class="fa-regular fa-calendar-check"></i>
+          <span>Agenda</span>
+        </button>
+
+        <button class="nav-tab-btn" id="mob-nav-config" onclick="switchView('config')">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Ajustes</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: DRILL-DOWN / DETALHES DE ELEMENTOS DOS GRÁFICOS CLICÁVEIS
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-drilldown">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="drilldown-title"><i class="fa-solid fa-circle-info text-primary"></i> Detalhes Analíticos</h3>
+        <button class="modal-close" onclick="closeModal('modal-drilldown')">&times;</button>
+      </div>
+      <div class="modal-body" id="drilldown-body">
+        <!-- Injetado dinamicamente no clique dos gráficos -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: SIMULADOR DE LETRA FINANCEIRA & RENDA FIXA
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-simulator">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-calculator text-primary"></i> Simulador de Letra Financeira</h3>
+        <button class="modal-close" onclick="closeModal('modal-simulator')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Valor a Simular (R$)</label>
+            <input type="number" class="form-input" id="sim-amount" value="250000" oninput="runSimulation()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prazo em Meses</label>
+            <select class="form-select" id="sim-months" onchange="runSimulation()">
+              <option value="24">24 Meses (2 Anos)</option>
+              <option value="36" selected>36 Meses (3 Anos)</option>
+              <option value="48">48 Meses (4 Anos)</option>
+              <option value="60">60 Meses (5 Anos)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Taxa (% do CDI)</label>
+            <input type="number" class="form-input" id="sim-cdi-rate" value="122" oninput="runSimulation()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taxa Alternativa (IPCA + %)</label>
+            <input type="number" step="0.1" class="form-input" id="sim-ipca-rate" value="6.8" oninput="runSimulation()">
+          </div>
+        </div>
+
+        <!-- Resultado do Simulador -->
+        <div class="sim-result-box">
+          <div class="sim-row">
+            <span style="color:var(--text-muted);">Montante Bruto Estimado:</span>
+            <strong id="sim-bruto">R$ 338.450,00</strong>
+          </div>
+          <div class="sim-row">
+            <span style="color:var(--text-muted);">Imposto de Renda (15% LF > 2 anos):</span>
+            <span style="color:var(--danger);" id="sim-ir">- R$ 13.267,50</span>
+          </div>
+          <div class="sim-row highlight">
+            <span>Valor Líquido no Vencimento:</span>
+            <span id="sim-liquido">R$ 325.182,50</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--success); font-weight:700;" id="sim-comparativo">
+            Rendimento líquido de +R$ 75.182,50 (Equivalente a 11,85% a.a. líquido).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: CENTRAL DE ALERTAS WEALTH
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-notifications">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-regular fa-bell text-primary"></i> Alertas & Notificações Wealth</h3>
+        <button class="modal-close" onclick="closeModal('modal-notifications')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="background:var(--warning-glow); border:1px solid var(--warning); padding:16px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--warning); font-size:0.88rem;"><i class="fa-solid fa-triangle-exclamation"></i> Vencimento de LF Próximo</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Em 45 dias</span>
+            </div>
+            <p style="font-size:0.84rem; margin-top:6px; color:var(--text);">LF Banco Alfa (R$ 200.000,00) vence em 18/10/2026. Consulte o seu advisor para nova alocação.</p>
+          </div>
+
+          <div style="background:var(--info-glow); border:1px solid var(--info); padding:16px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--info); font-size:0.88rem;"><i class="fa-solid fa-calendar-days"></i> Come-Cotas Semestral</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Novembro 2026</span>
+            </div>
+            <p style="font-size:0.84rem; margin-top:6px; color:var(--text);">Estimativa de recolhimento de IR em cotas de R$ 14.820,00 nos fundos multimercados e RF.</p>
+          </div>
+
+          <div style="background:var(--success-glow); border:1px solid var(--success); padding:16px; border-radius:var(--radius-md);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:var(--success); font-size:0.88rem;"><i class="fa-solid fa-wand-magic-sparkles"></i> Nova Emissão Primária BTG</strong>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Hoje</span>
+            </div>
+            <p style="font-size:0.84rem; margin-top:6px; color:var(--text);">LF Subordinada IPCA + 7,15% a.a. disponível para Investidores Qualificados.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 4: PERFIL DO INVESTIDOR & ADVISOR
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-profile">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-id-card text-primary"></i> Perfil & Private Wealth Advisor</h3>
+        <button class="modal-close" onclick="closeModal('modal-profile')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; align-items:center; gap:16px; padding:12px; background:var(--bg-surface); border-radius:var(--radius-md);">
+          <div class="avatar" style="width:52px; height:52px; font-size:1.2rem;">RR</div>
+          <div>
+            <h4 style="font-size:1.05rem; font-weight:800;">Rodrigo Rocha</h4>
+            <span class="badge-tag badge-primary">Investidor Qualificado (CVM 554)</span>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Perfil de Risco: <strong>Arrojado / Wealth Growth</strong></div>
+          </div>
+        </div>
+
+        <div style="background:var(--card-elevated); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+          <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; color:var(--primary); margin-bottom:6px;">Seu Advisor Dedicado</div>
+          <strong style="font-size:0.95rem;">Gabriel Albuquerque, CFP®</strong>
+          <div style="font-size:0.82rem; color:var(--text-muted);">Apex Wealth Advisory | Private Banking</div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn-primary" style="padding:8px 14px; font-size:0.8rem;" onclick="alert('Conectando ao WhatsApp do Advisor...')">
+              <i class="fa-brands fa-whatsapp"></i> Falar com Advisor
+            </button>
+            <button class="btn-secondary" style="padding:8px 14px; font-size:0.8rem;" onclick="alert('Agendando reunião de revisão de carteira...')">
+              <i class="fa-regular fa-calendar"></i> Agendar Review
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST FEEDBACK -->
+  <div class="toast-notification" id="toast-msg">
+    <i class="fa-solid fa-circle-check text-success" id="toast-icon"></i>
+    <span id="toast-text">Período atualizado com sucesso</span>
+  </div>
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC, CHARTS & PRIVATE BANKING DATA ENGINE
+       ========================================================================== -->
+  <script>
+    /* --------------------------------------------------------------------------
+       STATE & REPOSITORY OF ASSETS
+       -------------------------------------------------------------------------- */
+    let currentTheme = 'midnight';
+    let currentPrimary = 'amber';
+    let balanceVisible = true;
+    let currentActiveFilter = 'all';
+
+    // Database of active portfolio assets
+    let portfolioAssets = [
+      { id: 1, name: 'LF Banco Alfa Subordinada', category: 'lf', indexer: 'IPCA+', issuer: 'Banco Alfa', custody: 'XP Private', rate: 'IPCA + 6,80%', applied: 200000, current: 238450, liquidity: 'Venc. 18/10/2026', rentability: '+15,8% a.a.', icon: 'fa-building-columns', iconColor: '#f59e0b' },
+      { id: 2, name: 'Verde AM FIC FIM', category: 'fundos', indexer: 'CDI', issuer: 'Verde Asset', custody: 'BTG Pactual', rate: 'CDI + 3,80%', applied: 350000, current: 412800, liquidity: 'D+30 (Cotização)', rentability: '+16,2% a.a.', icon: 'fa-chart-line', iconColor: '#10b981' },
+      { id: 3, name: 'LF Banco Safra Sênior', category: 'lf', indexer: 'CDI', issuer: 'Banco Safra', custody: 'BTG Pactual', rate: '118% do CDI', applied: 500000, current: 562400, liquidity: 'Venc. 14/08/2027', rentability: '+12,4% a.a.', icon: 'fa-building-columns', iconColor: '#f59e0b' },
+      { id: 4, name: 'Kinea Rendimentos Imob. FII', category: 'fundos', indexer: 'IPCA+', issuer: 'Kinea Investimentos', custody: 'XP Private', rate: 'IPCA + 7,20% Div.', applied: 280000, current: 310500, liquidity: 'D+2 (Mercado Sec.)', rentability: '+14,1% a.a.', icon: 'fa-building', iconColor: '#8b5cf6' },
+      { id: 5, name: 'LF Itaú Subordinada', category: 'lf', indexer: 'CDI', issuer: 'Itaú Private', custody: 'Itaú Private', rate: '120% do CDI', applied: 450000, current: 508200, liquidity: 'Venc. 15/03/2027', rentability: '+12,6% a.a.', icon: 'fa-building-columns', iconColor: '#f59e0b' },
+      { id: 6, name: 'SPX Nimitz FIC FIM', category: 'fundos', indexer: 'CDI', issuer: 'SPX Capital', custody: 'BTG Pactual', rate: 'CDI + 4,20%', applied: 300000, current: 348900, liquidity: 'D+45 (Cotização)', rentability: '+15,9% a.a.', icon: 'fa-chart-line', iconColor: '#10b981' },
+      { id: 7, name: 'CRI JHSF Fasano Isento', category: 'rf', indexer: 'IPCA+', issuer: 'JHSF / Securitizadora', custody: 'XP Private', rate: 'IPCA + 6,90% Isento', applied: 250000, current: 284200, liquidity: 'Venc. 20/09/2028', rentability: '+17,1% Bruto Eq.', icon: 'fa-leaf', iconColor: '#10b981' },
+      { id: 8, name: 'CDB Banco Master Prefixado', category: 'rf', indexer: 'Prefixado', issuer: 'Banco Master', custody: 'BTG Pactual', rate: '14,20% a.a. Pré', applied: 350000, current: 412000, liquidity: 'Venc. 10/12/2027', rentability: '+14,2% a.a.', icon: 'fa-vault', iconColor: '#3b82f6' },
+      { id: 9, name: 'Capitânia Radian Fundo RF', category: 'fundos', indexer: 'CDI', issuer: 'Capitânia Invest', custody: 'XP Private', rate: 'CDI + 2,10%', applied: 400000, current: 442500, liquidity: 'D+1 (Liquidez)', rentability: '+12,7% a.a.', icon: 'fa-scale-balanced', iconColor: '#10b981' },
+      { id: 10, name: 'LF Banco BTG Pactual', category: 'lf', indexer: 'IPCA+', issuer: 'BTG Pactual', custody: 'BTG Pactual', rate: 'IPCA + 6,95%', applied: 300000, current: 345000, liquidity: 'Venc. 22/05/2028', rentability: '+16,1% a.a.', icon: 'fa-building-columns', iconColor: '#f59e0b' },
+      { id: 11, name: 'IP Capital Partners FIA', category: 'fundos', indexer: 'Ibovespa', issuer: 'IP Investimentos', custody: 'BTG Pactual', rate: 'Ibovespa + 6%', applied: 250000, current: 298000, liquidity: 'D+30 (Ações)', rentability: '+19,4% a.a.', icon: 'fa-arrow-trend-up', iconColor: '#8b5cf6' },
+      { id: 12, name: 'Debênture Incentivada CCR', category: 'rf', indexer: 'IPCA+', issuer: 'CCR Rodovias', custody: 'Itaú Private', rate: 'IPCA + 6,40% Isento', applied: 180000, current: 204500, liquidity: 'Venc. 15/07/2029', rentability: '+16,4% Bruto Eq.', icon: 'fa-road', iconColor: '#3b82f6' },
+      { id: 13, name: 'LF Banco Daycoval', category: 'lf', indexer: 'CDI', issuer: 'Banco Daycoval', custody: 'XP Private', rate: '119% do CDI', applied: 300000, current: 338150, liquidity: 'Venc. 10/11/2027', rentability: '+12,5% a.a.', icon: 'fa-building-columns', iconColor: '#f59e0b' },
+      { id: 14, name: 'Avenue Treasury Bond US', category: 'fundos', indexer: 'Dólar', issuer: 'US Treasury 5Y', custody: 'Avenue Securities', rate: '4,80% a.a. em Dólar', applied: 200000, current: 245000, liquidity: 'D+0 (Mercado US)', rentability: '+13,8% em BRL', icon: 'fa-dollar-sign', iconColor: '#10b981' }
+    ];
+
+    // Chart instances
+    let chartPatrimonio = null;
+    let chartAssets = null;
+    let chartIdx = null;
+    let chartMaturity = null;
+    let chartRebal = null;
+
+    /* --------------------------------------------------------------------------
+       INITIALIZATION
+       -------------------------------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAllTables();
+      initAllCharts();
+      runSimulation();
+    });
+
+    /* --------------------------------------------------------------------------
+       DATE FORMATTING, AUTO-MASKING & PASTE LOGIC
+       -------------------------------------------------------------------------- */
+    function handleDateInput(input) {
+      let v = input.value.replace(/\D/g, '');
+      if (v.length > 8) v = v.substring(0, 8);
+      
+      if (v.length >= 5) {
+        input.value = v.substring(0, 2) + '/' + v.substring(2, 4) + '/' + v.substring(4, 8);
+      } else if (v.length >= 3) {
+        input.value = v.substring(0, 2) + '/' + v.substring(2, 4);
+      } else {
+        input.value = v;
+      }
+
+      if (v.length === 8) {
+        applyCustomDateFilter();
+      }
+    }
+
+    function handleDatePaste(e, input) {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').trim();
+      
+      // Parse ISO format (YYYY-MM-DD), slash format (DD/MM/YYYY) or raw digits (DDMMYYYY)
+      let formatted = '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(pasted)) {
+        const parts = pasted.split('-');
+        formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(pasted)) {
+        const parts = pasted.split(/[\/\-]/);
+        formatted = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      } else {
+        let digits = pasted.replace(/\D/g, '');
+        if (digits.length >= 8) {
+          formatted = `${digits.substring(0, 2)}/${digits.substring(2, 4)}/${digits.substring(4, 8)}`;
+        } else {
+          formatted = digits;
+        }
+      }
+      
+      input.value = formatted;
+      applyCustomDateFilter();
+      showToast(`Data colada: ${formatted}`);
+    }
+
+    function triggerNativePicker(nativeId) {
+      const native = document.getElementById(nativeId);
+      if (native) {
+        try {
+          native.showPicker();
+        } catch (err) {
+          native.click();
+        }
+      }
+    }
+
+    function syncNativeToTextInput(nativeId, textId) {
+      const native = document.getElementById(nativeId);
+      const text = document.getElementById(textId);
+      if (native && text && native.value) {
+        const parts = native.value.split('-');
+        text.value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        applyCustomDateFilter();
+      }
+    }
+
+    function syncMobDates() {
+      const start = document.getElementById('mob-date-start').value;
+      const end = document.getElementById('mob-date-end').value;
+      document.getElementById('date-start').value = start;
+      document.getElementById('date-end').value = end;
+      applyCustomDateFilter();
+    }
+
+    function setQuickRangePreset(preset) {
+      document.querySelectorAll('.range-preset-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-preset-${preset}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const dStart = document.getElementById('date-start');
+      const dEnd = document.getElementById('date-end');
+      const mobStart = document.getElementById('mob-date-start');
+      const mobEnd = document.getElementById('mob-date-end');
+
+      dEnd.value = '23/08/2026';
+      if (mobEnd) mobEnd.value = '23/08/2026';
+
+      if (preset === '12m') {
+        dStart.value = '01/09/2025';
+        if (chartPatrimonio) {
+          chartPatrimonio.data.labels = ['Set/25', 'Out/25', 'Nov/25', 'Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26', 'Ago/26'];
+          chartPatrimonio.data.datasets[0].data = [4120000, 4180000, 4245000, 4310000, 4385000, 4460000, 4530000, 4615000, 4690000, 4770000, 4810000, 4850000];
+          chartPatrimonio.data.datasets[1].data = [4120000, 4155000, 4192000, 4230000, 4270000, 4310000, 4352000, 4395000, 4440000, 4485000, 4530000, 4578000];
+          chartPatrimonio.data.datasets[2].data = [4120000, 4148000, 4180000, 4215000, 4250000, 4290000, 4328000, 4370000, 4410000, 4452000, 4496000, 4540000];
+        }
+      } else if (preset === 'ytd') {
+        dStart.value = '01/01/2026';
+        if (chartPatrimonio) {
+          chartPatrimonio.data.labels = ['Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26', 'Ago/26'];
+          chartPatrimonio.data.datasets[0].data = [4385000, 4460000, 4530000, 4615000, 4690000, 4770000, 4810000, 4850000];
+          chartPatrimonio.data.datasets[1].data = [4270000, 4310000, 4352000, 4395000, 4440000, 4485000, 4530000, 4578000];
+          chartPatrimonio.data.datasets[2].data = [4250000, 4290000, 4328000, 4370000, 4410000, 4452000, 4496000, 4540000];
+        }
+      } else if (preset === '24m') {
+        dStart.value = '01/09/2024';
+        if (chartPatrimonio) {
+          chartPatrimonio.data.labels = ['Set/24', 'Dez/24', 'Mar/25', 'Jun/25', 'Set/25', 'Dez/25', 'Mar/26', 'Ago/26'];
+          chartPatrimonio.data.datasets[0].data = [3600000, 3750000, 3920000, 4050000, 4120000, 4310000, 4530000, 4850000];
+          chartPatrimonio.data.datasets[1].data = [3600000, 3710000, 3840000, 3980000, 4120000, 4230000, 4352000, 4578000];
+          chartPatrimonio.data.datasets[2].data = [3600000, 3690000, 3810000, 3950000, 4120000, 4215000, 4328000, 4540000];
+        }
+      } else if (preset === 'max') {
+        dStart.value = '01/01/2023';
+        if (chartPatrimonio) {
+          chartPatrimonio.data.labels = ['2023', '2024', '2025', '2026'];
+          chartPatrimonio.data.datasets[0].data = [2800000, 3400000, 4120000, 4850000];
+          chartPatrimonio.data.datasets[1].data = [2800000, 3180000, 3650000, 4578000];
+          chartPatrimonio.data.datasets[2].data = [2800000, 3110000, 3540000, 4540000];
+        }
+      }
+
+      if (mobStart) mobStart.value = dStart.value;
+      if (chartPatrimonio) chartPatrimonio.update();
+      showToast(`Período ajustado para ${dStart.value} até ${dEnd.value}`);
+    }
+
+    function applyCustomDateFilter() {
+      const s = document.getElementById('date-start').value;
+      const e = document.getElementById('date-end').value;
+      if (s.length === 10 && e.length === 10) {
+        showToast(`Filtro aplicado: ${s} a ${e}`);
+        if (chartPatrimonio) chartPatrimonio.update();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-msg');
+      const text = document.getElementById('toast-text');
+      if (toast && text) {
+        text.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2800);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       THEME & COLOR CONTROLLERS
+       -------------------------------------------------------------------------- */
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      document.querySelectorAll('.theme-pill').forEach(btn => btn.classList.remove('active'));
+      const activePill = document.getElementById(`pill-${theme}`);
+      if (activePill) activePill.classList.add('active');
+
+      const configSelector = document.getElementById('theme-selector-config');
+      if (configSelector) configSelector.value = theme;
+      
+      updateChartsTheme();
+    }
+
+    function cycleThemeMobile() {
+      const themes = ['midnight', 'dark', 'light'];
+      let nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+      setTheme(themes[nextIndex]);
+    }
+
+    function setPrimaryColor(color) {
+      currentPrimary = color;
+      document.documentElement.setAttribute('data-primary', color);
+      updateChartsTheme();
+    }
+
+    function cyclePrimaryColor() {
+      const colors = ['amber', 'green', 'blue', 'purple'];
+      let nextIndex = (colors.indexOf(currentPrimary) + 1) % colors.length;
+      setPrimaryColor(colors[nextIndex]);
+    }
+
+    /* --------------------------------------------------------------------------
+       SENSITIVE FINANCIAL VALUES TOGGLE (EYE BUTTON)
+       -------------------------------------------------------------------------- */
+    function toggleBalanceVisibility() {
+      balanceVisible = !balanceVisible;
+      const deskEye = document.getElementById('desktop-eye-icon');
+      const mobEye = document.getElementById('mobile-eye-icon');
+      
+      const eyeClass = balanceVisible ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+      if (deskEye) deskEye.className = eyeClass;
+      if (mobEye) mobEye.className = eyeClass;
+
+      document.querySelectorAll('.sensitive-val').forEach(el => {
+        if (!el.dataset.originalVal) {
+          el.dataset.originalVal = el.innerText;
+        }
+        if (balanceVisible) {
+          el.innerText = el.dataset.originalVal;
+        } else {
+          el.innerText = 'R$ •••••••';
+        }
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       NAVIGATION VIEW SWITCHER
+       -------------------------------------------------------------------------- */
+    function switchView(viewId) {
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active-view'));
+      
+      const target = document.getElementById(`view-${viewId}`);
+      if (target) target.classList.add('active-view');
+
+      // Update Desktop Sidebar
+      const navMap = {
+        'patrimonio': 0,
+        'fundos': 1,
+        'rendafixa': 2,
+        'agenda': 3,
+        'alocacao': 4,
+        'radar': 5,
+        'config': 6
+      };
+      const sidebarItems = document.querySelectorAll('.sidebar .nav-item');
+      sidebarItems.forEach(item => item.classList.remove('active'));
+      if (sidebarItems[navMap[viewId]]) {
+        sidebarItems[navMap[viewId]].classList.add('active');
+      }
+
+      // Update Mobile Bottom Nav
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeMobBtn = document.getElementById(`mob-nav-${viewId}`);
+      if (activeMobBtn) activeMobBtn.classList.add('active');
+
+      // Update Header Titles
+      const titleMap = {
+        'patrimonio': { title: 'Visão Geral do Patrimônio', icon: 'fa-landmark' },
+        'fundos': { title: 'Fundos de Investimento', icon: 'fa-chart-line' },
+        'rendafixa': { title: 'Letras Financeiras & Renda Fixa', icon: 'fa-building-columns' },
+        'agenda': { title: 'Agenda de Liquidez & Vencimentos', icon: 'fa-calendar-check' },
+        'alocacao': { title: 'Alocação & Rebalanceamento', icon: 'fa-scale-balanced' },
+        'radar': { title: 'Radar de Oportunidades Wealth', icon: 'fa-wand-magic-sparkles' },
+        'config': { title: 'Custodiantes & Definições', icon: 'fa-sliders' }
+      };
+
+      if (titleMap[viewId]) {
+        document.getElementById('topbar-title').innerText = titleMap[viewId].title;
+        document.getElementById('topbar-icon').className = `fa-solid ${titleMap[viewId].icon}`;
+        document.getElementById('mobile-view-title').innerText = titleMap[viewId].title.split(' ')[0];
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* --------------------------------------------------------------------------
+       MODAL CONTROLLERS & DRILLDOWN POPUPS
+       -------------------------------------------------------------------------- */
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    }
+
+    function openSimulatorModal() {
+      openModal('modal-simulator');
+    }
+
+    function openNotificationModal() {
+      openModal('modal-notifications');
+    }
+
+    function openProfileModal() {
+      openModal('modal-profile');
+    }
+
+    function openBenchmarkSelector() {
+      alert('Indexador de Referência Ativo: 100% do CDI (10,50% a.a.).\nComparativos ativos: IPCA + 6,0% e Ibovespa.');
+    }
+
+    // Modal de Drilldown ao clicar nos gráficos ou KPIs
+    function showChartDrilldown(title, htmlContent) {
+      document.getElementById('drilldown-title').innerHTML = `<i class="fa-solid fa-chart-pie text-primary"></i> ${title}`;
+      document.getElementById('drilldown-body').innerHTML = htmlContent;
+      openModal('modal-drilldown');
+    }
+
+    function showKpiDrilldown(kpiType) {
+      if (kpiType === 'patrimonio') {
+        showChartDrilldown('Detalhamento de Patrimônio Consolidado', `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="font-size:0.8rem; color:var(--text-muted);">Saldo Bruto Total</div>
+              <div style="font-size:1.6rem; font-weight:800; color:var(--text);">R$ 4.962.800,00</div>
+              <div style="font-size:0.8rem; color:var(--danger); margin-top:4px;">Provisão de IR/IOF: - R$ 112.800,00</div>
+              <div style="font-size:1.1rem; font-weight:800; color:var(--success); margin-top:6px; border-top:1px solid var(--border); padding-top:6px;">
+                Saldo Líquido Disponível: R$ 4.850.000,00
+              </div>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">
+              Distribuição por custódia: BTG Pactual (49,9%), XP Private (32,6%), Itaú Private (12,4%), Avenue (5,1%).
+            </div>
+          </div>
+        `);
+      } else if (kpiType === 'rentabilidade') {
+        showChartDrilldown('Performance e Rentabilidade Líquida', `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span>Rentabilidade Carteira (12M):</span>
+                <strong style="color:var(--success);">+14,20% a.a.</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span>Benchmark 100% CDI:</span>
+                <strong>+10,50% a.a.</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span>Alpha Gerado (Spread):</span>
+                <strong style="color:var(--primary);">+3,70% a.a. (134% CDI)</strong>
+              </div>
+            </div>
+          </div>
+        `);
+      } else if (kpiType === 'rendimento') {
+        showChartDrilldown('Rendimento Acumulado em R$', `
+          <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+            <div style="font-size:0.8rem; color:var(--text-muted);">Lucro Líquido Realizado + Não Realizado</div>
+            <div style="font-size:1.6rem; font-weight:800; color:var(--purple);">R$ 584.200,00</div>
+            <p style="font-size:0.82rem; color:var(--text-muted); margin-top:8px;">
+              Cálculo baseado no saldo inicial dos ativos contra as cotações e marcações a mercado atuais.
+            </p>
+          </div>
+        `);
+      } else if (kpiType === 'projecao') {
+        showChartDrilldown('Projeção de Fluxo Próximo Mês', `
+          <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+            <div style="font-size:0.8rem; color:var(--text-muted);">Rendimento Contratado Estimado</div>
+            <div style="font-size:1.6rem; font-weight:800; color:var(--warning);">~ R$ 54.100,00</div>
+            <div style="font-size:0.82rem; margin-top:8px;">
+              Com base no CDI a 10,50% a.a. e IPCA projetado a 0,38% m/m para os títulos pós-fixados e híbridos.
+            </div>
+          </div>
+        `);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       FORMATTERS & TABLE RENDERING
+       -------------------------------------------------------------------------- */
+    function formatCurrency(num) {
+      return 'R$ ' + Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function filterAssetTable(filterCategory, subtitleText) {
+      currentActiveFilter = filterCategory;
+      document.querySelectorAll('.filter-pills .filter-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-filter-${filterCategory}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const subtitle = document.getElementById('table-filter-subtitle');
+      if (subtitle) {
+        subtitle.innerText = subtitleText || (filterCategory === 'all' 
+          ? 'Visualização completa de fundos, letras financeiras e títulos' 
+          : `Filtrado por: ${filterCategory.toUpperCase()}`);
+      }
+
+      const tbody = document.getElementById('table-consolidated-assets');
+      tbody.innerHTML = '';
+
+      const filtered = filterCategory === 'all' 
+        ? portfolioAssets 
+        : portfolioAssets.filter(a => a.category === filterCategory || a.indexer === filterCategory);
+
+      renderAssetRows(tbody, filtered);
+    }
+
+    function renderAssetRows(container, list) {
+      let html = '';
+      list.forEach(a => {
+        html += `
+          <tr>
+            <td>
+              <div class="asset-name-cell">
+                <div class="asset-icon-box" style="background: rgba(245, 158, 11, 0.15); color: ${a.iconColor};">
+                  <i class="fa-solid ${a.icon}"></i>
+                </div>
+                <div class="asset-info-text">
+                  <span class="asset-title">${a.name}</span>
+                  <span class="asset-issuer">${a.issuer}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge-tag badge-primary">${a.custody}</span>
+            </td>
+            <td><strong>${a.rate}</strong></td>
+            <td style="text-align:right;" class="sensitive-val">${formatCurrency(a.applied)}</td>
+            <td style="text-align:right; font-weight:800;" class="sensitive-val">${formatCurrency(a.current)}</td>
+            <td><span class="badge-tag badge-info">${a.liquidity}</span></td>
+            <td style="text-align:center;">
+              <span class="badge-tag badge-success">${a.rentability}</span>
+            </td>
+          </tr>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderAllTables() {
+      // 1. Consolidated table
+      const mainTable = document.getElementById('table-consolidated-assets');
+      if (mainTable) renderAssetRows(mainTable, portfolioAssets);
+
+      // 2. Fundos table
+      const fundsTable = document.getElementById('table-funds-detail');
+      if (fundsTable) {
+        const funds = portfolioAssets.filter(a => a.category === 'fundos');
+        let html = '';
+        funds.forEach(f => {
+          html += `
+            <tr>
+              <td>
+                <div class="asset-name-cell">
+                  <div class="asset-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                    <i class="fa-solid fa-chart-line"></i>
+                  </div>
+                  <div class="asset-info-text">
+                    <span class="asset-title">${f.name}</span>
+                    <span class="asset-issuer">${f.rate}</span>
+                  </div>
+                </div>
+              </td>
+              <td>${f.issuer} (${f.custody})</td>
+              <td><strong>R$ 38,4219</strong></td>
+              <td style="text-align:right; font-weight:800;" class="sensitive-val">${formatCurrency(f.current)}</td>
+              <td><span class="badge-tag badge-info">${f.liquidity}</span></td>
+              <td><span class="badge-tag badge-warning">Nov/26 (15%)</span></td>
+              <td style="text-align:center;"><span class="badge-tag badge-success">${f.rentability}</span></td>
+            </tr>
+          `;
+        });
+        fundsTable.innerHTML = html;
+      }
+
+      // 3. Fixed income table
+      const fiTable = document.getElementById('table-fixed-income-detail');
+      if (fiTable) {
+        const fi = portfolioAssets.filter(a => a.category === 'lf' || a.category === 'rf');
+        let html = '';
+        fi.forEach(t => {
+          html += `
+            <tr>
+              <td>
+                <div class="asset-name-cell">
+                  <div class="asset-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                    <i class="fa-solid ${t.icon}"></i>
+                  </div>
+                  <div>
+                    <strong>${t.name}</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${t.issuer}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge-tag badge-primary">${t.category.toUpperCase()} Subordinada</span></td>
+              <td><strong style="color:var(--primary);">${t.rate}</strong></td>
+              <td style="text-align:right;" class="sensitive-val">${formatCurrency(t.applied)}</td>
+              <td style="text-align:right; font-weight:800;" class="sensitive-val">${formatCurrency(t.current)}</td>
+              <td><span class="badge-tag badge-info">${t.liquidity}</span></td>
+              <td>${t.custody}</td>
+            </tr>
+          `;
+        });
+        fiTable.innerHTML = html;
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       SIMULATOR CALCULATION ENGINE
+       -------------------------------------------------------------------------- */
+    function runSimulation() {
+      const amount = parseFloat(document.getElementById('sim-amount').value) || 100000;
+      const months = parseInt(document.getElementById('sim-months').value) || 36;
+      const cdiPct = parseFloat(document.getElementById('sim-cdi-rate').value) || 122;
+
+      const annualCDI = 0.105; // 10.50%
+      const effectiveAnnualRate = annualCDI * (cdiPct / 100);
+      const years = months / 12;
+
+      const grossFinal = amount * Math.pow(1 + effectiveAnnualRate, years);
+      const profit = grossFinal - amount;
+      
+      // IR regressivo: > 720 dias = 15%
+      const irTax = profit * 0.15;
+      const netFinal = grossFinal - irTax;
+
+      document.getElementById('sim-bruto').innerText = formatCurrency(grossFinal);
+      document.getElementById('sim-ir').innerText = '- ' + formatCurrency(irTax);
+      document.getElementById('sim-liquido').innerText = formatCurrency(netFinal);
+      document.getElementById('sim-comparativo').innerText = 
+        `Rendimento líquido estimado de +${formatCurrency(profit - irTax)} (${((Math.pow(netFinal/amount, 1/years)-1)*100).toFixed(2)}% a.a. líquido).`;
+    }
+
+    /* --------------------------------------------------------------------------
+       CHART.JS DATA & INTERACTIVE CLICKABLE CONFIGURATION
+       -------------------------------------------------------------------------- */
+    function getChartThemeColors() {
+      const isLight = currentTheme === 'light';
+      return {
+        textColor: isLight ? '#64748b' : '#94a3b8',
+        gridColor: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)',
+        primary: currentPrimary === 'amber' ? '#f59e0b' : currentPrimary === 'green' ? '#10b981' : currentPrimary === 'blue' ? '#3b82f6' : '#8b5cf6',
+        primaryGlow: currentPrimary === 'amber' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'
+      };
+    }
+
+    function initAllCharts() {
+      const c = getChartThemeColors();
+
+      // 1. Chart Evolução Patrimonial (CLICÁVEL)
+      const ctx1 = document.getElementById('chartPatrimonioEvolution');
+      if (ctx1) {
+        chartPatrimonio = new Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels: ['Set/25', 'Out/25', 'Nov/25', 'Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26', 'Jun/26', 'Jul/26', 'Ago/26'],
+            datasets: [
+              {
+                label: 'Carteira Apex Private',
+                data: [4120000, 4180000, 4245000, 4310000, 4385000, 4460000, 4530000, 4615000, 4690000, 4770000, 4810000, 4850000],
+                borderColor: c.primary,
+                backgroundColor: c.primaryGlow,
+                fill: true,
+                tension: 0.35,
+                borderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                pointBackgroundColor: c.primary
+              },
+              {
+                label: '100% CDI',
+                data: [4120000, 4155000, 4192000, 4230000, 4270000, 4310000, 4352000, 4395000, 4440000, 4485000, 4530000, 4578000],
+                borderColor: '#3b82f6',
+                borderDash: [5, 5],
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 0
+              },
+              {
+                label: 'IPCA + 6,0% a.a.',
+                data: [4120000, 4148000, 4180000, 4215000, 4250000, 4290000, 4328000, 4370000, 4410000, 4452000, 4496000, 4540000],
+                borderColor: '#10b981',
+                borderDash: [3, 3],
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            onHover: (e, activeElements) => {
+              e.native.target.style.cursor = activeElements.length ? 'pointer' : 'default';
+            },
+            onClick: (e, activeElements) => {
+              if (activeElements.length > 0) {
+                const idx = activeElements[0].index;
+                const month = chartPatrimonio.data.labels[idx];
+                const valApex = chartPatrimonio.data.datasets[0].data[idx];
+                const valCdi = chartPatrimonio.data.datasets[1].data[idx];
+                showChartDrilldown(`Posição em ${month}`, `
+                  <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                      <div style="font-size:0.8rem; color:var(--text-muted);">Patrimônio Consolidado em ${month}</div>
+                      <div style="font-size:1.6rem; font-weight:800; color:var(--primary);">${formatCurrency(valApex)}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding:10px; background:var(--card); border-radius:var(--radius-md);">
+                      <span>Comparativo vs 100% CDI:</span>
+                      <strong style="color:var(--success);">+${formatCurrency(valApex - valCdi)} acima do CDI</strong>
+                    </div>
+                  </div>
+                `);
+              }
+            },
+            plugins: {
+              legend: { labels: { color: c.textColor, font: { family: 'Plus Jakarta Sans', weight: 600, size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { color: c.gridColor }, ticks: { color: c.textColor, font: { family: 'Plus Jakarta Sans' } } },
+              y: { 
+                grid: { color: c.gridColor }, 
+                ticks: { 
+                  color: c.textColor, 
+                  font: { family: 'Plus Jakarta Sans' },
+                  callback: function(val) { return 'R$ ' + (val/1000000).toFixed(2) + 'M'; }
+                } 
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Chart Donut: Alocação por Classe (CLICÁVEL)
+      const ctx2 = document.getElementById('chartAssetClasses');
+      if (ctx2) {
+        chartAssets = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: ['Letras Financeiras (38%)', 'Fundos Multimercado (18%)', 'Fundos Renda Fixa (20%)', 'Títulos Isentos CRI/LCI (16%)', 'Fundos Imob. & Ações (8%)'],
+            datasets: [{
+              data: [38, 18, 20, 16, 8],
+              backgroundColor: ['#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ec4899'],
+              borderWidth: 0,
+              hoverOffset: 10
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onHover: (e, activeEls) => {
+              e.native.target.style.cursor = activeEls.length ? 'pointer' : 'default';
+            },
+            onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                const idx = activeEls[0].index;
+                const categoryMapping = ['lf', 'fundos', 'fundos', 'rf', 'fundos'];
+                const categoryNames = ['Letras Financeiras', 'Fundos Multimercado', 'Fundos de Renda Fixa', 'Títulos Isentos (CRI/LCI)', 'Fundos Imobiliários e Ações'];
+                
+                filterAssetTable(categoryMapping[idx], `Filtrado por: ${categoryNames[idx]}`);
+                showToast(`Tabela filtrada para ${categoryNames[idx]}`);
+                
+                const tableSection = document.getElementById('section-consolidated-assets');
+                if (tableSection) tableSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { color: c.textColor, font: { family: 'Plus Jakarta Sans', size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) { return `${ctx.label}: ${ctx.parsed}% da carteira`; }
+                }
+              }
+            },
+            cutout: '70%'
+          }
+        });
+      }
+
+      // 3. Chart Indexadores (CLICÁVEL)
+      const ctx3 = document.getElementById('chartIndexers');
+      if (ctx3) {
+        chartIdx = new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: ['CDI Flutuante (118-122%)', 'IPCA + Spread (6,8-7,2%)', 'Prefixado (14,2% a.a.)', 'Moeda Forte (Dólar US)'],
+            datasets: [{
+              label: '% Alocação',
+              data: [52, 34, 10, 4],
+              backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'],
+              borderRadius: 8
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            onHover: (e, activeEls) => {
+              e.native.target.style.cursor = activeEls.length ? 'pointer' : 'default';
+            },
+            onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                const idx = activeEls[0].index;
+                const indexerKeys = ['CDI', 'IPCA+', 'Prefixado', 'Dólar'];
+                filterAssetTable(indexerKeys[idx], `Indexador: ${indexerKeys[idx]}`);
+                showToast(`Exibindo ativos atrelados a ${indexerKeys[idx]}`);
+                
+                const tableSection = document.getElementById('section-consolidated-assets');
+                if (tableSection) tableSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function(ctx) { return `${ctx.parsed.x}% do patrimônio total`; } } }
+            },
+            scales: {
+              x: { grid: { color: c.gridColor }, ticks: { color: c.textColor, callback: v => v + '%' } },
+              y: { grid: { display: false }, ticks: { color: c.textColor, font: { family: 'Plus Jakarta Sans', weight: 600 } } }
+            }
+          }
+        });
+      }
+
+      // 4. Chart Cronograma de Vencimentos (CLICÁVEL)
+      const ctx4 = document.getElementById('chartMaturitySchedule');
+      if (ctx4) {
+        chartMaturity = new Chart(ctx4, {
+          type: 'bar',
+          data: {
+            labels: ['2026 (Restante)', '2027', '2028', '2029', '2030+'],
+            datasets: [{
+              label: 'Volume de Resgate (R$ Milhões)',
+              data: [0.38, 0.92, 1.25, 0.85, 0.45],
+              backgroundColor: c.primary,
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onHover: (e, activeEls) => {
+              e.native.target.style.cursor = activeEls.length ? 'pointer' : 'default';
+            },
+            onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                const idx = activeEls[0].index;
+                const year = chartMaturity.data.labels[idx];
+                const vol = chartMaturity.data.datasets[0].data[idx];
+                
+                showChartDrilldown(`Vencimentos em ${year}`, `
+                  <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Capital a ser liberado em ${year}</div>
+                    <div style="font-size:1.6rem; font-weight:800; color:var(--primary);">R$ ${(vol * 1000000).toLocaleString('pt-BR')}</div>
+                    <p style="font-size:0.84rem; color:var(--text-muted); margin-top:8px;">
+                      Clique no botão abaixo para acessar a timeline completa de eventos da carteira.
+                    </p>
+                    <button class="btn-primary" style="margin-top:12px; width:100%; justify-content:center;" onclick="closeModal('modal-drilldown'); switchView('agenda');">
+                      Abrir Agenda de Vencimentos &rarr;
+                    </button>
+                  </div>
+                `);
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function(ctx) { return `R$ ${(ctx.parsed.y * 1000).toLocaleString('pt-BR')} mil a liberar`; } } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: c.textColor, font: { family: 'Plus Jakarta Sans' } } },
+              y: { grid: { color: c.gridColor }, ticks: { color: c.textColor, callback: v => 'R$ ' + v + 'M' } }
+            }
+          }
+        });
+      }
+
+      // 5. Chart Rebalanceamento (CLICÁVEL)
+      const ctx5 = document.getElementById('chartRebalance');
+      if (ctx5) {
+        chartRebal = new Chart(ctx5, {
+          type: 'bar',
+          data: {
+            labels: ['Letras Fin.', 'Fundos RF', 'Multimercados', 'Isentos (CRI/LCI)', 'FIIs / Ações'],
+            datasets: [
+              {
+                label: 'Carteira Real (%)',
+                data: [38, 20, 18, 16, 8],
+                backgroundColor: c.primary,
+                borderRadius: 6
+              },
+              {
+                label: 'Alvo Recomendado (%)',
+                data: [35, 20, 20, 15, 10],
+                backgroundColor: '#3b82f6',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onHover: (e, activeEls) => {
+              e.native.target.style.cursor = activeEls.length ? 'pointer' : 'default';
+            },
+            onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                const idx = activeEls[0].index;
+                const label = chartRebal.data.labels[idx];
+                const real = chartRebal.data.datasets[0].data[idx];
+                const target = chartRebal.data.datasets[1].data[idx];
+                const diff = real - target;
+                
+                showChartDrilldown(`Rebalanceamento: ${label}`, `
+                  <div style="background:var(--bg-surface); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                      <span>Alocação Atual:</span>
+                      <strong>${real}%</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                      <span>Alocação Alvo:</span>
+                      <strong>${target}%</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:8px;">
+                      <span>Desvio:</span>
+                      <strong style="color:${diff > 0 ? 'var(--warning)' : 'var(--success)'};">${diff > 0 ? '+' : ''}${diff}% (${diff > 0 ? 'Sobreponderado' : 'Subponderado'})</strong>
+                    </div>
+                  </div>
+                `);
+              }
+            },
+            plugins: {
+              legend: { labels: { color: c.textColor, font: { family: 'Plus Jakarta Sans', weight: 600 } } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: c.textColor } },
+              y: { grid: { color: c.gridColor }, ticks: { color: c.textColor, callback: v => v + '%' } }
+            }
+          }
+        });
+      }
+    }
+
+    function updateChartsTheme() {
+      const c = getChartThemeColors();
+      [chartPatrimonio, chartAssets, chartIdx, chartMaturity, chartRebal].forEach(chart => {
+        if (!chart) return;
+        if (chart.options.scales) {
+          if (chart.options.scales.x) {
+            chart.options.scales.x.ticks.color = c.textColor;
+            if (chart.options.scales.x.grid) chart.options.scales.x.grid.color = c.gridColor;
+          }
+          if (chart.options.scales.y) {
+            chart.options.scales.y.ticks.color = c.textColor;
+            if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = c.gridColor;
+          }
+        }
+        if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+          chart.options.plugins.legend.labels.color = c.textColor;
+        }
+        chart.update();
+      });
+    }
+  </script>
+</body>
+</html>

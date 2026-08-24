@@ -131,6 +131,14 @@ body.dark-mode {
   --light: #131d31;
   --income: #10b981;
   --expense: #ef4444;
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.2);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.2);
+  --purple: #8b5cf6;
+  --primary-glow: rgba(16, 185, 129, 0.25);
   --glass-bg: rgba(19, 29, 49, 0.75);
   --sicoob-bg: #0b0f19;
   --sicoob-card: #131d31;
@@ -156,6 +164,14 @@ body.black-mode {
   --light: #0f1016;
   --income: #10b981;
   --expense: #ef4444;
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.2);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.2);
+  --purple: #8b5cf6;
+  --primary-glow: rgba(16, 185, 129, 0.25);
   --glass-bg: rgba(15, 16, 22, 0.75);
   --sicoob-bg: #030305;
   --sicoob-card: #0f1016;
@@ -445,7 +461,7 @@ body {
 .content {
   margin-left: 76px;
   width: calc(100% - 76px);
-  padding: 24px 32px;
+  padding: 0;
   transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   min-height: 100vh;
   display: flex;
@@ -717,11 +733,19 @@ body {
 }
 
 .topbar {
+  height: 76px;
+  padding: 0 32px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 8px 0;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  margin-bottom: 0;
 }
 
 .page-header-title {
@@ -742,14 +766,14 @@ body {
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .period-navigator {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--bg-card, var(--card));
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 4px 6px;
@@ -757,8 +781,8 @@ body {
 }
 
 .period-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -771,7 +795,7 @@ body {
 }
 
 .period-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--card-hover, rgba(255, 255, 255, 0.08));
   color: var(--text-main, var(--text));
 }
 
@@ -781,14 +805,14 @@ body:not(.dark-mode):not(.black-mode) .period-btn:hover {
 
 .period-display {
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--text-main, var(--text));
   user-select: none;
   transition: opacity 0.2s ease;
@@ -798,12 +822,89 @@ body:not(.dark-mode):not(.black-mode) .period-btn:hover {
   opacity: 0.8;
 }
 
+/* THEME SELECTOR DROPDOWN / PILLS */
+.theme-picker {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.theme-pill {
+  border: none;
+  background: transparent;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted, var(--gray));
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.theme-pill:hover {
+  color: var(--text-main, var(--text));
+}
+
+.theme-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--primary-glow, rgba(16, 185, 129, 0.3));
+}
+
+/* Range Presets / Type Pill Segmentations (Conforme 1prototype.html) */
+.range-presets {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 2px 3px;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.range-preset-btn {
+  border: none;
+  background: transparent;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted, var(--gray));
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.range-preset-btn:hover {
+  color: var(--text-main, var(--text));
+}
+
+.range-preset-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--primary-glow, rgba(16, 185, 129, 0.3));
+}
+
 .btn-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--bg-card, var(--card));
+  background: var(--card);
   color: var(--text-muted, var(--gray));
   display: flex;
   align-items: center;
@@ -817,8 +918,7 @@ body:not(.dark-mode):not(.black-mode) .period-btn:hover {
 .btn-icon:hover {
   color: var(--text-main, var(--text));
   border-color: var(--primary);
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-1px);
+  background: var(--card-hover, rgba(255, 255, 255, 0.06));
 }
 
 body:not(.dark-mode):not(.black-mode) .btn-icon:hover {
@@ -840,7 +940,7 @@ body:not(.dark-mode):not(.black-mode) .btn-icon:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: 12px;
   background: var(--primary);
   color: #ffffff;
@@ -879,75 +979,95 @@ body:not(.dark-mode):not(.black-mode) .btn-icon:hover {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-body:not(.dark-mode):not(.black-mode) .btn-secondary:hover {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.15);
+/* ==========================================================================
+   CARDS, KPI GRIDS & WIDGETS (Conforme completo_prototype.html)
+   ========================================================================== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
-
-
-
 
 .kpi-card {
-  position: relative;
-  padding: 1.5rem 1.5rem 1.5rem 2.5rem;
-  border-radius: 1.25rem !important;
-  background-color: var(--card) !important;
+  background: var(--card) !important;
   border: 1px solid var(--border) !important;
-  transition: all 0.3s ease;
-  overflow: hidden;
+  border-radius: 20px !important;
+  padding: 22px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  min-height: auto !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  border-color: var(--border-subtle, rgba(255, 255, 255, 0.15)) !important;
+}
+
+.kpi-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 120px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 15%;
-  bottom: 15%;
-  width: 8px;
-  border-radius: 0 100px 100px 0;
-  transition: all 0.3s ease;
-}
-
-.kpi-card-blue::after { background-color: var(--primary); }
-.kpi-card-red::after { background-color: var(--danger); }
-.kpi-card-green::after { background-color: var(--success); }
-.kpi-card-purple::after { background-color: var(--faturas); }
-
-.kpi-card-blue, .kpi-card-red, .kpi-card-green, .kpi-card-purple { border-left: none !important; }
-
-/* Dark & Black Mode Specific Overrides */
-body.dark-mode .kpi-card, body.black-mode .kpi-card {
-  background-color: var(--card) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-body.dark-mode .kpi-card .text-muted, body.black-mode .kpi-card .text-muted,
-body.dark-mode .kpi-card small, body.black-mode .kpi-card small { 
-  color: #8899a6 !important; 
-  opacity: 1 !important;
+.kpi-title {
+  font-size: 0.78rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--text-muted) !important;
 }
 
-body.dark-mode .kpi-card .centered-value, body.black-mode .kpi-card .centered-value,
-body.dark-mode .kpi-card h3, body.black-mode .kpi-card h3 { 
-  color: #ffffff !important; 
+.kpi-icon-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1rem !important;
 }
 
-/* Ensure no text-color utility overrides the white color in dark mode cards */
-body.dark-mode .kpi-card .text-danger, body.black-mode .kpi-card .text-danger,
-body.dark-mode .kpi-card .text-success, body.black-mode .kpi-card .text-success,
-body.dark-mode .kpi-card .text-primary, body.black-mode .kpi-card .text-primary,
-body.dark-mode .kpi-card .text-faturas, body.black-mode .kpi-card .text-faturas {
-  color: #ffffff !important;
+.kpi-val {
+  font-family: var(--font-main, 'Plus Jakarta Sans', sans-serif) !important;
+  font-size: 1.55rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
 }
 
-.text-faturas { color: var(--faturas) !important; }
-body.dark-mode .text-faturas, body.black-mode .text-faturas { color: #c084fc !important; }
+.kpi-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+}
+
+.text-success { color: var(--success, #10b981) !important; }
+.text-danger { color: var(--danger, #ef4444) !important; }
+.text-primary { color: var(--primary, #10b981) !important; }
+.text-purple { color: var(--purple, #8b5cf6) !important; }
+.text-warning { color: var(--warning, #f59e0b) !important; }
+.text-muted { color: var(--text-muted, #94a3b8) !important; }
+
+@media (max-width: 992px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 
 .card-click:hover {

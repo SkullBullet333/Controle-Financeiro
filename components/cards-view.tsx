@@ -4,15 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { CartaoConfig, Titular, CartaoTransacao, Despesa } from '@/lib/types';
 import { calculatePresentValue } from '@/lib/finance-service';
-import { 
-  CreditCard as CardIcon, 
-  Calculator, 
-  Plus, 
-  Receipt, 
-  Zap, 
-  Search, 
-  Edit2, 
-  Trash2, 
+import {
+  CreditCard as CardIcon,
+  Calculator,
+  Plus,
+  Receipt,
+  Zap,
+  Search,
+  Edit2,
+  Trash2,
   CheckCircle,
   TrendingDown,
   ShieldCheck,
@@ -35,6 +35,9 @@ interface CartoesViewProps {
   transacoes: CartaoTransacao[];
   despesas?: Despesa[];
   totalsByCard: Record<number, number>;
+  competencia?: string;
+  currentMonth?: number;
+  currentYear?: number;
   onAdd: () => void;
   onEdit: (item: CartaoTransacao) => void;
   onDelete: (id: number) => void;
@@ -87,6 +90,9 @@ export function CartoesView({
   transacoes = [],
   despesas = [],
   totalsByCard = {},
+  competencia,
+  currentMonth,
+  currentYear,
   onAdd,
   onEdit,
   onDelete,
@@ -216,16 +222,28 @@ export function CartoesView({
     return cardsList.reduce((sum, c) => sum + c.limiteDisponivel, 0);
   }, [activeCard, cardsList]);
 
-  // Projeção dos Próximos 6 Meses de Fatura (Obedece estritamente a segmentação do cartão ativo)
+  // Projeção dos Próximos 6 Meses de Fatura (Obedece estritamente a competência selecionada e o cartão ativo)
   const faturas6MesesData = useMemo(() => {
     const monthsShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const now = new Date();
-    const currentM = now.getMonth() + 1;
-    const currentY = now.getFullYear();
+    
+    let startM = currentMonth;
+    let startY = currentYear;
+
+    if (!startM || !startY) {
+      if (competencia && competencia.includes('/')) {
+        const [m, y] = competencia.split('/').map(Number);
+        startM = m;
+        startY = y < 100 ? 2000 + y : y;
+      } else {
+        const now = new Date();
+        startM = now.getMonth() + 1;
+        startY = now.getFullYear();
+      }
+    }
 
     const data = [];
-    let tempM = currentM;
-    let tempY = currentY;
+    let tempM = startM;
+    let tempY = startY;
 
     for (let i = 0; i < 6; i++) {
       const comp = `${String(tempM).padStart(2, '0')}/${tempY}`;
@@ -281,12 +299,12 @@ export function CartoesView({
     }
 
     return data;
-  }, [despesas, transacoes, currentCardFatura, activeCard]);
+  }, [despesas, transacoes, currentCardFatura, activeCard, currentMonth, currentYear, competencia]);
 
   return (
-    <div className="space-y-3">
+    <div className="d-flex flex-column" style={{ gap: '16px' }}>
       {/* 2. Interactive Cards Slider (Compacto e sem corte de bordas) */}
-      <div className="card-panel py-3 px-3.5 mb-0" style={{ overflow: 'visible' }}>
+      <div className="card-panel py-3 px-3.5" style={{ overflow: 'visible', marginBottom: 0 }}>
         <div className="panel-header flex-wrap gap-2 mb-1">
           <div>
             <h3 className="panel-title text-sm">
@@ -356,7 +374,7 @@ export function CartoesView({
       </div>
 
       {/* 3. Grid 2 Colunas no Desktop: Detalhamento da Fatura (Esquerda) + Consolidado & Gráfico 6 Meses (Direita) */}
-      <div className="grid-2col" style={{ gap: '16px' }}>
+      <div className="grid-2col" style={{ gap: '14px' }}>
         {/* Coluna 1: Detalhamento da Fatura */}
         <div className="card-panel py-3 px-3.5 mb-0 d-flex flex-column justify-content-between order-2 md:order-1 order-md-1">
           <div>
@@ -453,7 +471,7 @@ export function CartoesView({
                       className="bg-card border border-border rounded-2xl p-2.5 d-flex align-items-center justify-content-between gap-2 transition-all shadow-sm"
                     >
                       <div className="d-flex align-items-center gap-2 min-w-0 flex-grow" onClick={() => onEdit(t)}>
-                        <div 
+                        <div
                           className="d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
                           style={{
                             width: '22px',
@@ -537,7 +555,7 @@ export function CartoesView({
                         <tr key={t.id}>
                           <td style={{ padding: '8px 10px' }}>
                             <div className="d-flex align-items-center gap-2">
-                              <div 
+                              <div
                                 className="d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
                                 style={{
                                   width: '22px',
@@ -620,7 +638,7 @@ export function CartoesView({
             </div>
 
             {/* Total de Faturas (Filtrado por Cartão ou Geral) */}
-            <div 
+            <div
               className="p-3 rounded-2xl border mb-3 space-y-1.5"
               style={{ background: 'var(--bg-surface, #0a0a0f)', borderColor: 'var(--border, rgba(255,255,255,0.08))' }}
             >
@@ -632,9 +650,9 @@ export function CartoesView({
                   Fatura Atual
                 </span>
               </div>
-              <div 
-                className={cn('text-2xl font-black tracking-tight', isHidden && 'hidden-amount')} 
-                style={{ color: activeCard?.color || '#ef4444' }}
+              <div
+                className={cn('text-2xl font-black tracking-tight text-purple', isHidden && 'hidden-amount')}
+                style={{ color: 'var(--purple, #8b5cf6)' }}
               >
                 {isHidden ? 'R$ •••••' : formatCurrency(currentCardFatura)}
               </div>
@@ -655,28 +673,36 @@ export function CartoesView({
                 </span>
               </div>
 
-              <div className="chart-container w-100" style={{ height: '240px', minHeight: '240px', maxHeight: '240px', minWidth: 0, overflow: 'hidden', position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={faturas6MesesData} margin={{ top: 8, right: 10, left: -22, bottom: 0 }}>
+              <div className="chart-container w-100" style={{ height: '240px', minHeight: '240px', maxHeight: '240px', minWidth: 0, position: 'relative' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={faturas6MesesData} margin={{ top: 8, right: 12, left: 6, bottom: 22 }}>
                     <defs>
                       <linearGradient id="faturaCardGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={activeCard?.color || '#ef4444'} stopOpacity={0.3} />
                         <stop offset="95%" stopColor={activeCard?.color || '#ef4444'} stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" />
                     <XAxis
                       dataKey="monthName"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#a1a1aa', fontSize: 11, fontWeight: 500 }}
-                      dy={5}
+                      interval={0}
+                      tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 11, fontWeight: 600 }}
+                      dy={8}
                     />
                     <YAxis
+                      domain={[0, (dataMax: number) => {
+                        if (!dataMax || dataMax <= 0) return 1000;
+                        const target = dataMax * 1.08;
+                        const step = target > 5000 ? 500 : 250;
+                        return Math.ceil(target / step) * step;
+                      }]}
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#a1a1aa', fontSize: 10 }}
-                      tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
+                      width={58}
+                      tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 11, fontWeight: 600 }}
+                      tickFormatter={(val) => `R$ ${(val / 1000).toFixed(1)}k`}
                     />
                     <RechartsTooltip
                       contentStyle={{

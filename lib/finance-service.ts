@@ -522,3 +522,49 @@ export function calculatePresentValue(vf: number, monthlyRatePercent: number, du
   
   return { vp, discount };
 }
+
+// ==================== BATCH CATEGORY RENAMING ====================
+
+export async function renomearCategoriaEmLote(
+  categoriaAntiga: string,
+  categoriaNova: string,
+  familyId?: string,
+  userId?: string
+) {
+  if (!categoriaAntiga || !categoriaNova || categoriaAntiga.trim() === categoriaNova.trim()) {
+    return { success: false, updatedCount: 0 };
+  }
+
+  const oldCat = categoriaAntiga.trim();
+  const newCat = categoriaNova.trim();
+
+  // 1. Atualizar em despesas
+  let qDespesas = supabase
+    .from('despesas')
+    .update({ categoria: newCat })
+    .eq('categoria', oldCat);
+  if (familyId) qDespesas = qDespesas.eq('family_id', familyId);
+  const { error: err1 } = await qDespesas;
+  if (err1) console.error('Erro ao atualizar categoria em despesas:', err1);
+
+  // 2. Atualizar em contas_fixas
+  let qFixas = supabase
+    .from('contas_fixas')
+    .update({ categoria: newCat })
+    .eq('categoria', oldCat);
+  if (familyId) qFixas = qFixas.eq('family_id', familyId);
+  const { error: err2 } = await qFixas;
+  if (err2) console.error('Erro ao atualizar categoria em contas_fixas:', err2);
+
+  // 3. Atualizar em cartoes (transações de cartão)
+  let qCartoes = supabase
+    .from('cartoes')
+    .update({ categoria: newCat })
+    .eq('categoria', oldCat);
+  if (familyId) qCartoes = qCartoes.eq('family_id', familyId);
+  const { error: err3 } = await qCartoes;
+  if (err3) console.error('Erro ao atualizar categoria em cartoes:', err3);
+
+  return { success: true };
+}
+

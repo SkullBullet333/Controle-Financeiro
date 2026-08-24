@@ -3,17 +3,17 @@
 import React, { useState, useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { Despesa, Receita, Titular, CartaoConfig, ContaFixaConfig, Emprestimo } from '@/lib/types';
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Wallet, 
-  Search, 
-  SlidersHorizontal, 
-  Plus, 
-  Settings, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Wallet,
+  Search,
+  SlidersHorizontal,
+  Plus,
+  Settings,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
   MoreVertical,
   Edit2,
   Trash2,
@@ -52,12 +52,12 @@ export function DespesasReceitasView({
   isHidden = false
 }: DespesasReceitasViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'despesa' | 'receita'>('all');
+  const [typeFilter, setTypeFilter] = useState<'despesa' | 'receita'>('despesa');
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pago' | 'aberto' | 'vencido'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  const activeFiltersCount = (typeFilter !== 'all' ? 1 : 0) + (memberFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
+  const activeFiltersCount = (memberFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -114,16 +114,31 @@ export function DespesasReceitasView({
     });
 
     return [...exp, ...inc].sort((a, b) => {
-      if (a.isOverdue && !b.isOverdue) return -1;
-      if (!a.isOverdue && b.isOverdue) return 1;
-      return b.sortDate.localeCompare(a.sortDate);
+      // 1. Grupo de Status (0: Vencidos no topo, 1: Em aberto no meio, 2: Pagos/Recebidos no final)
+      const getStatusPrio = (tx: any) => {
+        if (tx.isOverdue) return 0;
+        if (tx.status !== 'Pago' && tx.status !== 'Recebido') return 1;
+        return 2;
+      };
+
+      const prioA = getStatusPrio(a);
+      const prioB = getStatusPrio(b);
+      if (prioA !== prioB) return prioA - prioB;
+
+      // 2. Tipo de Lançamento (Receitas primeiro, depois Despesas)
+      if (a.isIncome !== b.isIncome) {
+        return a.isIncome ? -1 : 1;
+      }
+
+      // 3. Data de Vencimento/Recebimento (Próximos vencimentos para cima - Ordem Crescente)
+      return a.sortDate.localeCompare(b.sortDate);
     });
   }, [despesas, receitas, titulares, cartoes, todayStr]);
 
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
-      // Type filter
+      // Type filter (Apenas Despesa ou Apenas Receita)
       if (typeFilter === 'despesa' && tx.isIncome) return false;
       if (typeFilter === 'receita' && !tx.isIncome) return false;
 
@@ -164,17 +179,20 @@ export function DespesasReceitasView({
   const saldoLiquido = totalReceitas - totalDespesas;
 
   return (
-    <div className="space-y-4">
-      {/* 1. Desktop Toolbar (Horizontal) */}
-      <div className="d-none d-md-flex align-items-center justify-content-between gap-3 bg-card p-3 rounded-2xl border border-border shadow-sm">
-        <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
-          <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-3 py-2" style={{ minWidth: '220px', maxWidth: '320px' }}>
-            <Search className="w-4 h-4 text-muted me-2" />
+    <div className="space-y-3">
+      {/* 1. Desktop Toolbar (Forçar flex-direction: row para manter rigorosamente na mesma linha) */}
+      <div
+        className="card-panel py-2 px-3.5 mb-3 d-none d-md-flex flex-row align-items-center justify-content-between w-100"
+        style={{ flexDirection: 'row', gap: '10px', flexWrap: 'nowrap' }}
+      >
+        <div className="d-flex flex-row align-items-center gap-2 flex-nowrap flex-shrink-0 me-auto">
+          {/* Busca */}
+          <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-2.5 flex-shrink-0" style={{ width: '160px', height: '34px' }}>
+            <Search className="w-3.5 h-3.5 text-muted me-1.5 flex-shrink-0" />
             <input
               type="text"
-              placeholder="Buscar lançamento..."
-              className="form-control border-0 p-0 shadow-none bg-transparent text-sm font-medium"
-              style={{ fontSize: '0.85rem' }}
+              placeholder="Buscar..."
+              className="form-control border-0 p-0 shadow-none bg-transparent text-xs font-semibold"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -184,53 +202,91 @@ export function DespesasReceitasView({
                 className="border-0 bg-transparent text-muted hover:text-foreground cursor-pointer p-0"
                 onClick={() => setSearchTerm('')}
               >
-                <i className="fa-solid fa-xmark"></i>
+                <i className="fa-solid fa-xmark text-xs"></i>
               </button>
             )}
           </div>
 
-          <select
-            className="form-select text-sm font-medium border-border rounded-xl bg-card"
-            style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
-          >
-            <option value="all">Todos os Tipos</option>
-            <option value="despesa">Apenas Despesas</option>
-            <option value="receita">Apenas Receitas</option>
-          </select>
-
-          <select
-            className="form-select text-sm font-medium border-border rounded-xl bg-card"
-            style={{ width: 'auto', minWidth: '160px', padding: '8px 12px' }}
-            value={memberFilter}
-            onChange={(e) => setMemberFilter(e.target.value)}
-          >
-            <option value="all">Todos os Titulares</option>
-            {titulares.map((t) => (
-              <option key={t.id} value={t.id}>{t.nome}</option>
-            ))}
-          </select>
-
-          <select
-            className="form-select text-sm font-medium border-border rounded-xl bg-card"
-            style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-          >
-            <option value="all">Todos os Status</option>
-            <option value="pago">Pago / Recebido</option>
-            <option value="aberto">Em Aberto</option>
-            <option value="vencido">Vencidos</option>
-          </select>
-
-          {(searchTerm || typeFilter !== 'all' || memberFilter !== 'all' || statusFilter !== 'all') && (
+          {/* Segmentação de Tipo: Apenas Receitas ou Despesas */}
+          <div className="range-presets flex-shrink-0">
             <button
               type="button"
-              className="btn btn-link text-danger font-bold text-xs text-decoration-none p-0 ms-1"
+              className={cn("range-preset-btn", typeFilter === 'receita' && "active")}
+              onClick={() => setTypeFilter('receita')}
+            >
+              <i className="fa-solid fa-arrow-down text-success text-[10px]"></i>
+              <span>Receitas</span>
+            </button>
+            <button
+              type="button"
+              className={cn("range-preset-btn", typeFilter === 'despesa' && "active")}
+              onClick={() => setTypeFilter('despesa')}
+            >
+              <i className="fa-solid fa-arrow-up text-danger text-[10px]"></i>
+              <span>Despesas</span>
+            </button>
+          </div>
+
+          {/* Segmentação de Status por Botões Pills */}
+          <div className="range-presets flex-shrink-0">
+            <button
+              type="button"
+              className={cn("range-preset-btn", statusFilter === 'all' && "active")}
+              onClick={() => setStatusFilter('all')}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              className={cn("range-preset-btn", statusFilter === 'aberto' && "active")}
+              onClick={() => setStatusFilter('aberto')}
+            >
+              Em Aberto
+            </button>
+            <button
+              type="button"
+              className={cn("range-preset-btn", statusFilter === 'vencido' && "active")}
+              onClick={() => setStatusFilter('vencido')}
+            >
+              Vencidos
+            </button>
+            <button
+              type="button"
+              className={cn("range-preset-btn", statusFilter === 'pago' && "active")}
+              onClick={() => setStatusFilter('pago')}
+            >
+              {typeFilter === 'receita' ? 'Recebidos' : 'Pagos'}
+            </button>
+          </div>
+
+          {/* Segmentação de Titular por Botões Pills */}
+          <div className="range-presets flex-shrink-0">
+            <button
+              type="button"
+              className={cn("range-preset-btn", memberFilter === 'all' && "active")}
+              onClick={() => setMemberFilter('all')}
+            >
+              Todos
+            </button>
+            {titulares.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={cn("range-preset-btn", memberFilter === String(t.id) && "active")}
+                onClick={() => setMemberFilter(String(t.id))}
+              >
+                {t.nome}
+              </button>
+            ))}
+          </div>
+
+          {(searchTerm || memberFilter !== 'all' || statusFilter !== 'all') && (
+            <button
+              type="button"
+              className="btn btn-link text-danger font-bold text-xs text-decoration-none p-0 ms-1 flex-shrink-0 whitespace-nowrap d-flex align-items-center"
+              style={{ height: '34px' }}
               onClick={() => {
                 setSearchTerm('');
-                setTypeFilter('all');
                 setMemberFilter('all');
                 setStatusFilter('all');
               }}
@@ -240,38 +296,40 @@ export function DespesasReceitasView({
           )}
         </div>
 
-        <div className="d-flex align-items-center gap-2 ms-auto">
+        {/* Ações estritamente alinhadas à DIREITA com altura padrão 34px */}
+        <div className="d-flex align-items-center gap-2 ms-auto flex-shrink-0 flex-nowrap">
           <button
             type="button"
-            className="btn-secondary d-flex align-items-center gap-2 text-xs py-2 px-3"
+            className="btn-secondary d-flex align-items-center gap-1.5 text-xs px-3 rounded-xl whitespace-nowrap"
+            style={{ height: '34px' }}
             onClick={onOpenExpenseSettings}
             title="Gerenciar Contas Fixas, Recorrentes e Projeções"
           >
-            <Settings className="w-4 h-4 text-muted" />
-            <span className="d-none d-sm-inline">Contas Fixas</span>
+            <Settings className="w-3.5 h-3.5 text-muted" />
+            <span>Contas Fixas</span>
           </button>
 
           <button
             type="button"
-            className="btn-primary d-flex align-items-center gap-2 shadow-sm text-xs py-2 px-3"
-            onClick={() => onAdd('despesa')}
+            className="btn-primary d-flex align-items-center gap-1.5 shadow-sm text-xs px-3 rounded-xl whitespace-nowrap"
+            style={{ height: '34px' }}
+            onClick={() => onAdd(typeFilter)}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Novo Registro</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Mobile Toolbar (Com ícone de ocultar/mostrar segmentações verticais) */}
-      <div className="d-md-none space-y-2.5 bg-card p-3 rounded-2xl border border-border shadow-sm">
+      {/* 2. Mobile Toolbar (Padrão card-panel com segmentações em botões pills) */}
+      <div className="card-panel py-2.5 px-3 mb-3 d-md-none space-y-2">
         <div className="d-flex align-items-center gap-2">
-          <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-3 py-2 flex-grow-1">
+          <div className="d-flex align-items-center bg-muted/40 border border-border rounded-xl px-3 py-1.5 flex-grow-1">
             <Search className="w-4 h-4 text-muted me-2 flex-shrink-0" />
             <input
               type="text"
               placeholder="Buscar..."
               className="form-control border-0 p-0 shadow-none bg-transparent text-sm font-medium"
-              style={{ fontSize: '0.85rem' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -280,9 +338,9 @@ export function DespesasReceitasView({
           <button
             type="button"
             className={cn(
-              "btn btn-sm d-flex align-items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs transition-all shadow-sm flex-shrink-0",
-              showFilters || activeFiltersCount > 0 
-                ? "bg-primary text-white border-primary" 
+              "btn btn-sm d-flex align-items-center gap-1.5 px-2.5 py-1.5 rounded-xl border font-bold text-xs transition-all shadow-sm flex-shrink-0",
+              showFilters || activeFiltersCount > 0
+                ? "bg-primary text-white border-primary"
                 : "bg-card-hover border-border text-foreground"
             )}
             onClick={() => setShowFilters(!showFilters)}
@@ -297,31 +355,43 @@ export function DespesasReceitasView({
           </button>
         </div>
 
+        {/* Tipo rápido no Mobile (Receitas / Despesas) */}
+        <div className="range-presets w-100 justify-content-between">
+          <button
+            type="button"
+            className={cn("range-preset-btn flex-grow-1 justify-content-center", typeFilter === 'receita' && "active")}
+            onClick={() => setTypeFilter('receita')}
+          >
+            <i className="fa-solid fa-arrow-down text-success text-[10px]"></i> Receitas
+          </button>
+          <button
+            type="button"
+            className={cn("range-preset-btn flex-grow-1 justify-content-center", typeFilter === 'despesa' && "active")}
+            onClick={() => setTypeFilter('despesa')}
+          >
+            <i className="fa-solid fa-arrow-up text-danger text-[10px]"></i> Despesas
+          </button>
+        </div>
+
         {showFilters && (
           <div className="pt-2 border-top border-border/40 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
             <div>
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Tipo</label>
-              <select className="form-select text-xs font-medium border-border rounded-xl bg-card w-100" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)}>
-                <option value="all">Todos os Tipos</option>
-                <option value="despesa">Apenas Despesas</option>
-                <option value="receita">Apenas Receitas</option>
-              </select>
+              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Status</label>
+              <div className="range-presets w-100 justify-content-between flex-wrap gap-1">
+                <button type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", statusFilter === 'all' && "active")} onClick={() => setStatusFilter('all')}>Todos</button>
+                <button type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", statusFilter === 'aberto' && "active")} onClick={() => setStatusFilter('aberto')}>Em Aberto</button>
+                <button type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", statusFilter === 'vencido' && "active")} onClick={() => setStatusFilter('vencido')}>Vencidos</button>
+                <button type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", statusFilter === 'pago' && "active")} onClick={() => setStatusFilter('pago')}>{typeFilter === 'receita' ? 'Recebidos' : 'Pagos'}</button>
+              </div>
             </div>
             <div>
               <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Titular</label>
-              <select className="form-select text-xs font-medium border-border rounded-xl bg-card w-100" value={memberFilter} onChange={(e) => setMemberFilter(e.target.value)}>
-                <option value="all">Todos os Titulares</option>
-                {titulares.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">Status</label>
-              <select className="form-select text-xs font-medium border-border rounded-xl bg-card w-100" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
-                <option value="all">Todos os Status</option>
-                <option value="pago">Pago / Recebido</option>
-                <option value="aberto">Em Aberto</option>
-                <option value="vencido">Vencidos</option>
-              </select>
+              <div className="range-presets w-100 justify-content-between flex-wrap gap-1">
+                <button type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", memberFilter === 'all' && "active")} onClick={() => setMemberFilter('all')}>Todos</button>
+                {titulares.map((t) => (
+                  <button key={t.id} type="button" className={cn("range-preset-btn flex-grow-1 text-center justify-content-center", memberFilter === String(t.id) && "active")} onClick={() => setMemberFilter(String(t.id))}>{t.nome}</button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -423,7 +493,7 @@ export function DespesasReceitasView({
 
                   {/* Valor & Ações */}
                   <div className="d-flex flex-column align-items-end flex-shrink-0">
-                    <span 
+                    <span
                       className="font-bold text-xs"
                       style={{ color: tx.isIncome ? '#10b981' : '#ef4444' }}
                     >
@@ -544,8 +614,8 @@ export function DespesasReceitasView({
                             {tx.desc}
                           </span>
                           {tx.isVirtual && (
-                            <span 
-                              className="badge rounded-pill bg-muted text-muted-foreground border border-border" 
+                            <span
+                              className="badge rounded-pill bg-muted text-muted-foreground border border-border"
                               style={{ fontSize: '9px', padding: '1px 5px' }}
                               title="Lançamento Projetado/Recorrente"
                             >
