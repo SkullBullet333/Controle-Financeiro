@@ -840,7 +840,7 @@ export function useFinance(activeView: string) {
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO ESTADO LOCAL (0ms de atraso)
       if (isVirtual) {
         setReceitas(prev => [
-          ...prev.filter(r => !(item.conta_fixa_id && Number(r.conta_fixa_id) === Number(item.conta_fixa_id) && r.competencia === item.competencia)),
+          ...prev.filter(r => !(item.conta_fixa_id && Number(r.conta_fixa_id) === Number(item.conta_fixa_id) && (r.competencia === item.competencia || Number(r.parcela_atual) === Number(item.parcela_atual)))),
           { ...item, ...updates, id: id } as Receita
         ]);
       } else {
@@ -1615,7 +1615,7 @@ export function useFinance(activeView: string) {
         (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
 
       for (let i = 1; i <= lastParcelaToProject; i++) {
-        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        let dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal, false);
         
         let comp = '';
         if (config.competencia_inicial) {
@@ -1623,11 +1623,12 @@ export function useFinance(activeView: string) {
           const baseDate = new Date(y, m - 1, 1);
           comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
         } else {
-          comp = calcularCompetencia(dataVenc);
+          comp = calcularCompetenciaReceita(dataVenc);
         }
+        dataVenc = ajustarDataReceita(dataVenc);
 
         const existeNoBanco = receitas.find(r => 
-          Number(r.conta_fixa_id) === Number(config.id) && r.competencia === comp
+          Number(r.conta_fixa_id) === Number(config.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(i))
         );
 
         if (!existeNoBanco) {
@@ -1641,6 +1642,8 @@ export function useFinance(activeView: string) {
               data_recebimento: vencStr,
               competencia: comp,
               conta_fixa_id: config.id,
+              parcela_atual: i,
+              parcela_total: config.total_parcelas || 0,
               categoria: config.categoria || 'Recursos',
               status: (vencStr <= todayStr) ? 'Recebido' : 'Pendente'
             } as Receita);
@@ -1772,19 +1775,19 @@ export function useFinance(activeView: string) {
         const limit = cfg.total_parcelas || 36;
 
         for (let i = 1; i <= limit; i++) {
-          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+          let dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal, false);
           let cComp = '';
           if (cfg.competencia_inicial) {
             const [m, y] = cfg.competencia_inicial.split('/').map(Number);
             const baseDate = new Date(y, m - 1, 1);
             cComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
           } else {
-            cComp = calcularCompetencia(dataVenc);
+            cComp = calcularCompetenciaReceita(dataVenc);
           }
 
           if (cComp === comp) {
             const existeNoBanco = receitas.find(r => 
-              Number(r.conta_fixa_id) === Number(cfg.id) && r.competencia === comp
+              Number(r.conta_fixa_id) === Number(cfg.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(i))
             );
             if (!existeNoBanco) {
               virtualRec += Number(cfg.valor_mensal || 0);
@@ -1911,34 +1914,7 @@ export function useFinance(activeView: string) {
     return projecao;
   }, [despesas, receitas, currentMonth, currentYear, allProjectedCartaoTransacoes, contasFixas, emprestimos, config.cartoes]);
 
-  // Auto-Sync of Virtual Revenues (Recurrent/Fixed) on their due date
-  useEffect(() => {
-    if (!user || isLoading || !familyId) return;
-
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const toSync = consolidatedReceitas.filter(r => 
-      r.id < 0 && 
-      r.data_recebimento <= todayStr &&
-      !syncedRevenuesRef.current.has(r.id) // Evitar duplicados
-    );
-
-    if (toSync.length > 0) {
-      console.log('Antigravity: Auto-syncing virtual revenues:', toSync.length);
-      // Marcar como sincronizando
-      toSync.forEach(r => syncedRevenuesRef.current.add(r.id));
-      
-      Promise.all(toSync.map(r => {
-        const { id, ...dados } = r;
-        return salvarReceita({ ...dados, status: 'Recebido' }, user.id, familyId);
-      })).then(() => {
-        console.log('Antigravity: Auto-sync complete.');
-        fetchData(user.id);
-      }).catch(err => console.error('Antigravity: Error auto-syncing revenues:', err));
-    }
-  }, [consolidatedReceitas, user, familyId, isLoading, fetchData]);
-
   const lastAutoLaunchRef = useRef<string | null>(null);
-  const syncedRevenuesRef = useRef<Set<number>>(new Set());
   const syncedExpensesRef = useRef<Set<string>>(new Set());
 
   // Auto-lançamento de despesas projetadas (cartões no dia da compra, empréstimos e fixas comuns 5 dias antes do fim do mês)

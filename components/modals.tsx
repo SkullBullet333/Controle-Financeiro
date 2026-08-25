@@ -221,6 +221,7 @@ export function UniversalFinanceForm({
         />
       ) : (
         <FinanceForm
+          key={`${activeType}-${initialData ? (initialData as any).id : 'new'}`}
           type={activeType === 'receita' ? 'receita' : 'despesa'}
           subType={activeType === 'despesa_cartao' ? 'cartao' : (activeType === 'despesa' ? 'fixa' : initialSubType)}
           titulares={titulares}
@@ -500,7 +501,7 @@ export function FinanceForm({
       data.data_recebimento = finalDate;
       const dataAjustada = ajustarDataReceita(parseISO(finalDate));
       data.competencia = calcularCompetenciaReceita(dataAjustada);
-      data.parcela_total = parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2);
+      data.parcela_total = paymentType === 'A vista' ? 1 : (parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2));
     }
 
     if ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente)) {

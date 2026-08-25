@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { Titular, CartaoConfig, Despesa, Receita, Emprestimo, ContaFixaConfig, CartaoTransacao } from '@/lib/types';
-import { calculatePresentValue, projetarProximoVencimento, calcularCompetencia } from '@/lib/finance-service';
+import { calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaReceita } from '@/lib/finance-service';
 import {
   Wand2,
   ShieldCheck,
@@ -252,19 +252,19 @@ export function RadarFinanceiroView({
           const limit = cfg.total_parcelas || 36;
 
           for (let p = 1; p <= limit; p++) {
-            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
+            let dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal, false);
             let cComp = '';
             if (cfg.competencia_inicial) {
               const [m, y] = cfg.competencia_inicial.split('/').map(Number);
               const baseDate = new Date(y, m - 1, 1);
               cComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
             } else {
-              cComp = calcularCompetencia(dataVenc);
+              cComp = calcularCompetenciaReceita(dataVenc);
             }
 
             if (cComp === comp) {
               const existeNoBanco = receitas.find(
-                (r) => Number(r.conta_fixa_id) === Number(cfg.id) && r.competencia === comp
+                (r) => Number(r.conta_fixa_id) === Number(cfg.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(p))
               );
               if (!existeNoBanco) {
                 virtualRec += Number(cfg.valor_mensal || 0);
