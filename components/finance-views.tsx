@@ -679,7 +679,7 @@ export function CardProjectionChart({
               fill="var(--text)"
             />
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : 'var(--border)'} />
+              <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--primary)' : 'var(--border)'} />
             ))}
           </Bar>
         </BarChart>

@@ -30,6 +30,12 @@ export interface CartaoConfig {
   titular_id: number;
   dia_vencimento: number;
   dia_fechamento: number;
+  final?: string;
+  color?: string;
+  icone?: string;
+  limite?: number;
+  family_id?: string;
+  user_id?: string;
 }
 
 export interface CartaoTransacao {

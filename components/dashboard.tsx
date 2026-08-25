@@ -262,8 +262,18 @@ interface EvolucaoMensalChartProps {
 
 export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }: EvolucaoMensalChartProps) {
   const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Dados mensais com indicação de ano centralizado no grupo de meses
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Dados mensais: 12 meses para PC / Desktop e 8 meses para Celular
   const chartData = useMemo(() => {
     let rawList: any[] = [];
 
@@ -300,9 +310,13 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
       });
     }
 
+    // Aplica o limite: 8 meses no celular e 12 meses no PC
+    const limit = isMobile ? 8 : 12;
+    const effectiveList = rawList.slice(0, limit);
+
     // Identificar grupos contíguos de cada ano e calcular o índice central
     const yearGroups: { ano: number; startIndex: number; count: number }[] = [];
-    rawList.forEach((item, idx) => {
+    effectiveList.forEach((item, idx) => {
       const last = yearGroups[yearGroups.length - 1];
       if (!last || last.ano !== item.ano) {
         yearGroups.push({ ano: item.ano, startIndex: idx, count: 1 });
@@ -317,12 +331,12 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
       midIndices.add(mid);
     });
 
-    return rawList.map((item, idx) => ({
+    return effectiveList.map((item, idx) => ({
       ...item,
       showYearInMiddle: midIndices.has(idx),
-      isNewYearBoundary: idx > 0 && item.ano !== rawList[idx - 1].ano
+      isNewYearBoundary: idx > 0 && item.ano !== effectiveList[idx - 1].ano
     }));
-  }, [projecaoSemestral, currentYear]);
+  }, [projecaoSemestral, currentYear, isMobile]);
 
   const CustomGroupedTick = (props: any) => {
     const { x, y, index, width } = props;
@@ -724,46 +738,49 @@ export function CreditCardsWidget({
   isHidden = false
 }: CreditCardsWidgetProps) {
   const cardsList = useMemo(() => {
-    return PRESET_CARDS_CONFIG.map((preset, idx) => {
-      // Find matching card in config.cartoes
-      const normPreset = preset.name.toLowerCase();
-      const matchedCard = cartoes.find((c) => {
-        const norm = (c.nome_cartao || '').toLowerCase();
-        return norm.includes(normPreset) || normPreset.includes(norm);
+    if (!cartoes || cartoes.length === 0) {
+      return PRESET_CARDS_CONFIG.map((preset, idx) => ({
+        id: idx + 1,
+        brand: preset.name,
+        holder: preset.defaultHolder,
+        number: `•••• •••• •••• ${preset.last4}`,
+        fatura: 0,
+        gradientClass: preset.gradientClass,
+        color: preset.color,
+        icone: undefined
+      }));
+    }
+
+    return cartoes.map((card) => {
+      const normCard = (card.nome_cartao || '').toLowerCase();
+      const matchedPreset = PRESET_CARDS_CONFIG.find((p) => {
+        const normPreset = p.name.toLowerCase();
+        return normCard.includes(normPreset) || normPreset.includes(normCard);
       });
 
-      // Holder name
-      let holder = preset.defaultHolder;
-      if (matchedCard && matchedCard.titular_id) {
-        const tName = titulares.find((t) => t.id === matchedCard.titular_id)?.nome;
-        if (tName) holder = tName;
-      }
+      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || matchedPreset?.defaultHolder || 'Titular';
+      const finalDigits = card.final || matchedPreset?.last4 || '0000';
+      const cardColor = card.color || matchedPreset?.color || '#00AE9A';
+      const cardGradientClass = !card.color && matchedPreset?.gradientClass ? matchedPreset.gradientClass : '';
 
       // Calculate invoice from despesas
       const cardFatura = despesas
         .filter((d) => {
-          if (matchedCard && d.cartao_vencimento_id === matchedCard.id) return true;
+          if (d.cartao_vencimento_id === card.id) return true;
           const desc = (d.descricao || '').toLowerCase();
-          return (
-            desc.includes(normPreset) ||
-            desc.includes(preset.last4) ||
-            (normPreset.includes('sicoob clássico') && desc.includes('sicoob') && (desc.includes('clássico') || desc.includes('classico'))) ||
-            (normPreset.includes('sicoob platinum') && desc.includes('sicoob') && desc.includes('platinum')) ||
-            (normPreset.includes('mercado pago') && desc.includes('mercado pago')) ||
-            (normPreset.includes('inter') && desc.includes('inter')) ||
-            (normPreset.includes('nubank') && desc.includes('nubank'))
-          );
+          return desc.includes(normCard) || (card.final && desc.includes(card.final));
         })
         .reduce((sum, d) => sum + Number(d.valor || 0), 0);
 
       return {
-        id: matchedCard ? matchedCard.id : idx + 1,
-        brand: preset.name,
+        id: card.id,
+        brand: card.nome_cartao,
         holder,
-        number: `•••• •••• •••• ${preset.last4}`,
+        number: `•••• •••• •••• ${finalDigits}`,
         fatura: cardFatura,
-        gradientClass: preset.gradientClass,
-        color: preset.color
+        gradientClass: cardGradientClass,
+        color: cardColor,
+        icone: card.icone
       };
     });
   }, [cartoes, titulares, despesas]);
@@ -791,18 +808,28 @@ export function CreditCardsWidget({
         {cardsList.map((c) => (
           <div
             key={c.id}
-            className={cn('credit-card-ui', c.gradientClass)}
+            className={cn('credit-card-ui cursor-pointer transition-all duration-300', c.gradientClass)}
+            style={{
+              background: c.color ? (c.color.startsWith('linear') ? c.color : `linear-gradient(135deg, ${c.color} 0%, ${c.color}cc 100%)`) : undefined
+            }}
             onClick={onViewAllCards}
           >
             <div className="cc-top">
               <div className="cc-chip"></div>
-              <span className="cc-brand">{c.brand}</span>
+              <div className="d-flex align-items-center gap-1.5 min-w-0">
+                {c.icone ? (
+                  <div className="relative w-5 h-5 rounded overflow-hidden bg-white/20 p-0.5 flex-shrink-0">
+                    <img src={c.icone} alt={c.brand} className="w-full h-full object-contain" />
+                  </div>
+                ) : null}
+                <span className="cc-brand truncate">{c.brand}</span>
+              </div>
             </div>
             <div className="cc-middle">
               <div className="cc-number">{c.number}</div>
             </div>
             <div className="cc-bottom">
-              <div className="cc-holder">{c.holder}</div>
+              <div className="cc-holder truncate">{c.holder}</div>
               <div className="cc-balance-preview">
                 <div className="cc-balance-label">Fatura Atual</div>
                 <div className={cn('cc-balance-val sensitive-val', isHidden && 'hidden-amount')}>
@@ -931,7 +958,7 @@ export function ExtratoTableWidget({
                       width: '10px',
                       height: '10px',
                       borderRadius: '50%',
-                      backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : '#3b82f6',
+                      backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : 'var(--primary)',
                       display: 'inline-block',
                       flexShrink: 0
                     }}
@@ -1015,7 +1042,7 @@ export function ExtratoTableWidget({
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : '#3b82f6',
+                            backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : 'var(--primary)',
                             display: 'inline-block',
                             flexShrink: 0
                           }}

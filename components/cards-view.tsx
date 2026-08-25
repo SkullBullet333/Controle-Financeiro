@@ -105,50 +105,56 @@ export function CartoesView({
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [discountRate, setDiscountRate] = useState<number>(1.15); // 1.15% a.m.
 
-  // Build enhanced cards list
+  // Build enhanced cards list from registered cartoes
   const cardsList = useMemo(() => {
-    return PRESET_CARDS_STYLE.map((preset, idx) => {
-      const normPreset = preset.name.toLowerCase();
-      const matchedCard = cartoes.find((c) => {
-        const norm = (c.nome_cartao || '').toLowerCase();
-        return norm.includes(normPreset) || normPreset.includes(norm);
+    if (!cartoes || cartoes.length === 0) {
+      return PRESET_CARDS_STYLE.map((preset, idx) => ({
+        id: (idx + 1) * 1000,
+        realId: null,
+        brand: preset.name,
+        holder: preset.defaultHolder,
+        number: `•••• •••• •••• ${preset.last4}`,
+        fatura: 0,
+        limite: 10000,
+        limiteDisponivel: 10000,
+        diaVencimento: 10,
+        diaFechamento: 3,
+        gradientClass: preset.gradientClass,
+        color: preset.color,
+        icone: undefined
+      }));
+    }
+
+    return cartoes.map((card) => {
+      const normCard = (card.nome_cartao || '').toLowerCase();
+      const matchedPreset = PRESET_CARDS_STYLE.find((p) => {
+        const normPreset = p.name.toLowerCase();
+        return normCard.includes(normPreset) || normPreset.includes(normCard);
       });
 
-      let holder = preset.defaultHolder;
-      if (matchedCard && matchedCard.titular_id) {
-        const tName = titulares.find((t) => t.id === matchedCard.titular_id)?.nome;
-        if (tName) holder = tName;
-      }
-
-      // Calculate total fatura
-      let fatura = 0;
-      if (matchedCard) {
-        fatura = totalsByCard[matchedCard.id] || 0;
-      } else {
-        fatura = transacoes
-          .filter((t) => {
-            const desc = (t.estabelecimento || '').toLowerCase();
-            return desc.includes(normPreset) || desc.includes(preset.last4);
-          })
-          .reduce((sum, t) => sum + Number(t.valor || 0), 0);
-      }
-
-      const limite = (matchedCard as any)?.limite || 10000;
+      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || matchedPreset?.defaultHolder || 'Titular';
+      const fatura = totalsByCard[card.id] || 0;
+      const limite = (card as any).limite || 10000;
       const limiteDisponivel = Math.max(0, limite - fatura);
+      const finalDigits = card.final || matchedPreset?.last4 || '0000';
+      const cardColor = card.color || matchedPreset?.color || '#00AE9A';
+      const cardGradientClass = !card.color && matchedPreset?.gradientClass ? matchedPreset.gradientClass : '';
 
       return {
-        id: matchedCard ? matchedCard.id : (idx + 1) * 1000,
-        realId: matchedCard ? matchedCard.id : null,
-        brand: preset.name,
+        id: card.id,
+        realId: card.id,
+        brand: card.nome_cartao,
         holder,
-        number: `•••• •••• •••• ${preset.last4}`,
+        number: `•••• •••• •••• ${finalDigits}`,
+        final: finalDigits,
         fatura,
         limite,
         limiteDisponivel,
-        diaVencimento: matchedCard?.dia_vencimento || 10,
-        diaFechamento: matchedCard?.dia_fechamento || 3,
-        gradientClass: preset.gradientClass,
-        color: preset.color
+        diaVencimento: card.dia_vencimento || 10,
+        diaFechamento: card.dia_fechamento || 3,
+        gradientClass: cardGradientClass,
+        color: cardColor,
+        icone: card.icone
       };
     });
   }, [cartoes, titulares, transacoes, totalsByCard]);
@@ -348,18 +354,28 @@ export function CartoesView({
                   c.gradientClass,
                   isSelected ? 'card-selected' : 'opacity-90 hover:opacity-100'
                 )}
+                style={{
+                  background: c.color ? (c.color.startsWith('linear') ? c.color : `linear-gradient(135deg, ${c.color} 0%, ${c.color}cc 100%)`) : undefined
+                }}
                 onClick={() => setSelectedCardId(isSelected ? null : c.id)}
                 title={`Clique para selecionar ${c.brand}`}
               >
                 <div className="cc-top">
                   <div className="cc-chip"></div>
-                  <span className="cc-brand">{c.brand}</span>
+                  <div className="d-flex align-items-center gap-1.5 min-w-0">
+                    {c.icone ? (
+                      <div className="relative w-5 h-5 rounded overflow-hidden bg-white/20 p-0.5 flex-shrink-0">
+                        <img src={c.icone} alt={c.brand} className="w-full h-full object-contain" />
+                      </div>
+                    ) : null}
+                    <span className="cc-brand truncate">{c.brand}</span>
+                  </div>
                 </div>
                 <div className="cc-middle">
                   <div className="cc-number">{c.number}</div>
                 </div>
                 <div className="cc-bottom">
-                  <div className="cc-holder">{c.holder}</div>
+                  <div className="cc-holder truncate">{c.holder}</div>
                   <div className="cc-balance-preview">
                     <div className="cc-balance-label">Fatura Atual</div>
                     <div className={cn('cc-balance-val sensitive-val', isHidden && 'hidden-amount')}>

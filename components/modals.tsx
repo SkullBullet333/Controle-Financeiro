@@ -29,7 +29,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 bg-black/50" 
+          className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-xs" 
           onClick={onClose}
         >
           <motion.div
@@ -37,12 +37,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.98, opacity: 0, y: 5 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full max-w-[640px] bg-surface-container-lowest rounded-2xl shadow-premium p-4 sm:p-6 md:p-8 relative overflow-y-auto max-h-[92vh] md:max-h-[85vh] border border-border"
+            className="w-full max-w-[640px] bg-card text-foreground rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 relative overflow-y-auto max-h-[92vh] md:max-h-[85vh] border border-border"
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <button
               type="button"
-              className="absolute top-3.5 right-3.5 md:top-6 md:right-6 p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant z-10"
+              className="absolute top-3.5 right-3.5 md:top-6 md:right-6 p-2 rounded-full hover:bg-white/10 transition-colors text-muted hover:text-foreground z-10"
               onClick={onClose}
             >
               <X size={18} className="md:w-5 md:h-5" />
@@ -93,8 +93,8 @@ export function UniversalFinanceForm({
   }, [initialData, isEditing]);
 
   const typeColors = {
-    despesa: activeType === 'despesa' ? 'var(--navy)' : '#1e293b',
-    despesa_cartao: isDarkMode ? '#2ec4b6' : 'var(--sicoob-teal)',
+    despesa: activeType === 'despesa' ? 'var(--navy, #1e293b)' : '#1e293b',
+    despesa_cartao: isDarkMode ? '#2ec4b6' : 'var(--sicoob-teal, #00AE9A)',
     receita: '#00995D',
     emprestimo: '#D97706'
   };
@@ -128,12 +128,12 @@ export function UniversalFinanceForm({
             {typeIcons[activeType]}
           </span>
           <div className="flex flex-col">
-            <h1 className="text-xl md:text-3xl font-headline font-black text-slate-900 tracking-tight leading-none mb-1">
+            <h1 className="text-xl md:text-3xl font-headline font-black text-foreground tracking-tight leading-none mb-1">
               {isEditing ? 'Editar Registro' : 'Novo Registro'}
             </h1>
             <span
               className="font-headline font-bold uppercase tracking-[0.2em] text-[10px] md:text-[13px] transition-all duration-300 ml-0.5 leading-none"
-              style={{ color: typeColors[activeType], opacity: 0.75 }}
+              style={{ color: typeColors[activeType], opacity: 0.85 }}
             >
               {typeLabels[activeType]}
             </span>
@@ -144,7 +144,7 @@ export function UniversalFinanceForm({
       {/* Tabs Selector */}
       {!isEditing && (
         <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="bg-[#F1F5F9] p-1 rounded-full flex w-full max-w-[560px] h-11 md:h-12 relative border border-slate-200/50 shadow-inner overflow-hidden">
+          <div className="bg-muted/20 p-1 rounded-full flex w-full max-w-[560px] h-11 md:h-12 relative border border-border/50 shadow-inner overflow-hidden">
             {/* Sliding Pill Background - 4 options = 25% each */}
             <div
               className="absolute top-1 bottom-1 shadow-md transition-all duration-300 ease-out"
@@ -163,7 +163,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'despesa' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                activeType === 'despesa' ? "text-white" : "text-muted hover:text-foreground"
               )}
               onClick={() => setActiveType('despesa')}
             >
@@ -175,7 +175,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'despesa_cartao' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                activeType === 'despesa_cartao' ? "text-white" : "text-muted hover:text-foreground"
               )}
               onClick={() => setActiveType('despesa_cartao')}
             >
@@ -187,7 +187,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'receita' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                activeType === 'receita' ? "text-white" : "text-muted hover:text-foreground"
               )}
               onClick={() => setActiveType('receita')}
             >
@@ -199,7 +199,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'emprestimo' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                activeType === 'emprestimo' ? "text-white" : "text-muted hover:text-foreground"
               )}
               onClick={() => setActiveType('emprestimo')}
             >
@@ -553,17 +553,17 @@ export function FinanceForm({
 
       <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
         <div className="relative group">
-          <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider">Valor do Lançamento</label>
-          <div className="flex items-center bg-[#F8FAFC] rounded-2xl px-4 py-2 md:py-3 focus-within:ring-2 focus-within:ring-slate-200 group-focus-within:bg-white transition-all shadow-sm border border-outline-variant/30">
+          <label className="text-[10px] md:label-md font-label text-muted mb-1 block ml-1 uppercase font-bold tracking-wider">Valor do Lançamento</label>
+          <div className="flex items-center bg-muted/20 rounded-2xl px-4 py-2 md:py-3 focus-within:ring-2 focus-within:ring-primary/30 transition-all shadow-sm border border-border/50">
             <span className={cn(
               "text-lg md:text-xl font-headline font-bold transition-all mr-2 md:mr-3 mt-1",
-              formData.valor ? "text-navy" : "text-navy/20"
+              formData.valor ? "text-foreground" : "text-muted"
             )}>R$</span>
             <input
               required
               className={cn(
                 "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-1 text-xl md:text-2xl",
-                formData.valor ? "text-slate-900" : "text-slate-900/20"
+                formData.valor ? "text-foreground" : "text-muted"
               )}
               placeholder="0,00"
               type="number"
@@ -576,10 +576,10 @@ export function FinanceForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 md:gap-y-3">
           <div className="md:col-span-2">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição</label>
+            <label className="text-[10px] md:label-md font-label text-muted mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição</label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm text-foreground"
               placeholder="Ex: Assinatura Mensal Software"
               type="text"
               value={formData.descricao}
@@ -1247,26 +1247,142 @@ export function CartaoForm({
   onCancel?: () => void,
   themeColor?: string
 }) {
+  const resolveColor = (data?: CartaoConfig) => {
+    if (data?.color && data.color.trim()) return data.color;
+    if ((data as any)?.cor && (data as any).cor.trim()) return (data as any).cor;
+    if (data?.nome_cartao) {
+      const norm = data.nome_cartao.toLowerCase();
+      if (norm.includes('nubank')) return '#820AD1';
+      if (norm.includes('inter')) return '#FF5100';
+      if (norm.includes('mercado pago')) return '#222A37';
+      if (norm.includes('platinum')) return '#00353E';
+      if (norm.includes('sicoob')) return '#00AE9A';
+      if (norm.includes('itaú') || norm.includes('itau')) return '#EC7000';
+      if (norm.includes('bradesco')) return '#CC092F';
+      if (norm.includes('santander')) return '#EA1D2C';
+      if (norm.includes('xp') || norm.includes('c6') || norm.includes('black')) return '#1A1A1A';
+      if (norm.includes('caixa')) return '#005CA9';
+      if (norm.includes('bb') || norm.includes('brasil')) return '#003882';
+    }
+    return '#00AE9A';
+  };
+
+  const resolveFinal = (data?: CartaoConfig) => {
+    if (data?.final !== undefined && data?.final !== null && String(data.final).trim() !== '') return String(data.final);
+    if ((data as any)?.final_cartao) return String((data as any).final_cartao);
+    if ((data as any)?.ultimos_digitos) return String((data as any).ultimos_digitos);
+    if (data?.nome_cartao) {
+      const norm = data.nome_cartao.toLowerCase();
+      if (norm.includes('7376')) return '7376';
+      if (norm.includes('7262')) return '7262';
+      if (norm.includes('4904')) return '4904';
+      if (norm.includes('4321')) return '4321';
+      if (norm.includes('1234')) return '1234';
+    }
+    return '';
+  };
+
+  const resolveIcone = (data?: CartaoConfig) => {
+    if (data?.icone) return data.icone;
+    if ((data as any)?.['ícone']) return (data as any)['ícone'];
+    if ((data as any)?.icon) return (data as any).icon;
+    return '';
+  };
+
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
     titular_id: initialData?.titular_id || titulares[0]?.id || 0,
     dia_vencimento: initialData?.dia_vencimento || 10,
-    dia_fechamento: initialData?.dia_fechamento || 10
+    dia_fechamento: initialData?.dia_fechamento || 3,
+    final: resolveFinal(initialData),
+    color: resolveColor(initialData),
+    icone: resolveIcone(initialData)
   });
+
+  useEffect(() => {
+    setFormData({
+      nome_cartao: initialData?.nome_cartao || '',
+      titular_id: initialData?.titular_id || titulares[0]?.id || 0,
+      dia_vencimento: initialData?.dia_vencimento || 10,
+      dia_fechamento: initialData?.dia_fechamento || 3,
+      final: resolveFinal(initialData),
+      color: resolveColor(initialData),
+      icone: resolveIcone(initialData)
+    });
+  }, [initialData, titulares]);
+
+  const [iconError, setIconError] = useState<string | null>(null);
+
+  const PRESET_COLORS = [
+    { name: 'Sicoob Verde', color: '#00AE9A' },
+    { name: 'Sicoob Dark', color: '#00353E' },
+    { name: 'Nubank Roxo', color: '#820AD1' },
+    { name: 'Inter Laranja', color: '#FF5100' },
+    { name: 'Mercado Pago', color: '#222A37' },
+    { name: 'XP Black', color: '#1A1A1A' },
+    { name: 'Itaú Laranja', color: '#EC7000' },
+    { name: 'Bradesco', color: '#CC092F' },
+    { name: 'Santander', color: '#EA1D2C' },
+    { name: 'Azul Real', color: '#3b82f6' },
+    { name: 'Emerald Teal', color: '#10b981' },
+    { name: 'Neon Purple', color: '#8b5cf6' }
+  ];
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      setIconError('O tamanho da imagem não pode ultrapassar 1MB.');
+      return;
+    }
+
+    setIconError(null);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setFormData(prev => ({ ...prev, icone: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => {
+      const updates: any = { nome_cartao: name };
+      // Se for novo cartão e a cor ainda estiver como default, sugere a cor do banco
+      if (!initialData && prev.color === '#00AE9A') {
+        const norm = name.toLowerCase();
+        if (norm.includes('nubank')) updates.color = '#820AD1';
+        else if (norm.includes('inter')) updates.color = '#FF5100';
+        else if (norm.includes('mercado pago')) updates.color = '#222A37';
+        else if (norm.includes('platinum')) updates.color = '#00353E';
+        else if (norm.includes('itaú') || norm.includes('itau')) updates.color = '#EC7000';
+        else if (norm.includes('bradesco')) updates.color = '#CC092F';
+        else if (norm.includes('santander')) updates.color = '#EA1D2C';
+        else if (norm.includes('xp') || norm.includes('c6')) updates.color = '#1A1A1A';
+      }
+      return { ...prev, ...updates };
+    });
+  };
 
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+      {/* Nome do Cartão */}
       <div className="col-12">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Nome do Cartão</label>
         <input
           required
           type="text"
+          placeholder="Ex: Nubank Ultravioleta, Sicoob Black..."
           className="form-control rounded-3"
           value={formData.nome_cartao}
-          onChange={e => setFormData({ ...formData, nome_cartao: e.target.value })}
+          onChange={e => handleNameChange(e.target.value)}
         />
       </div>
-      <div className="col-12">
+
+      {/* Titular e Final do Cartão */}
+      <div className="col-md-7">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Titular</label>
         <select
           className="form-select rounded-3"
@@ -1276,6 +1392,132 @@ export function CartaoForm({
           {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </div>
+
+      <div className="col-md-5">
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Final do Cartão</label>
+        <input
+          type="text"
+          maxLength={4}
+          placeholder="Ex: 4904"
+          className="form-control rounded-3"
+          value={formData.final}
+          onChange={e => setFormData({ ...formData, final: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+        />
+      </div>
+
+      {/* Cor do Cartão: Caixa organizada com tudo visível */}
+      <div className="col-12">
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1.5 ml-1 block">
+          Cor do Cartão
+        </label>
+        <div className="p-3 bg-muted/20 border border-border/60 rounded-2xl space-y-3">
+          {/* Grade de Cores Pré-definidas */}
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            {PRESET_COLORS.map(p => {
+              const isSelected = formData.color?.toLowerCase() === p.color.toLowerCase();
+              return (
+                <button
+                  key={p.color}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, color: p.color }))}
+                  title={p.name}
+                  className={cn(
+                    "w-7 h-7 rounded-full border-2 transition-all p-0 shadow-xs cursor-pointer relative d-flex align-items-center justify-content-center",
+                    isSelected ? "border-white scale-110 shadow-md ring-2 ring-primary" : "border-transparent opacity-80 hover:opacity-100 hover:scale-105"
+                  )}
+                  style={{ backgroundColor: p.color }}
+                >
+                  {isSelected && <i className="fa-solid fa-check text-white text-[10px]"></i>}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Seletor Customizado HEX Direto e Visível */}
+          <div className="d-flex align-items-center justify-content-between gap-3 pt-2 border-t border-border/40">
+            <div className="d-flex align-items-center gap-2.5">
+              <div 
+                className="w-8 h-8 rounded-xl border border-white/20 shadow-sm relative overflow-hidden flex-shrink-0 cursor-pointer"
+                style={{ backgroundColor: formData.color || '#00AE9A' }}
+              >
+                <input
+                  type="color"
+                  value={formData.color?.startsWith('#') && formData.color.length === 7 ? formData.color : '#00AE9A'}
+                  onChange={e => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                  className="position-absolute opacity-0 inset-0 w-100 h-100 cursor-pointer"
+                  title="Clique para abrir o painel de cor"
+                />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-foreground block leading-tight">Cor Personalizada</span>
+                <span className="text-[10px] text-muted">Clique no quadrado ou digite o código HEX</span>
+              </div>
+            </div>
+
+            <div className="d-flex align-items-center bg-card border border-border rounded-xl px-2.5 py-1" style={{ width: '115px' }}>
+              <span className="text-xs text-muted font-mono me-1">#</span>
+              <input
+                type="text"
+                maxLength={6}
+                value={(formData.color || '').replace(/^#/, '')}
+                onChange={e => {
+                  const hexOnly = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                  setFormData(prev => ({ ...prev, color: '#' + hexOnly }));
+                }}
+                placeholder="00AE9A"
+                className="form-control border-0 p-0 shadow-none bg-transparent text-xs font-mono font-bold text-foreground w-100 uppercase"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Logotipo / Ícone do Cartão (Upload de até 1MB ou Link) */}
+      <div className="col-12">
+        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">
+          Ícone / Logotipo do Cartão (Opcional - até 1MB)
+        </label>
+        <div className="d-flex align-items-center gap-3">
+          {formData.icone ? (
+            <div className="position-relative flex-shrink-0" style={{ width: '48px', height: '48px' }}>
+              <div className="w-100 h-100 rounded-2xl bg-muted/40 border border-border p-1 d-flex align-items-center justify-content-center overflow-hidden">
+                <img src={formData.icone} alt="Prévia" className="w-100 h-100 object-contain" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, icone: '' })}
+                className="position-absolute top-0 end-0 -translate-y-1 translate-x-1 btn btn-danger btn-sm p-0 rounded-circle d-flex align-items-center justify-content-center border-0"
+                style={{ width: '18px', height: '18px', fontSize: '9px' }}
+                title="Remover ícone"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-muted/20 border border-dashed border-border d-flex align-items-center justify-content-center text-muted flex-shrink-0">
+              <i className="fa-solid fa-image text-sm opacity-50"></i>
+            </div>
+          )}
+
+          <div className="flex-grow-1">
+            <div className="d-flex align-items-center gap-2">
+              <label className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs font-bold cursor-pointer m-0">
+                <i className="fa-solid fa-upload me-1.5"></i>Carregar Imagem
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="d-none"
+                />
+              </label>
+              <span className="text-[10px] text-muted">Máx 1MB</span>
+            </div>
+            {iconError && <div className="text-danger text-[11px] mt-1">{iconError}</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Datas de Vencimento e Fechamento */}
       <div className="col-md-6">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Dia Vencimento</label>
         <input
@@ -1287,6 +1529,7 @@ export function CartaoForm({
           onChange={e => setFormData({ ...formData, dia_vencimento: parseInt(e.target.value) || 0 })}
         />
       </div>
+
       <div className="col-md-6">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Dia Fechamento</label>
         <input
@@ -1298,6 +1541,8 @@ export function CartaoForm({
           onChange={e => setFormData({ ...formData, dia_fechamento: parseInt(e.target.value) || 0 })}
         />
       </div>
+
+      {/* Botões de Ação */}
       <div className="col-12 mt-2 md:mt-4 d-flex gap-2 md:gap-3">
         {onCancel && (
           <button
@@ -1313,7 +1558,7 @@ export function CartaoForm({
             "btn w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm",
             !themeColor ? "btn-primary" : "text-white"
           )}
-          style={{ backgroundColor: themeColor }}
+          style={{ backgroundColor: themeColor || 'var(--primary)' }}
         >
           <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
         </button>
@@ -1331,18 +1576,24 @@ export function StyledDatePicker({
   onChange,
   placeholder = "Selecione a data",
   className,
-  placement = 'top',
-  align = 'left'
+  placement = 'auto',
+  align = 'auto'
 }: {
   value: string;
   onChange: (dateStr: string) => void;
   placeholder?: string;
   className?: string;
-  placement?: 'top' | 'bottom';
-  align?: 'left' | 'right';
+  placement?: 'top' | 'bottom' | 'auto';
+  align?: 'left' | 'right' | 'auto';
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [posStyle, setPosStyle] = useState<{
+    top?: string;
+    bottom?: string;
+    left?: string | number;
+    right?: string | number;
+  }>({ top: 'calc(100% + 6px)', left: 0 });
 
   const parsedDate = useMemo(() => {
     try {
@@ -1364,6 +1615,50 @@ export function StyledDatePicker({
       } catch {}
     }
   }, [value]);
+
+  // Posicionamento inteligente para não alterar o tamanho de cards nem de modais
+  const updatePosition = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const popoverHeight = 310;
+    const popoverWidth = 270;
+
+    let targetTop: string | undefined = undefined;
+    let targetBottom: string | undefined = undefined;
+    let targetLeft: string | number | undefined = 0;
+    let targetRight: string | number | undefined = 'auto';
+
+    if (placement === 'top' || (placement === 'auto' && spaceBelow < popoverHeight && spaceAbove > spaceBelow)) {
+      targetBottom = 'calc(100% + 6px)';
+    } else {
+      targetTop = 'calc(100% + 6px)';
+    }
+
+    if (align === 'right' || (align === 'auto' && rect.left + popoverWidth > window.innerWidth - 16)) {
+      targetLeft = 'auto';
+      targetRight = 0;
+    } else {
+      targetLeft = 0;
+      targetRight = 'auto';
+    }
+
+    setPosStyle({ top: targetTop, bottom: targetBottom, left: targetLeft, right: targetRight });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      const onResize = () => updatePosition();
+      window.addEventListener('resize', onResize);
+      window.addEventListener('scroll', onResize, true);
+      return () => {
+        window.removeEventListener('resize', onResize);
+        window.removeEventListener('scroll', onResize, true);
+      };
+    }
+  }, [isOpen, placement, align]);
 
   // Click outside to close
   useEffect(() => {
@@ -1459,66 +1754,69 @@ export function StyledDatePicker({
 
   return (
     <div className={cn("position-relative", className ? "w-100" : "")} ref={containerRef} style={{ display: className ? 'block' : 'inline-block' }}>
-      {/* Trigger Button with Soft Rounded Corners */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
+      {/* Trigger: Input limpo com botão dedicado no ícone de calendário */}
+      <div
         className={cn(
-          "btn btn-sm d-flex align-items-center justify-content-between gap-2 px-4 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] transition-all shadow-xs text-start border-0 text-foreground",
-          className || "min-w-[140px]"
+          "d-flex align-items-center justify-content-between gap-2 px-3 py-2 bg-muted/20 border border-border/50 rounded-xl transition-all h-[44px]",
+          className
         )}
-        style={{ borderRadius: '14px' }}
       >
-        <div className="d-flex align-items-center gap-2.5">
-          <i className="fa-solid fa-calendar-days text-primary text-xs opacity-90"></i>
-          <span className="text-sm font-normal text-foreground">
-            {value ? formatDate(value) : placeholder}
-          </span>
-        </div>
-        <i className={cn("fa-solid fa-chevron-down text-[10px] text-muted transition-transform ms-auto opacity-70", isOpen && "rotate-180")}></i>
-      </button>
+        <span className="text-sm font-normal text-foreground select-none truncate">
+          {value ? formatDate(value) : <span className="text-muted">{placeholder}</span>}
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(!isOpen);
+          }}
+          className="btn btn-sm btn-icon p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-white/10 transition-all border-0 flex-shrink-0 cursor-pointer"
+          title="Abrir calendário"
+        >
+          <i className={cn("fa-solid fa-calendar-days text-sm transition-colors", isOpen ? "text-foreground" : "text-muted")}></i>
+        </button>
+      </div>
 
-      {/* Floating Popover Calendar */}
+      {/* Floating Popover Calendar (Never alters parent height/size) */}
       {isOpen && (
         <div 
-          className="position-absolute bg-card border border-white/10 p-3.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+          className="position-absolute bg-card border border-border p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           style={{
-            bottom: placement === 'bottom' ? undefined : 'calc(100% + 8px)',
-            top: placement === 'bottom' ? 'calc(100% + 8px)' : undefined,
-            left: align === 'right' ? 'auto' : 0,
-            right: align === 'right' ? 0 : 'auto',
-            width: '280px',
-            borderRadius: '20px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.85)',
-            background: 'var(--card-elevated, #131620)',
-            zIndex: 1050
+            ...posStyle,
+            width: '270px',
+            borderRadius: '18px',
+            boxShadow: '0 16px 45px rgba(0, 0, 0, 0.75)',
+            background: 'var(--card, #131620)',
+            zIndex: 1200,
+            pointerEvents: 'auto'
           }}
+          onClick={e => e.stopPropagation()}
         >
           {/* Header with Month / Year Navigation */}
-          <div className="d-flex align-items-center justify-content-between mb-3 px-1">
+          <div className="d-flex align-items-center justify-content-between mb-2 px-1">
             <button
               type="button"
-              className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1 cursor-pointer"
-              style={{ width: '28px', height: '28px', borderRadius: '9999px' }}
+              className="btn btn-sm btn-icon rounded-full border-0 bg-muted/20 hover:bg-muted/40 text-muted hover:text-foreground p-1 cursor-pointer"
+              style={{ width: '26px', height: '26px', borderRadius: '9999px' }}
               onClick={handlePrevMonth}
             >
-              <i className="fa-solid fa-chevron-left text-[11px]"></i>
+              <i className="fa-solid fa-chevron-left text-[10px]"></i>
             </button>
-            <div className="text-xs font-medium text-foreground tracking-tight">
-              {monthNames[viewMonth]} <span className="text-primary font-normal">{viewYear}</span>
+            <div className="text-xs font-semibold text-foreground tracking-tight">
+              {monthNames[viewMonth]} <span className="text-muted font-medium ms-1">{viewYear}</span>
             </div>
             <button
               type="button"
-              className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1 cursor-pointer"
-              style={{ width: '28px', height: '28px', borderRadius: '9999px' }}
+              className="btn btn-sm btn-icon rounded-full border-0 bg-muted/20 hover:bg-muted/40 text-muted hover:text-foreground p-1 cursor-pointer"
+              style={{ width: '26px', height: '26px', borderRadius: '9999px' }}
               onClick={handleNextMonth}
             >
-              <i className="fa-solid fa-chevron-right text-[11px]"></i>
+              <i className="fa-solid fa-chevron-right text-[10px]"></i>
             </button>
           </div>
 
           {/* Days of Week */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+          <div className="grid grid-cols-7 gap-1 text-center mb-1">
             {daysOfWeek.map((d, i) => (
               <span key={i} className="text-[10px] font-normal text-muted opacity-60">
                 {d}
@@ -1541,17 +1839,18 @@ export function StyledDatePicker({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "w-8 h-8 d-flex align-items-center justify-content-center text-xs font-normal transition-all border-0 cursor-pointer",
+                    "w-7 h-7 d-flex align-items-center justify-content-center text-xs font-normal transition-all border-0 cursor-pointer",
                     isSelected
-                      ? "bg-primary text-white font-medium shadow-sm"
+                      ? "bg-primary text-white font-bold shadow-sm"
                       : item.isCurrentMonth
-                        ? "text-foreground hover:bg-white/10"
-                        : "text-muted opacity-25 hover:bg-white/5",
-                    isToday && !isSelected && "ring-1 ring-primary/40 text-primary font-medium"
+                        ? "text-foreground hover:bg-muted/40"
+                        : "text-muted opacity-30 hover:bg-muted/20",
+                    isToday && !isSelected && "ring-1 ring-border text-foreground font-semibold"
                   )}
                   style={{
-                    borderRadius: '10px',
-                    backgroundColor: isSelected ? 'var(--primary)' : undefined
+                    borderRadius: '8px',
+                    backgroundColor: isSelected ? 'var(--primary)' : undefined,
+                    color: isSelected ? '#ffffff' : undefined
                   }}
                 >
                   {item.day}
@@ -1561,17 +1860,17 @@ export function StyledDatePicker({
           </div>
 
           {/* Quick Footer Action */}
-          <div className="d-flex align-items-center justify-content-between pt-2.5 mt-2.5 border-t border-white/[0.04]">
+          <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-t border-border/40">
             <button
               type="button"
-              className="btn btn-link p-0 text-[11px] font-normal text-primary hover:underline"
+              className="btn btn-link p-0 text-[11px] font-medium text-foreground hover:underline text-decoration-none"
               onClick={handleSelectToday}
             >
-              <i className="fa-solid fa-bolt me-1 text-[10px]"></i>Hoje
+              <i className="fa-solid fa-bolt me-1 text-[10px] text-muted"></i>Hoje
             </button>
             <button
               type="button"
-              className="btn btn-link p-0 text-[11px] font-normal text-muted hover:text-danger"
+              className="btn btn-link p-0 text-[11px] font-medium text-muted hover:text-danger text-decoration-none"
               onClick={() => {
                 onChange('');
                 setIsOpen(false);
@@ -1601,8 +1900,8 @@ export function MonthYearModal({
 }) {
   const [viewYear, setViewYear] = useState(currentYear);
   const meses = [
-    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
-    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
   ];
 
   useEffect(() => {
@@ -1615,41 +1914,51 @@ export function MonthYearModal({
 
   return (
     <>
-      {/* Transparent Click-Outside Backdrop (Sem desfoque) */}
+      {/* Transparent Click-Outside Backdrop */}
       <div className="fixed inset-0 z-[2999]" onClick={onClose} />
 
-      {/* Popover Limpo Abaixo do Botão (Sem sombra, sem cobrir o botão) */}
+      {/* Popover Limpo Flutuante (sem alterar o layout dos cards ou popups) */}
       <div 
         className="fixed z-[3000] animate-in fade-in zoom-in-95 duration-150"
         style={{
-          top: '82px',
-          right: '28px',
-          width: '250px'
+          top: 'clamp(68px, 9vh, 82px)',
+          right: 'clamp(12px, 3vw, 28px)',
+          width: '260px',
+          maxWidth: 'calc(100vw - 24px)'
         }}
       >
         <div
-          className="bg-card border border-border rounded-3xl p-3"
+          className="bg-card border border-border rounded-3xl p-3.5 shadow-2xl"
           style={{
-            background: 'var(--card, #12141c)'
+            background: 'var(--card, #12141c)',
+            fontFamily: "'Plus Jakarta Sans', 'Outfit', 'Inter', -apple-system, sans-serif"
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Header com Ano e Setas Sem Margem / Espaçamento justo */}
-          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+          {/* Header com Ano em destaque (fonte maior) e Setas de Navegação */}
+          <div className="d-flex align-items-center justify-content-between px-2 mb-3">
             <button
               type="button"
-              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0 transition-transform active:scale-90"
               onClick={() => setViewYear(prev => prev - 1)}
               title="Ano anterior"
             >
               <i className="fa-solid fa-chevron-left text-xs"></i>
             </button>
             
-            <span className="text-sm font-black text-foreground tracking-tight px-1">{viewYear}</span>
+            <span 
+              className="font-bold text-foreground tracking-wide text-center"
+              style={{
+                fontSize: '1.15rem',
+                letterSpacing: '0.03em'
+              }}
+            >
+              {viewYear}
+            </span>
             
             <button
               type="button"
-              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0"
+              className="btn btn-sm btn-link p-1 text-muted hover:text-primary text-decoration-none border-0 transition-transform active:scale-90"
               onClick={() => setViewYear(prev => prev + 1)}
               title="Próximo ano"
             >
@@ -1657,8 +1966,8 @@ export function MonthYearModal({
             </button>
           </div>
 
-          {/* Grid Compacto de 12 Meses */}
-          <div className="grid grid-cols-3 gap-1.5">
+          {/* Grid de 12 Meses: Sem negrito, tipografia elegante e formato de pílula na cor de destaque */}
+          <div className="grid grid-cols-3 gap-2">
             {meses.map((mes, index) => {
               const monthNum = index + 1;
               const isSelected = monthNum === currentMonth && viewYear === currentYear;
@@ -1667,13 +1976,16 @@ export function MonthYearModal({
                   key={mes}
                   type="button"
                   className={cn(
-                    "py-1.5 px-1 text-center font-black text-[11px] rounded-xl transition-all border-0",
+                    "py-1.5 px-1 text-center text-xs transition-all border-0 rounded-full",
                     isSelected
-                      ? "bg-primary text-white font-black"
-                      : "text-foreground hover:bg-muted/70"
+                      ? "text-white font-medium shadow-sm"
+                      : "text-foreground font-normal hover:bg-muted/60"
                   )}
                   style={{ 
-                    backgroundColor: isSelected ? 'var(--primary, #00AE9A)' : undefined
+                    backgroundColor: isSelected ? 'var(--primary, #4361ee)' : 'transparent',
+                    boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.2)' : undefined,
+                    borderRadius: '9999px',
+                    letterSpacing: '0.01em'
                   }}
                   onClick={() => {
                     onSelect(monthNum, viewYear);
@@ -1955,12 +2267,15 @@ export function EmprestimoForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 md:gap-y-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {/* Linha 1: Descrição */}
           <div className="col-span-2">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Descrição do Contrato</label>
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Descrição do Contrato
+            </label>
             <input
               required
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface"
+              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm text-foreground"
               placeholder="Ex: Financiamento Imobiliário Inter"
               type="text"
               value={formData.descricao}
@@ -1968,102 +2283,123 @@ export function EmprestimoForm({
             />
           </div>
 
-          <div className="col-span-2 md:col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Valor da Parcela (VF)</label>
-            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
-              <span className="text-navy/40 font-bold mr-2 text-sm md:text-base">R$</span>
+          {/* Linha 2: Responsável e Valor da Parcela */}
+          <div className="col-span-2 sm:col-span-1">
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Responsável
+            </label>
+            <select
+              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm appearance-none text-foreground cursor-pointer"
+              value={formData.titular_id}
+              onChange={e => setFormData({ ...formData, titular_id: parseInt(e.target.value) })}
+            >
+              {titulares.map(t => <option key={t.id} value={t.id} className="bg-card text-foreground">{t.nome}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Valor da Parcela (VF)
+            </label>
+            <div className="d-flex align-items-center bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+              <span className="text-muted font-bold me-2 text-sm">R$</span>
               <input
                 required
-                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy text-sm md:text-base"
-                type="number" step="0.01"
+                className="bg-transparent border-0 focus:outline-none w-full font-bold text-foreground text-sm p-0"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
                 value={formData.valor_parcela}
                 onChange={e => setFormData({ ...formData, valor_parcela: e.target.value })}
               />
             </div>
           </div>
 
+          {/* Linha 3: Taxa Mensal e Total Parcelas */}
           <div className="col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Taxa Mensal (%)</label>
-            <div className="flex items-center bg-[#F8FAFC] rounded-lg px-4 py-2 md:py-2.5 ring-1 ring-outline-variant/30">
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Taxa Mensal (%)
+            </label>
+            <div className="d-flex align-items-center bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus-within:ring-2 focus-within:ring-primary/30 transition-all">
               <input
                 required
-                className="bg-transparent border-none focus:outline-none w-full font-bold text-navy text-sm md:text-base"
-                type="number" step="0.0001"
+                className="bg-transparent border-0 focus:outline-none w-full font-bold text-foreground text-sm p-0"
+                type="number"
+                step="0.0001"
+                placeholder="0.00"
                 value={formData.taxa_mensal_percentual}
                 onChange={e => setFormData({ ...formData, taxa_mensal_percentual: e.target.value })}
               />
-              <span className="text-navy/40 font-bold ml-2 text-sm md:text-base">%</span>
+              <span className="text-muted font-bold ms-2 text-sm">%</span>
             </div>
           </div>
 
           <div className="col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Total Parcelas</label>
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Total Parcelas
+            </label>
             <input
               required
-              className="w-full bg-[#F8FAFC] border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] md:h-[48px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-bold text-navy text-sm"
+              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-bold text-foreground text-sm"
               type="number"
+              min="1"
+              max="420"
               value={formData.total_parcelas}
               onChange={e => setFormData({ ...formData, total_parcelas: e.target.value })}
             />
           </div>
 
+          {/* Linha 4: Data 1º Vencimento e Competência */}
           <div className="col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Data 1º Vencimento</label>
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Data 1º Vencimento
+            </label>
             <StyledDatePicker
               value={formData.data_primeiro_vencimento}
               onChange={val => setFormData({ ...formData, data_primeiro_vencimento: val })}
-              className="w-100 h-[44px]"
+              className="w-100"
             />
           </div>
 
           <div className="col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Competência de Início</label>
+            <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
+              Competência Início
+            </label>
             <select
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 h-[44px] focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
+              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm appearance-none text-foreground cursor-pointer"
               value={formData.competencia_inicial}
               onChange={e => setFormData({ ...formData, competencia_inicial: e.target.value })}
             >
               {(() => {
                 try {
                   const date = parseISO(formData.data_primeiro_vencimento);
-                  if (isNaN(date.getTime())) return <option value={formData.competencia_inicial}>{formData.competencia_inicial}</option>;
+                  if (isNaN(date.getTime())) return <option value={formData.competencia_inicial} className="bg-card text-foreground">{formData.competencia_inicial}</option>;
 
                   const c1 = format(date, 'MM/yyyy');
                   const c2 = format(addMonths(date, 1), 'MM/yyyy');
 
                   return (
                     <>
-                      <option value={c1}>{c1}</option>
-                      <option value={c2}>{c2}</option>
+                      <option value={c1} className="bg-card text-foreground">{c1}</option>
+                      <option value={c2} className="bg-card text-foreground">{c2}</option>
                     </>
                   );
                 } catch {
-                  return <option value={formData.competencia_inicial}>{formData.competencia_inicial}</option>;
+                  return <option value={formData.competencia_inicial} className="bg-card text-foreground">{formData.competencia_inicial}</option>;
                 }
               })()}
             </select>
           </div>
-
-          <div className="col-span-2 md:col-span-1">
-            <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
-            <select
-              className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm appearance-none text-on-surface"
-              value={formData.titular_id}
-              onChange={e => setFormData({ ...formData, titular_id: parseInt(e.target.value) })}
-            >
-              {titulares.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </select>
-          </div>
         </div>
 
-        <div className="pt-4 grid grid-cols-2 gap-x-8 items-center">
-          <button type="button" className="text-sm font-label font-semibold text-slate-500 hover:text-navy transition-colors text-left" onClick={onClose}>
+        <div className="pt-3 grid grid-cols-2 gap-x-6 items-center">
+          <button type="button" className="text-sm font-semibold text-muted hover:text-foreground transition-colors text-left" onClick={onClose}>
             Cancelar
           </button>
           <button
             type="submit"
             style={{ borderRadius: '9999px', backgroundColor: themeColor }}
-            className="text-white h-[48px] font-label font-semibold text-sm shadow-md transition-all w-full hover:shadow-lg hover:scale-[1.02] active:scale-95 opacity-90 hover:opacity-100"
+            className="text-white h-[46px] font-bold text-sm shadow-md transition-all w-full hover:shadow-lg hover:scale-[1.01] active:scale-95 opacity-95 hover:opacity-100"
           >
             {editingItem ? 'Salvar Alterações' : 'Cadastrar Empréstimo'}
           </button>
@@ -2376,8 +2712,8 @@ export function PayoffModal({
                   border: '1px solid rgba(0, 174, 154, 0.3)'
                 }}
               >
-                <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar (VP)</div>
-                <div className="text-sm md:text-lg font-black text-primary my-0.5 truncate">
+                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Valor a Pagar (VP)</div>
+                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate">
                   {formatCurrency(totalVP)}
                 </div>
                 <div className="text-[10px] md:text-xs font-bold text-success truncate">
@@ -2431,7 +2767,7 @@ export function PayoffModal({
                   </div>
 
                   <div className="text-end flex-shrink-0">
-                    <div className="font-black text-xs text-primary">
+                    <div className="font-black text-xs text-foreground">
                       {formatCurrency(i.vp)}
                     </div>
                     {i.discount > 0 ? (
@@ -2453,33 +2789,23 @@ export function PayoffModal({
               <table className="styled-table mb-0 w-100">
                 <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
                   <tr>
-                    <th style={{ width: '38px', textAlign: 'center' }}>#</th>
                     <th style={{ width: '80px', textAlign: 'center' }}>Parcela</th>
                     <th style={{ width: '100px', textAlign: 'center' }}>Vencimento</th>
                     <th style={{ textAlign: 'right' }}>Valor Nominal</th>
-                    <th style={{ textAlign: 'right' }}>V. Presente (VP)</th>
-                    <th style={{ textAlign: 'right' }}>Desconto</th>
+                    <th style={{ textAlign: 'right' }}>Valor Presente (VP)</th>
+                    <th style={{ textAlign: 'right' }}>Economia</th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedParcelas.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-10 text-muted italic text-sm">
-                        <i className="fa-solid fa-coins fs-3 text-muted opacity-40 mb-2 d-block"></i>
-                        {budgetNum > 0 
-                          ? `O valor de ${formatCurrency(budgetNum)} não é suficiente para abater a última parcela (${formatCurrency(cheapestVP)}).` 
-                          : "Digite um valor acima para simular quantas parcelas serão abatidas."
-                        }
+                      <td colSpan={5} className="text-center py-6 text-muted italic text-xs">
+                        Nenhuma parcela selecionada com o saldo atual.
                       </td>
                     </tr>
                   ) : (
-                    sortedSelectedParcelas.map((i, index) => (
-                      <tr key={i.id} className="bg-primary/5">
-                        <td style={{ textAlign: 'center' }}>
-                          <span className="badge bg-primary text-white rounded-circle p-1" style={{ width: '18px', height: '18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
-                            {index + 1}
-                          </span>
-                        </td>
+                    sortedSelectedParcelas.map(i => (
+                      <tr key={`desk-budget-${i.id}`}>
                         <td style={{ textAlign: 'center' }}>
                           <span className="badge-tag badge-paid" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                             {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
@@ -2488,10 +2814,10 @@ export function PayoffModal({
                         <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
                           {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
                         </td>
-                        <td style={{ textAlign: 'right' }} className="text-muted font-medium text-xs">
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-muted)' }}>
                           {formatCurrency(i.valor)}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text)' }}>
                           {formatCurrency(i.vp)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
@@ -2523,34 +2849,27 @@ export function PayoffModal({
                   className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
                   onClick={() => selectLastN(3)}
                 >
-                  3 Últimas
+                  Últimas 3
                 </button>
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
                   onClick={() => selectLastN(6)}
                 >
-                  6 Últimas
+                  Últimas 6
                 </button>
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
-                  onClick={() => setSelectedIds(simulation.map(i => i.id))}
+                  onClick={() => selectLastN(12)}
                 >
-                  Todas
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-link text-muted hover:text-danger p-1 text-[10px] font-bold"
-                  onClick={() => setSelectedIds([])}
-                >
-                  Limpar
+                  Últimas 12
                 </button>
               </div>
             </div>
 
-            {/* Linha 2: 2 Mini Cards de Resumo */}
-            <div className="grid grid-cols-2 gap-2 md:gap-3">
+            {/* Linha 2: Resumo Financeiro da Seleção */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-top border-border/40">
               <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
                 <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
                 <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>
@@ -2566,8 +2885,8 @@ export function PayoffModal({
                   border: '1px solid rgba(0, 174, 154, 0.3)'
                 }}
               >
-                <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Valor a Pagar (VP)</div>
-                <div className="text-sm md:text-lg font-black text-primary my-0.5 truncate" title={formatCurrency(totalVP)}>
+                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Valor a Pagar (VP)</div>
+                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalVP)}>
                   {formatCurrency(totalVP)}
                 </div>
                 <div className="text-[10px] md:text-xs font-bold text-success truncate">
@@ -2638,7 +2957,7 @@ export function PayoffModal({
                     </div>
 
                     <div className="text-end flex-shrink-0">
-                      <div className="font-black text-xs text-primary">
+                      <div className="font-black text-xs text-foreground">
                         {formatCurrency(i.vp)}
                       </div>
                       {i.discount > 0 ? (
@@ -2661,28 +2980,18 @@ export function PayoffModal({
               <table className="styled-table mb-0 w-100">
                 <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
                   <tr>
-                    <th style={{ width: '38px', textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        className="form-check-input cursor-pointer"
-                        checked={simulation.length > 0 && selectedIds.length === simulation.length}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedIds(simulation.map(i => i.id));
-                          else setSelectedIds([]);
-                        }}
-                      />
-                    </th>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Parcela</th>
-                    <th style={{ width: '100px', textAlign: 'center' }}>Vencimento</th>
-                    <th style={{ textAlign: 'right' }}>V. Presente</th>
-                    <th style={{ textAlign: 'right' }}>Desconto</th>
+                    <th style={{ textAlign: 'center', width: '40px' }}></th>
+                    <th style={{ textAlign: 'center' }}>Parcela</th>
+                    <th style={{ textAlign: 'center' }}>Vencimento</th>
+                    <th style={{ textAlign: 'right' }}>Valor Presente (VP)</th>
+                    <th style={{ textAlign: 'right' }}>Economia</th>
                   </tr>
                 </thead>
                 <tbody>
                   {simulation.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-10 text-muted italic text-sm">
-                        Nenhuma parcela futura encontrada para quitação.
+                      <td colSpan={5} className="text-center py-6 text-muted italic text-xs">
+                        Nenhuma parcela futura encontrada.
                       </td>
                     </tr>
                   ) : (
@@ -2690,7 +2999,7 @@ export function PayoffModal({
                       const isSelected = selectedIds.includes(i.id);
                       return (
                         <tr
-                          key={i.id}
+                          key={`desk-manual-${i.id}`}
                           className={cn("cursor-pointer transition-colors", isSelected && "bg-primary/5")}
                           onClick={() => {
                             setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
@@ -2714,7 +3023,7 @@ export function PayoffModal({
                           <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
                             {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
                           </td>
-                          <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>
+                          <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text-foreground, #fff)' }}>
                             {formatCurrency(i.vp)}
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
@@ -2780,6 +3089,7 @@ export function ExpenseSettingsModal({
   onSaveEmprestimo,
   onSaveContaFixa,
   onRenameCategory,
+  onUpdateCategoryByDescription,
   onUpdateDespesa,
   onDeleteEmprestimo,
   onDeleteContaFixa,
@@ -2798,6 +3108,7 @@ export function ExpenseSettingsModal({
   onSaveEmprestimo?: (loan: Partial<Emprestimo>) => Promise<any> | void;
   onSaveContaFixa?: (id: number, config: Partial<ContaFixaConfig>) => Promise<any> | void;
   onRenameCategory?: (oldCat: string, newCat: string) => Promise<any> | void;
+  onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
   onUpdateDespesa?: (id: number, updates: Partial<Despesa>) => Promise<any> | void;
   onDeleteEmprestimo: (id: number) => void;
   onDeleteContaFixa: (id: number) => void;
@@ -2921,21 +3232,6 @@ export function ExpenseSettingsModal({
     }
   };
 
-  const handleSaveCategoryInline = async () => {
-    if (!inlineCategoryEdit || !inlineCategoryEdit.newName.trim()) return;
-    setIsSaving(true);
-    try {
-      if (onRenameCategory) {
-        await onRenameCategory(inlineCategoryEdit.oldName, inlineCategoryEdit.newName.trim());
-      }
-      setInlineCategoryEdit(null);
-    } catch (err) {
-      console.error('Erro ao renomear categoria em lote:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   // Contagens por aba
@@ -2946,7 +3242,6 @@ export function ExpenseSettingsModal({
   const countCartoesParc = contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !!c.cartao_id && (c.total_parcelas || 0) > 0).length;
   const countRecRecorrentes = contasFixas.filter(c => c.tipo === 'receita' && (!c.total_parcelas || c.total_parcelas === 0)).length;
   const countRecParceladas = contasFixas.filter(c => c.tipo === 'receita' && (c.total_parcelas || 0) > 0).length;
-  const countCategorias = categoryStats.length;
 
   const activeThemeColor = themeColor || 'var(--primary, #00AE9A)';
 
@@ -2972,103 +3267,10 @@ export function ExpenseSettingsModal({
         { id: 'rec_recorrentes', label: 'Receitas Fixas', icon: 'fa-solid fa-arrow-trend-up', count: countRecRecorrentes },
         { id: 'rec_parceladas', label: 'Receitas Parceladas', icon: 'fa-solid fa-layer-group', count: countRecParceladas },
       ]
-    },
-    {
-      title: 'GERENCIAMENTO',
-      tabs: [
-        { id: 'categorias', label: 'Categorias de Despesa', icon: 'fa-solid fa-tags', count: countCategorias },
-      ]
     }
   ];
 
   const renderContent = () => {
-    // ── MODO DE EDIÇÃO DE CATEGORIA EM LOTE ──
-    if (inlineCategoryEdit) {
-      return (
-        <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
-          <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setInlineCategoryEdit(null)}
-                className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
-                title="Voltar para a lista"
-                style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
-              >
-                <i className="fa-solid fa-arrow-left text-xs"></i>
-              </button>
-              <div>
-                <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
-                  Renomear Categoria
-                </h3>
-                <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
-                  Atualização em lote em todas as tabelas e histórico financeiro.
-                </span>
-              </div>
-            </div>
-          </header>
-
-          <div className="flex-grow-1 overflow-y-auto p-6 custom-scrollbar">
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-                <div className="text-xs text-muted mb-1 font-normal">Categoria Atual:</div>
-                <div className="text-base font-medium text-foreground d-flex align-items-center gap-2">
-                  <i className="fa-solid fa-tag text-xs" style={{ color: activeThemeColor }}></i>
-                  <span>{inlineCategoryEdit.oldName}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-normal text-muted mb-1.5">Novo Nome da Categoria</label>
-                <input
-                  type="text"
-                  value={inlineCategoryEdit.newName}
-                  onChange={(e) => setInlineCategoryEdit({ ...inlineCategoryEdit, newName: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
-                  style={{ borderRadius: '14px' }}
-                  placeholder="Digite o novo nome..."
-                  autoFocus
-                />
-                <span className="text-[11px] text-muted block mt-1.5 font-normal opacity-60">
-                  Aviso: Todas as despesas e transações com este nome serão atualizadas instantaneamente.
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <footer className="flex-shrink-0 p-4 px-6 border-t border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-end gap-2.5">
-            <button
-              type="button"
-              onClick={() => setInlineCategoryEdit(null)}
-              className="px-4 py-2 border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground text-xs font-normal transition-all cursor-pointer"
-              style={{ borderRadius: '12px' }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveCategoryInline}
-              disabled={isSaving || !inlineCategoryEdit.newName.trim()}
-              className="px-5 py-2 border-0 text-white text-xs font-medium transition-all shadow-sm cursor-pointer d-flex align-items-center gap-2"
-              style={{ backgroundColor: activeThemeColor, borderRadius: '12px' }}
-            >
-              {isSaving ? (
-                <>
-                  <i className="fa-solid fa-circle-notch fa-spin text-xs"></i>
-                  <span>Atualizando em Lote...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-check text-xs"></i>
-                  <span>Salvar e Atualizar Tudo</span>
-                </>
-              )}
-            </button>
-          </footer>
-        </div>
-      );
-    }
-
     // ── MODO DE EDIÇÃO IN-LINE (NO MESMO POP-UP) ──
     if (inlineEdit) {
       const isLoan = inlineEdit.type === 'emprestimo';
@@ -3261,232 +3463,6 @@ export function ExpenseSettingsModal({
     }
 
     switch (activeTab) {
-      case 'categorias':
-        if (selectedCategoryForDetails) {
-          const matchingExpenses = despesas.filter(d => {
-            const catName = d.categoria?.trim() || 'OUTROS';
-            const matchCat = catName.toUpperCase() === selectedCategoryForDetails.toUpperCase() || catName === selectedCategoryForDetails;
-            if (!matchCat) return false;
-            if (!categorySearchTerm) return true;
-            return d.descricao?.toLowerCase().includes(categorySearchTerm.toLowerCase()) || String(d.valor).includes(categorySearchTerm);
-          });
-
-          return (
-            <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
-              {/* Header com Voltar */}
-              <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
-                <div className="d-flex align-items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategoryForDetails(null);
-                      setCategorySearchTerm('');
-                    }}
-                    className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
-                    title="Voltar para Categorias"
-                    style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
-                  >
-                    <i className="fa-solid fa-arrow-left text-xs"></i>
-                  </button>
-                  <div>
-                    <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
-                      Lançamentos em &quot;{selectedCategoryForDetails}&quot;
-                    </h3>
-                    <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
-                      Altere a categoria individualmente para qualquer despesa abaixo.
-                    </span>
-                  </div>
-                </div>
-                <span 
-                  className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
-                >
-                  {matchingExpenses.length} {matchingExpenses.length === 1 ? 'despesa' : 'despesas'}
-                </span>
-              </header>
-
-              {/* Busca rápida */}
-              <div className="px-6 pt-3 pb-1 flex-shrink-0">
-                <div className="position-relative">
-                  <i className="fa-solid fa-magnifying-glass position-absolute text-xs text-muted top-50 start-0 translate-middle-y ms-3.5 opacity-60"></i>
-                  <input
-                    type="text"
-                    value={categorySearchTerm}
-                    onChange={(e) => setCategorySearchTerm(e.target.value)}
-                    placeholder="Filtrar lançamentos por descrição ou valor..."
-                    className="w-full ps-9 pe-4 py-2 bg-white/[0.03] text-foreground text-xs font-normal focus:outline-none transition-all border-0"
-                    style={{ borderRadius: '12px' }}
-                  />
-                </div>
-              </div>
-
-              {/* Lista de Despesas */}
-              <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
-                {matchingExpenses.length === 0 ? (
-                  <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
-                    <div 
-                      className="w-12 h-12 d-flex align-items-center justify-content-center mb-3"
-                      style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
-                    >
-                      <i className="fa-solid fa-check text-xl"></i>
-                    </div>
-                    <h4 className="font-medium text-sm text-foreground mb-1">Nenhuma despesa encontrada</h4>
-                    <p className="text-xs text-muted max-w-xs m-0 font-normal opacity-75">
-                      Não há lançamentos nesta categoria com os filtros aplicados.
-                    </p>
-                  </div>
-                ) : (
-                  matchingExpenses.map((d) => (
-                    <div 
-                      key={d.id} 
-                      className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
-                      style={{ borderRadius: '16px' }}
-                    >
-                      <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
-                        <div 
-                          className="w-9 h-9 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
-                          style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '10px' }}
-                        >
-                          <i className="fa-solid fa-receipt text-xs"></i>
-                        </div>
-                        <div className="min-w-0 flex-grow-1">
-                          <div className="font-medium text-sm text-foreground truncate leading-tight">{d.descricao}</div>
-                          <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
-                            <span className="text-xs font-normal text-foreground">
-                              {formatCurrency(d.valor)}
-                            </span>
-                            <span 
-                              className="badge-tag text-[10px] py-0.5 px-2 font-normal border-0 text-muted"
-                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
-                            >
-                              {d.competencia || (d.vencimento ? formatDate(d.vencimento) : '')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Seletor Rápido de Categoria Individual */}
-                      <div className="flex-shrink-0 d-flex align-items-center gap-2">
-                        <span className="text-[11px] text-muted font-normal d-none d-sm-inline opacity-60">Mover para:</span>
-                        <select
-                          value={d.categoria || 'OUTROS'}
-                          onChange={async (e) => {
-                            const newCat = e.target.value;
-                            if (onUpdateDespesa) {
-                              await onUpdateDespesa(d.id, { categoria: newCat });
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-white/[0.06] text-foreground text-xs font-normal border-0 focus:outline-none cursor-pointer hover:bg-white/[0.1] transition-all"
-                          style={{ borderRadius: '10px' }}
-                        >
-                          {categoryStats.map(c => (
-                            <option key={c.name} value={c.name} style={{ background: '#131620', color: '#ffffff' }}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
-            {/* Header da Seção */}
-            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div className="d-flex align-items-center gap-3">
-                <div 
-                  className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
-                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '14px' }}
-                >
-                  <i className="fa-solid fa-tags text-sm"></i>
-                </div>
-                <div>
-                  <h3 className="text-sm md:text-base font-medium text-foreground m-0 leading-tight">
-                    Categorias de Despesas
-                  </h3>
-                  <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">
-                    Renomeie em lote ou clique para ajustar despesas individualmente.
-                  </span>
-                </div>
-              </div>
-              <span 
-                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
-              >
-                {categoryStats.length} categorias
-              </span>
-            </header>
-
-            {/* Lista de Categorias */}
-            <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
-              {categoryStats.map((cat) => (
-                <div 
-                  key={cat.name} 
-                  className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
-                  style={{ borderRadius: '16px' }}
-                >
-                  <div 
-                    className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0 cursor-pointer"
-                    onClick={() => setSelectedCategoryForDetails(cat.name)}
-                    title="Clique para ver os lançamentos desta categoria"
-                  >
-                    <div 
-                      className="w-10 h-10 d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs" 
-                      style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '12px' }}
-                    >
-                      <i className="fa-solid fa-tag text-xs"></i>
-                    </div>
-                    <div className="min-w-0 flex-grow-1">
-                      <div className="font-medium text-sm text-foreground truncate leading-tight hover:text-primary transition-colors">
-                        {cat.name}
-                      </div>
-                      <div className="d-flex align-items-center gap-2 mt-1 flex-wrap font-normal">
-                        <span 
-                          className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
-                          style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
-                        >
-                          {cat.count} {cat.count === 1 ? 'lançamento' : 'lançamentos'}
-                        </span>
-                        <span className="text-[10px] text-muted opacity-50 font-normal hover:opacity-100">
-                          (clique para ver)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                    <button 
-                      type="button"
-                      onClick={() => setSelectedCategoryForDetails(cat.name)} 
-                      className="btn btn-sm border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer d-flex align-items-center gap-1.5 px-3"
-                      title="Ver e ajustar despesas desta categoria"
-                      style={{ height: '32px', borderRadius: '12px' }}
-                    >
-                      <i className="fa-solid fa-list-ul text-xs"></i>
-                      <span className="text-xs font-normal d-none d-sm-inline">Ver Despesas</span>
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setInlineCategoryEdit({ oldName: cat.name, newName: cat.name })} 
-                      className="btn btn-sm border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer d-flex align-items-center gap-1.5 px-3"
-                      title="Renomear Categoria em Lote"
-                      style={{ height: '32px', borderRadius: '12px' }}
-                    >
-                      <i className="fa-solid fa-pen-to-square text-xs"></i>
-                      <span className="text-xs font-normal">Renomear</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
       case 'emprestimos':
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in duration-200">

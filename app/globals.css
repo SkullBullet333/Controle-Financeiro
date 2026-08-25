@@ -38,6 +38,8 @@
   --shadow-premium: 0 10px 40px rgba(0, 0, 0, 0.08);
   --navy: #001f3f;
   --on-navy: #ffffff;
+  --foreground: #0F172A;
+  --text-foreground: #0F172A;
   
   /* Sicoob Premium Mobile Variables */
   --sicoob-teal: #003641;
@@ -93,6 +95,9 @@ body:not(.dark-mode):not(.black-mode) .glass-panel {
 .text-on-surface { color: var(--on-surface); }
 .text-on-surface-variant { color: var(--on-surface-variant); }
 .text-on-secondary-container { color: var(--on-secondary-container); }
+.text-foreground { color: var(--text) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-muted-foreground { color: var(--text-muted) !important; }
 .ring-outline-variant\/30 { --tw-ring-color: rgba(202, 196, 208, 0.3); }
 
 .bg-navy { background-color: var(--navy); }
@@ -121,8 +126,8 @@ body.dark-mode {
   --card: #131d31;
   --card-hover: #18243d;
   --card-elevated: #1e2c4a;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.03);
   --text: #f8fafc;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
@@ -154,8 +159,8 @@ body.black-mode {
   --card: #0f1016;
   --card-hover: #151720;
   --card-elevated: #1a1c26;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.025);
   --text: #ffffff;
   --text-main: #ffffff;
   --text-muted: #94a3b8;
@@ -498,7 +503,7 @@ body {
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary, #00AE9A), #3b82f6);
+  background: linear-gradient(135deg, var(--primary, #00AE9A), var(--primary-hover, #008777));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -714,9 +719,32 @@ body {
   z-index: 1059 !important;
 }
 
-/* Icon Colors */
-.text-edit-blue {
-  color: #3b82f6 !important; /* Blue 500 */
+/* Icon and Highlight Colors Dynamically Driven by Theme */
+.text-primary, 
+[class*="text-primary"],
+.text-edit-blue,
+.topbar-icon,
+#topbar-icon,
+.period-display i,
+.brand-icon i,
+.nav-item.active i,
+.mobile-nav-item.active i,
+i.text-primary,
+span.text-primary {
+  color: var(--primary) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary) !important;
+}
+
+.border-primary {
+  border-color: var(--primary) !important;
+}
+
+.btn-primary {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
 .text-delete-red {
@@ -1187,25 +1215,45 @@ body.dark-mode .status-aberto, body.black-mode .status-aberto {
   color: #ff9f1c !important;
 }
 
-.status-vencida {
-  background: #fee2e2;
-  color: #dc2626;
+.status-vencida, .badge-overdue {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 600;
-  animation: pulse-danger 2s infinite;
+  font-weight: 700;
+  animation: pulse-vencido 1.2s infinite ease-in-out !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-body.dark-mode .status-vencida, body.black-mode .status-vencida {
-  background: rgba(231, 29, 54, 0.2) !important;
-  color: #e71d36 !important;
+body.dark-mode .status-vencida, body.black-mode .status-vencida,
+body.dark-mode .badge-overdue, body.black-mode .badge-overdue {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  animation: pulse-vencido 1.2s infinite ease-in-out !important;
 }
 
-@keyframes pulse-danger {
-  0% { box-shadow: 0 0 0 0 rgba(231, 29, 54, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(231, 29, 54, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(231, 29, 54, 0); }
+@keyframes pulse-vencido {
+  0% {
+    background-color: #ef4444 !important;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    background-color: #dc2626 !important;
+    box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.6);
+    opacity: 0.88;
+    transform: scale(1.03);
+  }
+  100% {
+    background-color: #ef4444 !important;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .status-hoje {
@@ -2282,6 +2330,10 @@ body:not(.dark-mode):not(.black-mode) .tx-item:hover {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+body.dark-mode .card-panel, body.black-mode .card-panel {
+  border-color: rgba(255, 255, 255, 0.04) !important;
 }
 
 .panel-header {

@@ -4,8 +4,8 @@ import React from 'react';
 import Image from 'next/image';
 import { getCardLogo as getCardLogoUrl } from '@/lib/finance-service';
 
-export function CardLogo({ name, size = 'md' }: { name: string, size?: 'xs' | 'sm' | 'md' | 'lg' }) {
-  const url = getCardLogoUrl(name);
+export function CardLogo({ name, customIcon, size = 'md' }: { name: string, customIcon?: string, size?: 'xs' | 'sm' | 'md' | 'lg' }) {
+  const url = customIcon || getCardLogoUrl(name);
   const sizeClasses = {
     xs: 'w-5 h-5 rounded p-0.5',
     sm: 'w-6 h-6 rounded-md p-0.5',
@@ -15,12 +15,10 @@ export function CardLogo({ name, size = 'md' }: { name: string, size?: 'xs' | 's
 
   return (
     <div className={`${sizeClasses[size]} relative overflow-hidden bg-white no-dark border border-slate-100 flex-shrink-0 shadow-sm`}>
-      <Image 
+      <img 
         src={url} 
         alt={name} 
-        fill 
-        className="object-contain" 
-        unoptimized 
+        className="w-full h-full object-contain" 
       />
     </div>
   );

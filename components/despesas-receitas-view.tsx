@@ -107,7 +107,7 @@ export function DespesasReceitasView({
         isOverdue: false,
         isIncome: true,
         amount: Number(r.valor || 0),
-        parcela: null,
+        parcela: r.parcela_atual ? `${r.parcela_atual}/${r.parcela_total || 1}` : null,
         isVirtual: r.id < 0,
         sortDate
       };
@@ -468,6 +468,23 @@ export function DespesasReceitasView({
 
                       <div className="d-flex align-items-center gap-1.5 text-[10px] text-muted flex-nowrap overflow-hidden">
                         <span className="flex-shrink-0">{tx.vencimento}</span>
+                        {tx.parcela && (
+                          <>
+                            <span className="flex-shrink-0">•</span>
+                            <span
+                              className="badge-tag flex-shrink-0"
+                              style={{
+                                padding: '1px 5px',
+                                fontSize: '9px',
+                                background: 'var(--card-hover)',
+                                fontWeight: 700,
+                                color: 'var(--foreground)'
+                              }}
+                            >
+                              {tx.parcela}
+                            </span>
+                          </>
+                        )}
                         <span className="flex-shrink-0">•</span>
                         <span
                           className="badge-tag truncate flex-shrink-0"
@@ -485,6 +502,14 @@ export function DespesasReceitasView({
                           <>
                             <span className="flex-shrink-0">•</span>
                             <span className="text-muted-foreground truncate" style={{ maxWidth: '85px' }}>{tx.titular}</span>
+                          </>
+                        )}
+                        {tx.isOverdue && (
+                          <>
+                            <span className="flex-shrink-0">•</span>
+                            <span className="badge-overdue text-[8px] px-1.5 py-0.5 rounded flex-shrink-0 font-bold">
+                              Vencido
+                            </span>
                           </>
                         )}
                       </div>
@@ -536,6 +561,7 @@ export function DespesasReceitasView({
                 <th>Descrição</th>
                 <th>Categoria</th>
                 <th>Titular</th>
+                <th style={{ textAlign: 'center', width: '75px' }}>Parc.</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Valor</th>
                 <th style={{ textAlign: 'center' }}>Ações</th>
@@ -544,7 +570,7 @@ export function DespesasReceitasView({
             <tbody>
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-muted">
+                  <td colSpan={10} className="text-center py-8 text-muted">
                     <i className="fa-regular fa-folder-open fs-2 mb-2 d-block opacity-40"></i>
                     Nenhum lançamento encontrado com os filtros selecionados.
                   </td>
@@ -605,7 +631,7 @@ export function DespesasReceitasView({
                               width: '8px',
                               height: '8px',
                               borderRadius: '50%',
-                              backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : '#3b82f6',
+                              backgroundColor: tx.isIncome ? '#10b981' : tx.isOverdue ? '#ef4444' : 'var(--primary)',
                               display: 'inline-block',
                               flexShrink: 0
                             }}
@@ -637,12 +663,32 @@ export function DespesasReceitasView({
                         {tx.titular}
                       </td>
 
+                      {/* Parcela */}
+                      <td style={{ textAlign: 'center' }} className="whitespace-nowrap">
+                        {tx.parcela ? (
+                          <span
+                            className="badge-tag"
+                            style={{
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              background: 'var(--card-hover)',
+                              fontWeight: 700,
+                              color: 'var(--foreground)'
+                            }}
+                          >
+                            {tx.parcela}
+                          </span>
+                        ) : (
+                          <span className="text-muted opacity-30 text-xs">-</span>
+                        )}
+                      </td>
+
                       {/* Status */}
                       <td>
                         <span
                           className={cn(
                             'badge-tag',
-                            tx.isOverdue ? 'badge-danger' : isPaid ? 'badge-paid' : 'badge-pending'
+                            tx.isOverdue ? 'badge-overdue' : isPaid ? 'badge-paid' : 'badge-pending'
                           )}
                           style={{ cursor: 'pointer' }}
                           onClick={() => onToggleStatus(tx.id, tx.isIncome ? 'receita' : 'despesa', tx.status)}

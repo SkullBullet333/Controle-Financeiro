@@ -568,3 +568,52 @@ export async function renomearCategoriaEmLote(
   return { success: true };
 }
 
+export async function atualizarCategoriaPorDescricao(
+  descricao: string,
+  categoriaNova: string,
+  familyId?: string,
+  userId?: string
+) {
+  if (!descricao || !categoriaNova) {
+    return { success: false };
+  }
+
+  const descTrim = descricao.trim();
+  const newCat = categoriaNova.trim();
+
+  // 1. Atualizar em despesas com essa descrição (case-insensitive)
+  let qDespesas = supabase
+    .from('despesas')
+    .update({ categoria: newCat })
+    .ilike('descricao', descTrim);
+  if (familyId) qDespesas = qDespesas.eq('family_id', familyId);
+  const { error: err1 } = await qDespesas;
+  if (err1) console.error('Erro ao atualizar categoria por descricao em despesas:', err1);
+
+  // 2. Atualizar em contas_fixas
+  let qFixas = supabase
+    .from('contas_fixas')
+    .update({ categoria: newCat })
+    .ilike('descricao', descTrim);
+  if (familyId) qFixas = qFixas.eq('family_id', familyId);
+  const { error: err2 } = await qFixas;
+  if (err2) console.error('Erro ao atualizar categoria por descricao em contas_fixas:', err2);
+
+  // 3. Atualizar em cartoes (estabelecimento ou descricao)
+  let qCartoes1 = supabase
+    .from('cartoes')
+    .update({ categoria: newCat })
+    .ilike('estabelecimento', descTrim);
+  if (familyId) qCartoes1 = qCartoes1.eq('family_id', familyId);
+  await qCartoes1;
+
+  let qCartoes2 = supabase
+    .from('cartoes')
+    .update({ categoria: newCat })
+    .ilike('descricao', descTrim);
+  if (familyId) qCartoes2 = qCartoes2.eq('family_id', familyId);
+  await qCartoes2;
+
+  return { success: true };
+}
+

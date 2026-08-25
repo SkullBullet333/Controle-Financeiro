@@ -52,13 +52,23 @@ export function RadarFinanceiroView({
   emprestimos = [],
   contasFixas = [],
   allProjectedCartaoTransacoes = [],
-  currentMonth,
-  currentYear,
-  activeFilterId,
+  currentMonth = new Date().getMonth() + 1,
+  currentYear = new Date().getFullYear(),
+  activeFilterId = null,
   onFilterChange,
   onPayoff,
   isHidden = false
 }: RadarFinanceiroViewProps) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const competenciaAtual = `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
   const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -209,13 +219,14 @@ export function RadarFinanceiroView({
     return score;
   }, [totalDespesasMesAtual, totalReceitasMesAtual]);
 
-  // 8-Month Projection Chart Data (Projeção Completa: Físicos, Recorrentes Fixos, Empréstimos e Cartões)
+  // Projeção de Fluxo de Caixa (12 Meses no PC / 8 Meses no Celular)
   const projectionChartData = useMemo(() => {
     const data = [];
     let tempMonth = currentMonth;
     let tempYear = currentYear;
+    const monthsLimit = isMobile ? 8 : 12;
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < monthsLimit; i++) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
       const [mStr] = comp.split('/');
       const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -386,7 +397,7 @@ export function RadarFinanceiroView({
       }
     }
     return data;
-  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, contasFixas, emprestimos, cartoes, activeFilterId]);
+  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, contasFixas, emprestimos, cartoes, activeFilterId, isMobile]);
 
   return (
     <div className="space-y-4">
@@ -484,11 +495,11 @@ export function RadarFinanceiroView({
         <div className="kpi-card">
           <div className="kpi-header">
             <span className="kpi-title">Quitação Hoje (VP)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(0, 174, 154, 0.15)', color: 'var(--primary, #00AE9A)' }}>
+            <div className="kpi-icon-wrap" style={{ background: 'var(--primary-subtle, rgba(0, 174, 154, 0.15))', color: 'var(--primary, #00AE9A)' }}>
               <Calculator className="w-4 h-4 text-primary" />
             </div>
           </div>
-          <div className={cn('kpi-val text-primary sensitive-val', isHidden && 'hidden-amount')}>
+          <div className={cn('kpi-val text-foreground sensitive-val', isHidden && 'hidden-amount')}>
             {isHidden ? 'R$ •••••' : formatCurrency(debtStats.totalVP)}
           </div>
           <div className="kpi-footer">
@@ -613,7 +624,7 @@ export function RadarFinanceiroView({
         </div>
       </div>
 
-      {/* 4. Projeção de Fluxo de Caixa (Próximos 8 Meses) */}
+      {/* 4. Projeção de Fluxo de Caixa (12 Meses PC / 8 Meses Celular) */}
       <div className="card-panel">
         <div className="panel-header">
           <div>
@@ -622,7 +633,7 @@ export function RadarFinanceiroView({
               <span>Projeção de Fluxo de Caixa</span>
             </h3>
             <span className="panel-subtitle">
-              Receitas vs. despesas projetadas
+              {isMobile ? 'Próximos 8 meses' : 'Próximos 12 meses'} • Receitas vs. despesas projetadas
             </span>
           </div>
         </div>
@@ -713,7 +724,7 @@ export function RadarFinanceiroView({
               />
               <Bar dataKey="receitas" name="Receitas Previstas" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={28} />
               <Bar dataKey="totalDespesas" name="Despesas  Previstas" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Line type="monotone" dataKey="saldo" name="Saldo Líquido" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+              <Line type="monotone" dataKey="saldo" name="Saldo Líquido" stroke="var(--primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--primary)' }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -754,7 +765,7 @@ export function RadarFinanceiroView({
               >
                 <div className="d-flex align-items-start justify-content-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">
                       {c.titularNome}
                     </span>
                     <h4 className="font-black text-sm text-foreground m-0 leading-snug">{c.descricao}</h4>
@@ -782,7 +793,7 @@ export function RadarFinanceiroView({
                   </div>
                   <div>
                     <span className="text-[10px] text-muted block">Quitar Hoje (VP):</span>
-                    <strong className="text-primary font-black">{isHidden ? '••••••' : formatCurrency(c.totalVP)}</strong>
+                    <strong className="text-foreground font-black">{isHidden ? '••••••' : formatCurrency(c.totalVP)}</strong>
                   </div>
                 </div>
 
@@ -824,7 +835,7 @@ export function RadarFinanceiroView({
               ) : (
                 loanContractsSummary.map((c) => (
                   <tr key={c.id}>
-                    <td className="text-sm font-semibold text-primary">{c.titularNome}</td>
+                    <td className="text-sm font-semibold text-foreground">{c.titularNome}</td>
                     <td>
                       <div className="font-bold text-sm text-foreground">{c.descricao}</div>
                       <div className="text-xs text-muted">Taxa: {c.taxa}% a.m. • {c.openCount} parcelas a vencer</div>
@@ -843,7 +854,7 @@ export function RadarFinanceiroView({
                     <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
                       {isHidden ? '••••••••' : c.totalDiscount > 0 ? `- ${formatCurrency(c.totalDiscount)}` : '-'}
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text)', fontSize: '0.95rem' }}>
                       {isHidden ? '••••••••' : formatCurrency(c.totalVP)}
                     </td>
                     <td style={{ textAlign: 'center' }}>

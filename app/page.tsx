@@ -272,7 +272,8 @@ export default function Home() {
     deleteLembrete,
     avisosConfig,
     updateAvisosConfig,
-    renameCategory
+    renameCategory,
+    updateCategoryByDescription
   } = useFinance(activeView);
 
 
@@ -653,6 +654,8 @@ export default function Home() {
             userType={userType}
             titulares={config.titulares}
             cartoes={config.cartoes}
+            despesas={despesas}
+            contasFixas={contasFixas}
             onAddTitular={addTitular}
             onUpdateTitular={updateTitular}
             onDeleteTitular={(id) => { 
@@ -664,6 +667,12 @@ export default function Home() {
             onDeleteCartao={(id) => {
               setItemToDelete({ id, type: 'cartao' });
               setIsConfirmDeleteOpen(true);
+            }}
+            onRenameCategory={async (oldCat, newCat) => {
+              await renameCategory(oldCat, newCat);
+            }}
+            onUpdateCategoryByDescription={async (descricao, newCat) => {
+              await updateCategoryByDescription(descricao, newCat);
             }}
             isMobile={true}
             themeColor={themeColor}
@@ -910,19 +919,20 @@ export default function Home() {
                 setIsConfirmDeleteOpen(false);
                 setItemToDelete(null);
               }}
-              onConfirm={async () => {
+              onConfirm={() => {
                 if (!itemToDelete) return;
                 const { id, type } = itemToDelete;
-                if (type === 'despesa') await deleteDespesa(id);
-                else if (type === 'receita') await deleteReceita(id);
-                else if (type === 'cartao_transacao') await deleteCartaoTransacao(id);
-                else if (type === 'titular') await deleteTitular(id);
-                else if (type === 'cartao') await deleteCartao(id);
-                else if (type === 'emprestimo') await deleteEmprestimo(id);
-                else if (type === 'conta_fixa') await deleteContaFixa(id);
-                
+                // Fecha o modal na hora (0ms) e executa a exclusão otimista instantaneamente
                 setIsConfirmDeleteOpen(false);
                 setItemToDelete(null);
+
+                if (type === 'despesa') deleteDespesa(id);
+                else if (type === 'receita') deleteReceita(id);
+                else if (type === 'cartao_transacao') deleteCartaoTransacao(id);
+                else if (type === 'titular') deleteTitular(id);
+                else if (type === 'cartao') deleteCartao(id);
+                else if (type === 'emprestimo') deleteEmprestimo(id);
+                else if (type === 'conta_fixa') deleteContaFixa(id);
               }}
               title="Confirmar Exclusão"
               message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
@@ -954,6 +964,9 @@ export default function Home() {
           }}
           onRenameCategory={async (oldCat, newCat) => {
             await renameCategory(oldCat, newCat);
+          }}
+          onUpdateCategoryByDescription={async (descricao, newCat) => {
+            await updateCategoryByDescription(descricao, newCat);
           }}
           onUpdateDespesa={async (id, data) => {
             await updateDespesa(id, data);

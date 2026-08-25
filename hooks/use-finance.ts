@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, salvarContaFixaConfig, deletarContaFixaConfig, renomearCategoriaEmLote } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, ajustarDataReceita, calcularCompetenciaReceita, salvarContaFixaConfig, deletarContaFixaConfig, renomearCategoriaEmLote, atualizarCategoriaPorDescricao } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 import { setCompressedCache, getCompressedCache, clearUserCompressedCache } from '@/lib/compressed-cache';
+import { categorizar } from '@/lib/categories-utils';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -154,9 +155,23 @@ export function useFinance(activeView: string) {
       if (emprestimosData) setEmprestimos(emprestimosData);
       if (contasFixasData) setContasFixas(contasFixasData);
 
+      const normalizedCartoes: CartaoConfig[] = (cartoesConfigData || []).map((c: any) => {
+        const rawFinal = c.final ?? c['FINAL'] ?? c['Final'] ?? c.final_cartao ?? c.ultimos_digitos ?? c.numero_final;
+        const rawColor = c.color ?? c['COLOR'] ?? c['Color'] ?? c.cor ?? c['COR'] ?? c['Cor'];
+        const rawIcone = c.icone ?? c['ICONE'] ?? c['ícone'] ?? c['ÍCONE'] ?? c.icon ?? c['ICON'];
+
+        return {
+          ...c,
+          id: Number(c.id),
+          color: rawColor ? String(rawColor).trim() : undefined,
+          icone: rawIcone ? String(rawIcone).trim() : undefined,
+          final: (rawFinal !== undefined && rawFinal !== null && String(rawFinal).trim() !== '') ? String(rawFinal).trim() : undefined
+        };
+      });
+
       const configData = {
         titulares: titularesData || [],
-        cartoes: cartoesConfigData || []
+        cartoes: normalizedCartoes
       };
       setConfig(configData);
 
@@ -363,13 +378,16 @@ export function useFinance(activeView: string) {
   };
 
   useEffect(() => {
-    if (!isLoading && user) {
-      // Apply theme color to CSS variable whenever it changes
+    if (themeColor) {
       document.documentElement.style.setProperty('--primary', themeColor);
-      // Save to user-specific localStorage key
-      localStorage.setItem(`fin_theme_color_${user.id}`, themeColor);
+      document.documentElement.style.setProperty('--bs-primary', themeColor);
+      document.documentElement.style.setProperty('--primary-glow', `${themeColor}40`);
+      document.documentElement.style.setProperty('--primary-subtle', `${themeColor}1a`);
+      if (user?.id) {
+        localStorage.setItem(`fin_theme_color_${user.id}`, themeColor);
+      }
     }
-  }, [themeColor, isLoading, user]);
+  }, [themeColor, user?.id]);
 
   const addLembrete = async (texto: string, data?: string) => {
     const newReminders = [...lembretes, { id: Date.now(), texto, concluido: false, data }];
@@ -453,10 +471,60 @@ export function useFinance(activeView: string) {
   // CRUD Operations with Supabase sync
   const addDespesa = async (d: Omit<Despesa, 'id'>) => {
     if (!user) return;
+    const previousDespesas = despesas;
+    const previousCartaoTransacoes = cartaoTransacoes;
+
     try {
+      const totalParcelas = Number(d.parcela_total || 1);
+      const valorParcela = Number(d.valor || 0);
+      const dataStr = d.vencimento || format(new Date(), 'yyyy-MM-dd');
+      const dataInicial = parseISO(dataStr);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDiaOriginal = isLastDayOfMonth(dataInicial);
+
       if (d.cartao_vencimento_id) {
         // Se for despesa de cartão, lança na tabela 'cartoes' (pode ser parcelado)
         const cartaoConfig = config.cartoes.find(c => c.id === d.cartao_vencimento_id);
+        const newCartaoItems: CartaoTransacao[] = [];
+        let firstComp = '';
+
+        for (let i = 1; i <= totalParcelas; i++) {
+          let comp: string;
+          if (i === 1) {
+            if (cartaoConfig) {
+              comp = calcularCompetenciaCartao(dataInicial, cartaoConfig.dia_vencimento, cartaoConfig.dia_fechamento);
+            } else {
+              comp = format(dataInicial, 'MM/yyyy');
+            }
+            firstComp = comp;
+          } else {
+            if (firstComp) {
+              const [m, y] = firstComp.split('/').map(Number);
+              const firstDate = new Date(y, m - 1, 1);
+              comp = format(addMonths(firstDate, i - 1), 'MM/yyyy');
+            } else {
+              comp = format(addMonths(dataInicial, i - 1), 'MM/yyyy');
+            }
+          }
+
+          newCartaoItems.push({
+            id: -Date.now() - i,
+            user_id: user.id,
+            estabelecimento: d.descricao,
+            valor: valorParcela,
+            competencia: comp,
+            cartao_id: d.cartao_vencimento_id,
+            categoria: d.categoria || 'cartoes',
+            titular_id: d.titular_id,
+            parcela_atual: i,
+            parcela_total: totalParcelas,
+            data_compra: format(dataInicial, 'yyyy-MM-dd'),
+          });
+        }
+
+        // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+        setCartaoTransacoes(prev => [...prev, ...newCartaoItems]);
+
         await lancarParcelas('cartao', {
           ...d,
           cartao_id: d.cartao_vencimento_id,
@@ -464,39 +532,100 @@ export function useFinance(activeView: string) {
         }, user.id, familyId!);
       } else {
         // Despesa fixa/variável normal
+        const newDespesaItems: Despesa[] = [];
+        for (let i = 1; i <= totalParcelas; i++) {
+          const dataVenc = projetarProximoVencimento(
+            dataInicial,
+            i - 1,
+            isUltimoDiaOriginal,
+            diaOriginal,
+            true
+          );
+          const comp = calcularCompetencia(dataVenc);
+
+          newDespesaItems.push({
+            id: -Date.now() - i,
+            descricao: d.descricao,
+            valor: valorParcela,
+            competencia: comp,
+            categoria: d.categoria || categorizar(d.descricao || ''),
+            parcela_atual: i,
+            parcela_total: totalParcelas,
+            vencimento: format(dataVenc, 'yyyy-MM-dd'),
+            status: (d.status as Status) || 'Em aberto',
+            titular_id: d.titular_id,
+            emprestimo_id: d.emprestimo_id,
+            conta_fixa_id: d.conta_fixa_id,
+            isSummary: false
+          });
+        }
+
+        // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+        setDespesas(prev => [...prev, ...newDespesaItems]);
+
         await salvarDespesa(d, user.id, familyId!);
       }
       await fetchData();
     } catch (error) {
-      console.error('Error adding despesa:', error);
+      console.error('Error adding despesa (rolling back optimistic update):', error);
+      setDespesas(previousDespesas);
+      setCartaoTransacoes(previousCartaoTransacoes);
     }
   };
 
   const addContaFixa = async (c: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
     if (!user || !familyId) return;
+    const previousContas = contasFixas;
     try {
+      const tempContaFixa: ContaFixaConfig = {
+        id: -Date.now(),
+        user_id: user.id,
+        family_id: familyId,
+        descricao: c.descricao,
+        valor_mensal: Number(c.valor_mensal || 0),
+        total_parcelas: c.total_parcelas,
+        parcela_atual: c.parcela_atual || 1,
+        data_inicio: c.data_inicio,
+        competencia_inicial: c.competencia_inicial,
+        titular_id: c.titular_id,
+        categoria: c.categoria,
+        cartao_id: c.cartao_id,
+        tipo: c.tipo || 'despesa'
+      };
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setContasFixas(prev => [...prev, tempContaFixa]);
+
       await salvarContaFixaConfig(c, user.id, familyId);
       await fetchData();
     } catch (error) {
-      console.error('Error adding conta fixa:', error);
+      console.error('Error adding conta fixa (rolling back optimistic update):', error);
+      setContasFixas(previousContas);
     }
   };
 
   const updateContaFixa = async (id: number, updates: Partial<ContaFixaConfig>) => {
+    const previousContas = contasFixas;
     try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setContasFixas(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
       await salvarContaFixaConfig({ id, ...updates }, user?.id!, familyId!);
       await fetchData();
     } catch (error) {
-      console.error('Error updating conta fixa:', error);
+      console.error('Error updating conta fixa (rolling back optimistic update):', error);
+      setContasFixas(previousContas);
     }
   };
 
   const deleteContaFixa = async (id: number) => {
+    const previousContas = contasFixas;
     try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setContasFixas(prev => prev.filter(c => c.id !== id));
       await deletarContaFixaConfig(id);
       await fetchData();
     } catch (error) {
-      console.error('Error deleting conta fixa:', error);
+      console.error('Error deleting conta fixa (rolling back optimistic update):', error);
+      setContasFixas(previousContas);
     }
   };
 
@@ -553,32 +682,67 @@ export function useFinance(activeView: string) {
   const deleteDespesa = async (id: number) => {
     if (!user) return;
     const previousDespesas = despesas;
+    const previousContas = contasFixas;
+    const previousEmprestimos = emprestimos;
     try {
+      const isVirtual = id < 0;
+      const item = isVirtual 
+        ? consolidatedDespesas.find(d => d.id === id) 
+        : despesas.find(d => d.id === id);
+
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setDespesas(prev => prev.filter(d => d.id !== id));
-      const { data: item } = await supabase.from('despesas').select('competencia').eq('id', id).single();
-      const { error } = await supabase.from('despesas').delete().eq('id', id);
-      if (error) throw error;
-      if (item) await consolidarFaturas(item.competencia, user.id);
+
+      if (isVirtual && item) {
+        if (item.conta_fixa_id) {
+          setContasFixas(prev => prev.filter(c => c.id !== item.conta_fixa_id));
+          await deletarContaFixaConfig(item.conta_fixa_id);
+        } else if (item.emprestimo_id) {
+          setEmprestimos(prev => prev.filter(e => e.id !== item.emprestimo_id));
+          await deletarEmprestimo(item.emprestimo_id);
+        }
+      } else {
+        const { data: itemDb } = await supabase.from('despesas').select('competencia').eq('id', id).single();
+        const { error } = await supabase.from('despesas').delete().eq('id', id);
+        if (error) throw error;
+        if (itemDb) await consolidarFaturas(itemDb.competencia, user.id);
+      }
       await fetchData();
     } catch (error) {
-      console.error('Error deleting despesa:', error);
+      console.error('Error deleting despesa (rolling back optimistic update):', error);
       setDespesas(previousDespesas);
+      setContasFixas(previousContas);
+      setEmprestimos(previousEmprestimos);
     }
   };
 
   const deleteCartaoTransacao = async (id: number) => {
     if (!user) return;
     const previousTransacoes = cartaoTransacoes;
+    const previousContas = contasFixas;
     try {
+      const isVirtual = id < 0;
+      const item = isVirtual 
+        ? allProjectedCartaoTransacoes.find(c => c.id === id) 
+        : cartaoTransacoes.find(c => c.id === id);
+
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setCartaoTransacoes(prev => prev.filter(c => c.id !== id));
-      const { data: item } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
-      const { error } = await supabase.from('cartoes').delete().eq('id', id);
-      if (error) throw error;
-      if (item) await consolidarFaturas(item.competencia, user.id);
+
+      if (isVirtual && (item as any)?.conta_fixa_id) {
+        setContasFixas(prev => prev.filter(c => c.id !== (item as any).conta_fixa_id));
+        await deletarContaFixaConfig((item as any).conta_fixa_id);
+      } else {
+        const { data: itemDb } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
+        const { error } = await supabase.from('cartoes').delete().eq('id', id);
+        if (error) throw error;
+        if (itemDb) await consolidarFaturas(itemDb.competencia, user.id);
+      }
       await fetchData();
     } catch (error) {
-      console.error('Error deleting cartao transacao:', error);
+      console.error('Error deleting cartao transacao (rolling back optimistic update):', error);
       setCartaoTransacoes(previousTransacoes);
+      setContasFixas(previousContas);
     }
   };
 
@@ -615,11 +779,50 @@ export function useFinance(activeView: string) {
 
   const addReceita = async (r: Omit<Receita, 'id'>) => {
     if (!user || !familyId) return;
+    const previousReceitas = receitas;
     try {
+      const totalParcelas = Number(r.parcela_total || 1);
+      const valorParcela = Number(r.valor || 0);
+      const dataStr = r.data_recebimento || format(new Date(), 'yyyy-MM-dd');
+      const dataInicial = parseISO(dataStr);
+      const diaOriginal = getDate(dataInicial);
+      const isUltimoDiaOriginal = isLastDayOfMonth(dataInicial);
+
+      const newReceitaItems: Receita[] = [];
+      for (let i = 1; i <= totalParcelas; i++) {
+        let dataVenc = projetarProximoVencimento(
+          dataInicial,
+          i - 1,
+          isUltimoDiaOriginal,
+          diaOriginal,
+          false
+        );
+        const comp = calcularCompetenciaReceita(dataVenc);
+        dataVenc = ajustarDataReceita(dataVenc);
+
+        newReceitaItems.push({
+          id: -Date.now() - i,
+          descricao: r.descricao,
+          valor: valorParcela,
+          competencia: comp,
+          categoria: r.categoria || categorizar(r.descricao || ''),
+          data_recebimento: format(dataVenc, 'yyyy-MM-dd'),
+          titular_id: r.titular_id,
+          conta_fixa_id: r.conta_fixa_id,
+          parcela_atual: i,
+          parcela_total: totalParcelas,
+          status: (r.status as Status) || (format(dataVenc, 'yyyy-MM-dd') <= format(new Date(), 'yyyy-MM-dd') ? 'Recebido' : 'Pendente')
+        });
+      }
+
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setReceitas(prev => [...prev, ...newReceitaItems]);
+
       await salvarReceita(r, user.id, familyId);
       await fetchData();
     } catch (error) {
-      console.error('Error adding receita:', error);
+      console.error('Error adding receita (rolling back optimistic update):', error);
+      setReceitas(previousReceitas);
     }
   };
 
@@ -660,12 +863,29 @@ export function useFinance(activeView: string) {
 
   const deleteReceita = async (id: number) => {
     if (!user) return;
+    const previousReceitas = receitas;
+    const previousContas = contasFixas;
     try {
-      const { error } = await supabase.from('receitas').delete().eq('id', id);
-      if (error) throw error;
+      const isVirtual = id < 0;
+      const item = isVirtual 
+        ? consolidatedReceitas.find(r => r.id === id) 
+        : receitas.find(r => r.id === id);
+
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setReceitas(prev => prev.filter(r => r.id !== id));
+
+      if (isVirtual && item?.conta_fixa_id) {
+        setContasFixas(prev => prev.filter(c => c.id !== item.conta_fixa_id));
+        await deletarContaFixaConfig(item.conta_fixa_id);
+      } else {
+        const { error } = await supabase.from('receitas').delete().eq('id', id);
+        if (error) throw error;
+      }
       await fetchData();
     } catch (error) {
-      console.error('Error deleting receita:', error);
+      console.error('Error deleting receita (rolling back optimistic update):', error);
+      setReceitas(previousReceitas);
+      setContasFixas(previousContas);
     }
   };
 
@@ -689,11 +909,16 @@ export function useFinance(activeView: string) {
   };
 
   const deleteTitular = async (id: number) => {
-    const { error } = await supabase.from('titulares').delete().eq('id', id);
-    if (!error) {
+    const previousConfig = config;
+    try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setConfig(prev => ({ ...prev, titulares: prev.titulares.filter(t => t.id !== id) }));
-    } else {
-      console.error('Error deleting titular:', error);
+      const { error } = await supabase.from('titulares').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting titular (rolling back optimistic update):', error);
+      setConfig(previousConfig);
     }
   };
 
@@ -720,41 +945,184 @@ export function useFinance(activeView: string) {
     }
   };
 
+  const sendCartaoInsert = async (payload: any) => {
+    // 1. Tentar inserir tudo junto
+    let res = await supabase.from('cartoes_config').insert([payload]).select();
+    if (!res.error) return res;
+
+    console.warn('[Cartao Insert] Falha na inserção completa, executando inserção granular:', res.error);
+
+    // 2. Inserir com basePayload garantido
+    const basePayload: any = {
+      user_id: payload.user_id,
+      family_id: payload.family_id,
+      nome_cartao: payload.nome_cartao,
+      titular_id: payload.titular_id,
+      dia_vencimento: payload.dia_vencimento,
+      dia_fechamento: payload.dia_fechamento
+    };
+
+    let baseRes = await supabase.from('cartoes_config').insert([basePayload]).select();
+    if (baseRes.error || !baseRes.data || !baseRes.data[0]) {
+      return baseRes;
+    }
+
+    const newId = baseRes.data[0].id;
+    const optionalFields = [
+      { key: 'color', value: payload.color, aliases: ['cor'] },
+      { key: 'final', value: payload.final, aliases: ['final_cartao', 'ultimos_digitos'] },
+      { key: 'icone', value: payload.icone, aliases: ['ícone', 'icon'] }
+    ];
+
+    for (const field of optionalFields) {
+      if (field.value !== undefined && field.value !== null) {
+        let fRes = await supabase.from('cartoes_config').update({ [field.key]: field.value }).eq('id', newId);
+        if (fRes.error && field.aliases) {
+          for (const alias of field.aliases) {
+            let aRes = await supabase.from('cartoes_config').update({ [alias]: field.value }).eq('id', newId);
+            if (!aRes.error) break;
+          }
+        }
+      }
+    }
+
+    return baseRes;
+  };
+
   const addCartao = async (c: Omit<CartaoConfig, 'id'>) => {
     if (!user || !familyId) return;
-    const { data, error } = await supabase.from('cartoes_config').insert([{
+
+    const payload: any = {
       user_id: user.id,
       family_id: familyId,
       nome_cartao: c.nome_cartao,
       titular_id: c.titular_id,
       dia_vencimento: Number(c.dia_vencimento),
-      dia_fechamento: Number(c.dia_fechamento)
-    }]).select();
+      dia_fechamento: Number(c.dia_fechamento),
+      final: c.final ? String(c.final).trim() : null,
+      color: c.color || '#00AE9A',
+      icone: c.icone || null
+    };
+
+    // Atualização otimista imediata
+    const tempId = Date.now();
+    const optimisticCard: CartaoConfig = { id: tempId, ...payload } as any;
+    setConfig(prev => ({ ...prev, cartoes: [...prev.cartoes, optimisticCard] }));
+
+    const { data, error } = await sendCartaoInsert(payload);
 
     if (error) {
-      console.error('Error adding cartao:', error);
+      console.error('Error adding cartao:', error.message || error);
+      setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(item => item.id !== tempId) }));
       return;
     }
 
-    if (data) {
-      setConfig(prev => ({ ...prev, cartoes: [...prev.cartoes, data[0]] }));
-    }
-  };
-
-  const updateCartao = async (id: number, updated: Partial<CartaoConfig>) => {
-    const { error } = await supabase.from('cartoes_config').update(updated).eq('id', id);
-    if (!error) {
+    if (data && data[0]) {
+      const savedCard: CartaoConfig = {
+        ...data[0],
+        color: data[0].color || data[0].cor || payload.color,
+        icone: data[0].icone || data[0]['ícone'] || data[0].icon || payload.icone,
+        final: data[0].final || data[0].final_cartao || payload.final
+      };
       setConfig(prev => ({
         ...prev,
-        cartoes: prev.cartoes.map(c => c.id === id ? { ...c, ...updated } : c)
+        cartoes: prev.cartoes.map(item => item.id === tempId ? savedCard : item)
       }));
     }
   };
 
+  const sendCartaoUpdate = async (id: number, payload: any) => {
+    const cardId = Number(id);
+
+    // 1. Tentar atualizar tudo junto primeiro
+    let res = await supabase.from('cartoes_config').update(payload).eq('id', cardId);
+    if (!res.error) return res;
+
+    console.warn('[Cartao Update] Falha na atualização completa, executando atualização granular:', res.error);
+
+    // 2. Atualizar campos base com certeza
+    const basePayload: any = {
+      nome_cartao: payload.nome_cartao,
+      titular_id: payload.titular_id,
+      dia_vencimento: payload.dia_vencimento,
+      dia_fechamento: payload.dia_fechamento
+    };
+    Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
+
+    let baseRes = await supabase.from('cartoes_config').update(basePayload).eq('id', cardId);
+    if (baseRes.error) {
+      console.error('[Cartao Update] Erro ao salvar campos base:', baseRes.error);
+      return baseRes;
+    }
+
+    // 3. Atualizar cada campo opcional individualmente com tolerância a aliases
+    const optionalFields = [
+      { key: 'final', value: payload.final !== undefined ? (payload.final ? String(payload.final).trim() : null) : undefined, aliases: ['final_cartao', 'ultimos_digitos', 'numero_final', 'FINAL', 'Final'] },
+      { key: 'color', value: payload.color, aliases: ['cor', 'COLOR', 'COR', 'Color'] },
+      { key: 'icone', value: payload.icone, aliases: ['ícone', 'icon', 'ICONE', 'ÍCONE', 'Icon'] }
+    ];
+
+    for (const field of optionalFields) {
+      if (field.value !== undefined) {
+        let fRes = await supabase.from('cartoes_config').update({ [field.key]: field.value }).eq('id', cardId);
+        if (fRes.error && field.aliases) {
+          for (const alias of field.aliases) {
+            let aRes = await supabase.from('cartoes_config').update({ [alias]: field.value }).eq('id', cardId);
+            if (!aRes.error) break;
+          }
+        }
+      }
+    }
+
+    return { error: null };
+  };
+
+  const updateCartao = async (id: number, updated: Partial<CartaoConfig>) => {
+    const cardId = Number(id);
+    const finalVal = updated.final !== undefined ? (updated.final ? String(updated.final).trim() : null) : undefined;
+    const colorVal = updated.color !== undefined ? (updated.color || '#00AE9A') : undefined;
+    const iconeVal = updated.icone !== undefined ? (updated.icone || null) : undefined;
+
+    const payload: any = {
+      nome_cartao: updated.nome_cartao,
+      titular_id: updated.titular_id,
+      dia_vencimento: updated.dia_vencimento !== undefined ? Number(updated.dia_vencimento) : undefined,
+      dia_fechamento: updated.dia_fechamento !== undefined ? Number(updated.dia_fechamento) : undefined,
+      final: finalVal,
+      color: colorVal,
+      icone: iconeVal
+    };
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+    // Atualização otimista imediata no estado local
+    setConfig(prev => ({
+      ...prev,
+      cartoes: prev.cartoes.map(c => Number(c.id) === cardId ? { 
+        ...c, 
+        ...updated, 
+        final: finalVal !== undefined ? (finalVal || undefined) : c.final,
+        color: colorVal || c.color,
+        icone: iconeVal !== undefined ? (iconeVal || undefined) : c.icone
+      } : c)
+    }));
+
+    const { error } = await sendCartaoUpdate(cardId, payload);
+    if (error) {
+      console.error('Error updating cartao in Supabase:', error.message || error);
+    }
+  };
+
   const deleteCartao = async (id: number) => {
-    const { error } = await supabase.from('cartoes_config').delete().eq('id', id);
-    if (!error) {
+    const previousConfig = config;
+    try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.id !== id) }));
+      const { error } = await supabase.from('cartoes_config').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting cartao (rolling back optimistic update):', error);
+      setConfig(previousConfig);
     }
   };
 
@@ -767,30 +1135,60 @@ export function useFinance(activeView: string) {
       alert('ID da família não encontrado. Tente recarregar a página.');
       return;
     }
-    
+    const previousEmprestimos = emprestimos;
     try {
+      const tempEmprestimo: Emprestimo = {
+        id: -Date.now(),
+        user_id: user.id,
+        family_id: familyId,
+        descricao: dados.descricao || '',
+        valor_total: Number(dados.valor_total || 0),
+        total_parcelas: Number(dados.total_parcelas || 1),
+        valor_parcela: Number(dados.valor_parcela || 0),
+        taxa_mensal_percentual: Number(dados.taxa_mensal_percentual || 0),
+        data_primeiro_vencimento: dados.data_primeiro_vencimento || format(new Date(), 'yyyy-MM-dd'),
+        competencia_inicial: dados.competencia_inicial || competencia,
+        titular_id: dados.titular_id || config.titulares[0]?.id || 1,
+        ...dados
+      } as Emprestimo;
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setEmprestimos(prev => [...prev, tempEmprestimo]);
+
       await salvarEmprestimo(dados, user.id, familyId);
       await fetchData();
     } catch (error: any) {
-      console.error('Error adding emprestimo:', error);
+      console.error('Error adding emprestimo (rolling back optimistic update):', error);
+      setEmprestimos(previousEmprestimos);
       alert(`Erro ao salvar empréstimo: ${error.message || JSON.stringify(error)}`);
     }
   };
 
   const updateEmprestimo = async (dados: Partial<Emprestimo>) => {
     if (!user?.id || !familyId) return;
+    const previousEmprestimos = emprestimos;
     try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setEmprestimos(prev => prev.map(e => e.id === dados.id ? { ...e, ...dados } : e));
       await salvarEmprestimo(dados, user.id, familyId);
       await fetchData();
     } catch (error: any) {
-      console.error('Error updating emprestimo:', error);
+      console.error('Error updating emprestimo (rolling back optimistic update):', error);
+      setEmprestimos(previousEmprestimos);
       alert(`Erro ao atualizar empréstimo: ${error.message || JSON.stringify(error)}`);
     }
   };
 
   const deleteEmprestimo = async (id: number) => {
-    await deletarEmprestimo(id);
-    await fetchData();
+    const previousEmprestimos = emprestimos;
+    try {
+      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
+      setEmprestimos(prev => prev.filter(e => e.id !== id));
+      await deletarEmprestimo(id);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting emprestimo (rolling back optimistic update):', error);
+      setEmprestimos(previousEmprestimos);
+    }
   };
 
   const quitarParcelas = async (parcelas: Despesa[]) => {
@@ -864,6 +1262,27 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       console.error('Erro ao renomear categoria em lote:', error);
+      await fetchData();
+    }
+  };
+
+  const updateCategoryByDescription = async (descricao: string, newCategory: string) => {
+    if (!user || !familyId || !descricao || !newCategory) return;
+    const descTrim = descricao.trim().toLowerCase();
+    const newCat = newCategory.trim();
+
+    try {
+      // 1. Atualização otimista no estado local para todos os lançamentos com esta descrição
+      setDespesas(prev => prev.map(d => (d.descricao?.trim().toLowerCase() === descTrim ? { ...d, categoria: newCat } : d)));
+      setContasFixas(prev => prev.map(c => (c.descricao?.trim().toLowerCase() === descTrim ? { ...c, categoria: newCat } : c)));
+      setCartaoTransacoes(prev => prev.map(t => (t.estabelecimento?.trim().toLowerCase() === descTrim ? { ...t, categoria: newCat } : t)));
+
+      // 2. Persistir em lote no Supabase
+      await atualizarCategoriaPorDescricao(descricao, newCat, familyId, user.id);
+
+      await fetchData();
+    } catch (error) {
+      console.error('Erro ao atualizar categoria por descrição:', error);
       await fetchData();
     }
   };
@@ -1471,7 +1890,7 @@ export function useFinance(activeView: string) {
     let tempMonth = currentMonth;
     let tempYear = currentYear;
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
       const { totalReceitas, totalDespesas } = calculateTotalsForMonth(comp);
 
@@ -1785,6 +2204,7 @@ export function useFinance(activeView: string) {
     deleteLembrete,
     avisosConfig,
     updateAvisosConfig,
-    renameCategory
+    renameCategory,
+    updateCategoryByDescription
   };
 }

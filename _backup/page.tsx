@@ -1459,13 +1459,13 @@ export default function Home() {
           cartoes={config.cartoes}
           onAddTitular={addTitular}
           onUpdateTitular={updateTitular}
-          onDeleteTitular={(id) => { 
+          onDeleteTitular={(id: number) => { 
             setItemToDelete({ id, type: 'titular' });
             setIsConfirmDeleteOpen(true);
           }}
           onAddCartao={addCartao}
           onUpdateCartao={updateCartao}
-          onDeleteCartao={(id) => {
+          onDeleteCartao={(id: number) => {
             setItemToDelete({ id, type: 'cartao' });
             setIsConfirmDeleteOpen(true);
           }}
