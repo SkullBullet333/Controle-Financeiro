@@ -561,24 +561,45 @@ export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasC
     const map: Record<string, number> = {};
     let total = 0;
 
+    const incomeCategories = ['salário', 'salario', 'rendimento', 'rendimentos', 'receita', 'receitas', 'proventos', 'salários', 'salarios', 'renda'];
+
     despesas.forEach((d) => {
-      const cat = d.categoria?.trim() || 'Outros';
+      const catRaw = (d.categoria || '').trim();
+      const catLower = catRaw.toLowerCase();
+
+      // Ignora receitas ou categorias salariais
+      if ((d as any).isIncome || (d as any).tipo === 'receita' || incomeCategories.includes(catLower)) {
+        return;
+      }
+
+      // Agrupa despesas de cartão/faturas sob 'Cartões'
+      let cat = catRaw;
+      if (
+        d.isSummary ||
+        d.descricao?.startsWith('Fatura ') ||
+        d.cartao_vencimento_id ||
+        catLower === 'cartao' ||
+        catLower === 'cartão' ||
+        catLower === 'cartões' ||
+        catLower === 'cartoes' ||
+        catLower.includes('fatura')
+      ) {
+        cat = 'Cartões';
+      } else if (!cat) {
+        cat = 'Outros';
+      }
+
       const val = Number(d.valor || 0);
-      map[cat] = (map[cat] || 0) + val;
-      total += val;
+      if (val > 0) {
+        map[cat] = (map[cat] || 0) + val;
+        total += val;
+      }
     });
 
     if (total === 0 || Object.keys(map).length === 0) {
-      const mockTotal = 10000;
       return {
-        totalGasto: mockTotal,
-        categoryData: [
-          { name: 'Moradia', valor: 3500, percent: 35 },
-          { name: 'Alimentação', valor: 2500, percent: 25 },
-          { name: 'Transporte', valor: 1500, percent: 15 },
-          { name: 'Lazer', valor: 1500, percent: 15 },
-          { name: 'Outros', valor: 1000, percent: 10 }
-        ]
+        totalGasto: 0,
+        categoryData: []
       };
     }
 
@@ -588,7 +609,7 @@ export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasC
       .map(([name, val]) => ({
         name,
         valor: val,
-        percent: Math.round((val / total) * 100)
+        percent: total > 0 ? Math.round((val / total) * 100) : 0
       }));
 
     return {
@@ -642,40 +663,47 @@ export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasC
         </span>
       </div>
 
-      <div className="chart-container chart-height-dashboard w-100">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={categoryData}
-            layout="vertical"
-            margin={{ top: 4, right: 16, left: 10, bottom: 4 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" />
-            <XAxis
-              type="number"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 10, fontWeight: 600 }}
-              tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'var(--text, #334155)', fontSize: 11, fontWeight: 700 }}
-              width={90}
-            />
-            <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-            <Bar dataKey="valor" name="Valor" radius={[0, 8, 8, 0]} maxBarSize={20}>
-              {categoryData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="chart-container chart-height-dashboard w-100 d-flex align-items-center justify-content-center">
+        {categoryData.length === 0 ? (
+          <div className="text-center py-8 text-muted text-xs">
+            <i className="fa-regular fa-folder-open fs-3 mb-2 d-block opacity-40"></i>
+            Nenhuma despesa encontrada para este período.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={categoryData}
+              layout="vertical"
+              margin={{ top: 4, right: 16, left: 10, bottom: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" />
+              <XAxis
+                type="number"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--text-muted, #64748b)', fontSize: 10, fontWeight: 600 }}
+                tickFormatter={(val) => `R$${(val / 1000).toFixed(0)}k`}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--text, #334155)', fontSize: 11, fontWeight: 700 }}
+                width={90}
+              />
+              <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+              <Bar dataKey="valor" name="Valor" radius={[0, 8, 8, 0]} maxBarSize={20}>
+                {categoryData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

@@ -153,7 +153,42 @@ export function useFinance(activeView: string) {
         }
       }
       if (emprestimosData) setEmprestimos(emprestimosData);
-      if (contasFixasData) setContasFixas(contasFixasData);
+
+      // Filtrar e expurgar contas_fixas parceladas que já foram concluídas
+      const activeContasFixas: ContaFixaConfig[] = [];
+      const finishedContaFixaIds: number[] = [];
+
+      (contasFixasData || []).forEach((cf: any) => {
+        const total = Number(cf.total_parcelas || 0);
+        if (total > 0) {
+          let count = 0;
+          if (cf.tipo === 'receita') {
+            count = (receitasData || []).filter((r: any) => Number(r.conta_fixa_id) === Number(cf.id)).length;
+          } else if (cf.cartao_id) {
+            count = (cartaoTransacoesData || []).filter((ct: any) => 
+              Number(ct.cartao_id) === Number(cf.cartao_id) && 
+              ct.estabelecimento === cf.descricao
+            ).length;
+          } else {
+            count = (despesasData || []).filter((d: any) => Number(d.conta_fixa_id) === Number(cf.id)).length;
+          }
+
+          if (count >= total) {
+            finishedContaFixaIds.push(cf.id);
+            return; // Concluída! Não inclui nas ativas
+          }
+        }
+        activeContasFixas.push(cf);
+      });
+
+      // Exclui automaticamente do servidor as contas fixas parceladas que já finalizaram
+      if (finishedContaFixaIds.length > 0) {
+        Promise.all(finishedContaFixaIds.map(id => deletarContaFixaConfig(id))).catch(err => {
+          console.error('Erro ao expurgar contas fixas finalizadas no servidor:', err);
+        });
+      }
+
+      setContasFixas(activeContasFixas);
 
       const normalizedCartoes: CartaoConfig[] = (cartoesConfigData || []).map((c: any) => {
         const rawFinal = c.final ?? c['FINAL'] ?? c['Final'] ?? c.final_cartao ?? c.ultimos_digitos ?? c.numero_final;
@@ -183,7 +218,7 @@ export function useFinance(activeView: string) {
           cartaoTransacoes: cartaoTransacoesData || [],
           config: configData,
           emprestimos: emprestimosData || [],
-          contasFixas: contasFixasData || [],
+          contasFixas: activeContasFixas,
           nota: parsedNotaStr,
           lembretes: parsedLembretesList,
           avisosConfig: parsedAvisosList
@@ -357,9 +392,15 @@ export function useFinance(activeView: string) {
 
   useEffect(() => {
     // Apply theme classes whenever state changes
-    document.body.classList.remove('dark-mode', 'black-mode');
-    if (themeMode === 'dark') document.body.classList.add('dark-mode');
-    else if (themeMode === 'black') document.body.classList.add('black-mode');
+    document.body.classList.remove('dark-mode', 'black-mode', 'dark');
+    document.documentElement.classList.remove('dark-mode', 'black-mode', 'dark');
+    if (themeMode === 'dark') {
+      document.body.classList.add('dark-mode', 'dark');
+      document.documentElement.classList.add('dark-mode', 'dark');
+    } else if (themeMode === 'black') {
+      document.body.classList.add('black-mode', 'dark');
+      document.documentElement.classList.add('black-mode', 'dark');
+    }
   }, [themeMode]);
 
   const saveSettingsToCloud = async (overrides: any = {}) => {
@@ -1397,7 +1438,8 @@ export function useFinance(activeView: string) {
         isSummary: true,
         parcela_atual: 1,
         parcela_total: 1,
-        cartao_vencimento_id: card.id
+        cartao_vencimento_id: card.id,
+        categoria: existingInDB?.categoria || 'Cartões'
       } as Despesa;
     }).filter(Boolean) as Despesa[];
 
@@ -2067,30 +2109,59 @@ export function useFinance(activeView: string) {
           const normalsToLaunch = finalToLaunch.filter(item => !(item as any).cartao_id);
 
           if (cardsToLaunch.length > 0) {
-            const mappedCards = cardsToLaunch.map(item => ({
-              user_id: item.user_id,
-              family_id: item.family_id,
-              estabelecimento: item.descricao,
-              valor: item.valor,
-              competencia: item.competencia,
-              cartao_id: item.cartao_id,
-              categoria: item.categoria,
-              titular_id: item.titular_id,
-              parcela_atual: item.parcela_atual,
-              parcela_total: item.parcela_total,
-              data_compra: item.data_compra
-            }));
+            const mappedCards = cardsToLaunch.map(item => {
+              const payload: any = {
+                user_id: item.user_id,
+                family_id: item.family_id,
+                estabelecimento: item.descricao,
+                valor: Number(item.valor || 0),
+                competencia: item.competencia,
+                cartao_id: item.cartao_id,
+                categoria: item.categoria || 'cartoes',
+                parcela_atual: item.parcela_atual,
+                parcela_total: item.parcela_total,
+                data_compra: item.data_compra
+              };
+              if (item.titular_id) payload.titular_id = item.titular_id;
+              return payload;
+            });
             const { error: cardError } = await supabase.from('cartoes').insert(mappedCards);
             if (cardError) console.error('Erro ao auto-lançar transações de cartão:', cardError);
           }
 
           if (normalsToLaunch.length > 0) {
-            const { error: normalError } = await supabase.from('despesas').insert(normalsToLaunch);
+            const mappedNormals = normalsToLaunch.map(item => {
+              const payload: any = {
+                descricao: item.descricao,
+                valor: Number(item.valor || 0),
+                vencimento: item.vencimento,
+                competencia: item.competencia,
+                status: item.status || 'Em aberto',
+                categoria: item.categoria || 'Contas Fixas',
+                parcela_atual: item.parcela_atual,
+                parcela_total: item.parcela_total,
+                user_id: item.user_id,
+                family_id: item.family_id
+              };
+              if (item.titular_id) payload.titular_id = item.titular_id;
+              if (item.emprestimo_id) payload.emprestimo_id = item.emprestimo_id;
+              if (item.conta_fixa_id) payload.conta_fixa_id = item.conta_fixa_id;
+              return payload;
+            });
+            const { error: normalError } = await supabase.from('despesas').insert(mappedNormals);
             if (normalError) {
               console.error('Erro ao auto-lançar despesas:', normalError);
               // Fallback
               lastAutoLaunchRef.current = null;
             }
+          }
+
+          // Se alguma conta fixa finalizou a última parcela neste auto-lançamento, exclui do servidor
+          const finishedFixed = finalToLaunch.filter(item => item.conta_fixa_id && Number(item.parcela_total) > 0 && Number(item.parcela_atual) >= Number(item.parcela_total));
+          if (finishedFixed.length > 0) {
+            Promise.all(finishedFixed.map(f => deletarContaFixaConfig(f.conta_fixa_id))).catch(err => {
+              console.error('Erro ao deletar conta fixa finalizada:', err);
+            });
           }
 
           fetchData();

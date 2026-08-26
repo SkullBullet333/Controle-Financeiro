@@ -2808,7 +2808,7 @@ export function PayoffModal({
                     sortedSelectedParcelas.map(i => (
                       <tr key={`desk-budget-${i.id}`}>
                         <td style={{ textAlign: 'center' }}>
-                          <span className="badge-tag badge-paid" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                          <span className="badge-tag badge-paid font-mono font-bold text-xs px-2.5 py-1 dark:text-emerald-300 dark:bg-emerald-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>
                             {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
                           </span>
                         </td>
@@ -3017,7 +3017,7 @@ export function PayoffModal({
                             />
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <span className="badge-tag badge-pending" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                            <span className="badge-tag badge-pending font-mono font-bold text-xs px-2.5 py-1 dark:text-amber-300 dark:bg-amber-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>
                               {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
                             </span>
                           </td>
@@ -3143,20 +3143,27 @@ export function ExpenseSettingsModal({
   // Category stats calculation
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
-    const defaults = ['MERCADO', 'TRANSPORTE', 'ALIMENTAÇÃO', 'MORADIA', 'SAÚDE', 'LAZER', 'EDUCAÇÃO', 'COMPRAS', 'OUTROS'];
-    defaults.forEach(d => { counts[d] = 0; });
 
     despesas.forEach(d => {
-      const c = d.categoria?.trim() || 'OUTROS';
-      counts[c] = (counts[c] || 0) + 1;
+      const c = d.categoria?.trim();
+      if (c) {
+        counts[c] = (counts[c] || 0) + 1;
+      }
     });
 
     contasFixas.forEach(f => {
       if (f.categoria) {
         const c = f.categoria.trim();
-        counts[c] = (counts[c] || 0) + 1;
+        if (c) {
+          counts[c] = (counts[c] || 0) + 1;
+        }
       }
     });
+
+    if (Object.keys(counts).length === 0) {
+      const defaults = ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Compras', 'Mercado', 'Outros'];
+      defaults.forEach(d => { counts[d] = 0; });
+    }
 
     return Object.entries(counts)
       .map(([name, count]) => ({ name, count }))

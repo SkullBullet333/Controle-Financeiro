@@ -40,7 +40,7 @@
   --on-navy: #ffffff;
   --foreground: #0F172A;
   --text-foreground: #0F172A;
-  
+
   /* Sicoob Premium Mobile Variables */
   --sicoob-teal: #003641;
   --sicoob-green: #00ae5b;
@@ -50,7 +50,12 @@
   --sicoob-card: #ffffff;
 }
 
-html, body, input, select, textarea, button {
+html,
+body,
+input,
+select,
+textarea,
+button {
   font-family: var(--font-main);
 }
 
@@ -81,30 +86,98 @@ body:not(.dark-mode):not(.black-mode) .glass-panel {
   letter-spacing: -0.05em;
 }
 
-.font-label, .font-body, .font-headline {
+.font-label,
+.font-body,
+.font-headline {
   font-family: var(--font-main);
 }
 
 .shadow-premium {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
-.bg-surface-container-lowest { background-color: var(--surface-container-lowest); }
-.bg-surface-container-low { background-color: var(--surface-container-low); }
-.bg-secondary-container { background-color: var(--secondary-container); }
-.text-on-surface { color: var(--on-surface); }
-.text-on-surface-variant { color: var(--on-surface-variant); }
-.text-on-secondary-container { color: var(--on-secondary-container); }
-.text-foreground { color: var(--text) !important; }
-.text-muted { color: var(--text-muted) !important; }
-.text-muted-foreground { color: var(--text-muted) !important; }
-.ring-outline-variant\/30 { --tw-ring-color: rgba(202, 196, 208, 0.3); }
+.bg-surface-container-lowest {
+  background-color: var(--surface-container-lowest);
+}
 
-.bg-navy { background-color: var(--navy); }
-.text-navy { color: var(--navy); }
+.bg-surface-container-low {
+  background-color: var(--surface-container-low);
+}
+
+.bg-card-hover {
+  background-color: var(--card-hover) !important;
+}
+
+.bg-card-elevated {
+  background-color: var(--card-elevated) !important;
+}
+
+.bg-secondary-container {
+  background-color: var(--secondary-container);
+}
+
+.text-on-surface {
+  color: var(--on-surface);
+}
+
+.text-on-surface-variant {
+  color: var(--on-surface-variant);
+}
+
+.text-on-secondary-container {
+  color: var(--on-secondary-container);
+}
+
+.text-foreground {
+  color: var(--text) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-muted-foreground {
+  color: var(--text-muted) !important;
+}
+
+.border-border {
+  border-color: var(--border) !important;
+}
+
+/* Garantia de Cantos Arredondados */
+.rounded-3xl {
+  border-radius: 24px !important;
+}
+.rounded-2xl {
+  border-radius: 16px !important;
+}
+.rounded-xl {
+  border-radius: 12px !important;
+}
+.rounded-lg {
+  border-radius: 8px !important;
+}
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+.ring-outline-variant\/30 {
+  --tw-ring-color: rgba(202, 196, 208, 0.3);
+}
+
+.bg-navy {
+  background-color: var(--navy);
+}
+
+.text-navy {
+  color: var(--navy);
+}
 
 /* Remove default focus rings that look like black underlines */
-input:focus, select:focus, textarea:focus, button:focus {
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
   outline: none !important;
 }
 
@@ -115,11 +188,16 @@ input::-webkit-inner-spin-button {
   appearance: none;
   margin: 0;
 }
+
 input[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
+:root.dark-mode,
+:root.dark,
+html.dark-mode,
+html.dark,
 body.dark-mode {
   --bg: #0b0f19;
   --bg-surface: #0f172a;
@@ -153,6 +231,8 @@ body.dark-mode {
   --navy: #3b82f6;
 }
 
+:root.black-mode,
+html.black-mode,
 body.black-mode {
   --bg: #030305;
   --bg-surface: #0a0a0f;
@@ -186,32 +266,53 @@ body.black-mode {
   --navy: #3b82f6;
 }
 
-body.dark-mode .card, body.black-mode .card,
-body.dark-mode .modal-content, body.black-mode .modal-content,
-body.dark-mode .sidebar, body.black-mode .sidebar,
-body.dark-mode .projecao-container, body.black-mode .projecao-container,
-body.dark-mode .chart-container, body.black-mode .chart-container,
-body.dark-mode .box-input, body.black-mode .box-input,
-body.dark-mode .topbar-profile, body.black-mode .topbar-profile {
+body.dark-mode .border,
+body.black-mode .border,
+body.dark-mode .border-border,
+body.black-mode .border-border,
+body.dark-mode [class*="border-border"],
+body.black-mode [class*="border-border"] {
+  border-color: var(--border) !important;
+}
+
+body.dark-mode .card,
+body.black-mode .card,
+body.dark-mode .modal-content,
+body.black-mode .modal-content,
+body.dark-mode .sidebar,
+body.black-mode .sidebar,
+body.dark-mode .projecao-container,
+body.black-mode .projecao-container,
+body.dark-mode .chart-container,
+body.black-mode .chart-container,
+body.dark-mode .box-input,
+body.black-mode .box-input,
+body.dark-mode .topbar-profile,
+body.black-mode .topbar-profile {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .table, body.black-mode .table,
-body.dark-mode .table tr, body.black-mode .table tr,
-body.dark-mode .table td, body.black-mode .table td {
+body.dark-mode .table,
+body.black-mode .table,
+body.dark-mode .table tr,
+body.black-mode .table tr,
+body.dark-mode .table td,
+body.black-mode .table td {
   background-color: transparent !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .table-hover tbody tr:hover, body.black-mode .table-hover tbody tr:hover {
+body.dark-mode .table-hover tbody tr:hover,
+body.black-mode .table-hover tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.05) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode th, body.black-mode th {
+body.dark-mode th,
+body.black-mode th {
   background-color: var(--card) !important;
   color: var(--gray) !important;
   border-bottom: 2px solid var(--border) !important;
@@ -221,114 +322,201 @@ body.dark-mode th, body.black-mode th {
 }
 
 
-body.dark-mode h1, body.black-mode h1, body.dark-mode .h1, body.black-mode .h1,
-body.dark-mode h2, body.black-mode h2, body.dark-mode .h2, body.black-mode .h2,
-body.dark-mode h3, body.black-mode h3, body.dark-mode .h3, body.black-mode .h3,
-body.dark-mode h4, body.black-mode h4, body.dark-mode .h4, body.black-mode .h4,
-body.dark-mode h5, body.black-mode h5, body.dark-mode .h5, body.black-mode .h5,
-body.dark-mode h6, body.black-mode h6, body.dark-mode .h6, body.black-mode .h6,
-body.dark-mode small, body.black-mode small, body.dark-mode .small, body.black-mode .small,
-body.dark-mode strong, body.black-mode strong,
-body.dark-mode .section-title, body.black-mode .section-title,
-body.dark-mode .menu li, body.black-mode .menu li {
+body.dark-mode h1,
+body.black-mode h1,
+body.dark-mode .h1,
+body.black-mode .h1,
+body.dark-mode h2,
+body.black-mode h2,
+body.dark-mode .h2,
+body.black-mode .h2,
+body.dark-mode h3,
+body.black-mode h3,
+body.dark-mode .h3,
+body.black-mode .h3,
+body.dark-mode h4,
+body.black-mode h4,
+body.dark-mode .h4,
+body.black-mode .h4,
+body.dark-mode h5,
+body.black-mode h5,
+body.dark-mode .h5,
+body.black-mode .h5,
+body.dark-mode h6,
+body.black-mode h6,
+body.dark-mode .h6,
+body.black-mode .h6,
+body.dark-mode small,
+body.black-mode small,
+body.dark-mode .small,
+body.black-mode .small,
+body.dark-mode strong,
+body.black-mode strong,
+body.dark-mode .section-title,
+body.black-mode .section-title,
+body.dark-mode .menu li,
+body.black-mode .menu li {
   color: var(--text) !important;
 }
 
-body.dark-mode .text-muted, body.black-mode .text-muted {
+body.dark-mode .text-muted,
+body.black-mode .text-muted {
   color: var(--gray) !important;
 }
 
-body.dark-mode .text-amber-600, body.black-mode .text-amber-600 {
-  color: #ffffff !important; 
+body.dark-mode .text-amber-600,
+body.black-mode .text-amber-600 {
+  color: #ffffff !important;
 }
 
-body.dark-mode .hover\:text-amber-700:hover, body.black-mode .hover\:text-amber-700:hover {
-  color: #f1f5f9 !important; /* slate-100 */
+body.dark-mode .hover\:text-amber-700:hover,
+body.black-mode .hover\:text-amber-700:hover {
+  color: #f1f5f9 !important;
+  /* slate-100 */
+}
+
+/* Proteção global de fundos e bordas no modo dark/black */
+body.dark-mode [class*="bg-slate-"],
+body.black-mode [class*="bg-slate-"],
+body.dark-mode [class*="bg-gray-"],
+body.black-mode [class*="bg-gray-"],
+body.dark-mode [class*="bg-zinc-"],
+body.black-mode [class*="bg-zinc-"] {
+  background-color: var(--card-hover) !important;
+}
+
+body.dark-mode [class*="border-slate-"],
+body.black-mode [class*="border-slate-"],
+body.dark-mode [class*="border-gray-"],
+body.black-mode [class*="border-gray-"] {
+  border-color: var(--border) !important;
 }
 
 /* Controles de Formulario, Dropdowns e Utilitarios de Fundo para Dark Mode */
-body.dark-mode .form-control::placeholder, body.black-mode .form-control::placeholder,
-body.dark-mode input::placeholder, body.black-mode input::placeholder,
-body.dark-mode textarea::placeholder, body.black-mode textarea::placeholder {
+body.dark-mode .form-control::placeholder,
+body.black-mode .form-control::placeholder,
+body.dark-mode input::placeholder,
+body.black-mode input::placeholder,
+body.dark-mode textarea::placeholder,
+body.black-mode textarea::placeholder {
   color: var(--gray) !important;
   opacity: 0.7 !important;
 }
 
-body.dark-mode .form-control, body.black-mode .form-control,
-body.dark-mode .form-select, body.black-mode .form-select,
-body.dark-mode .input-group-text, body.black-mode .input-group-text,
-body.dark-mode .dropdown-menu, body.black-mode .dropdown-menu,
-body.dark-mode .dropdown-item, body.black-mode .dropdown-item {
+body.dark-mode .form-control,
+body.black-mode .form-control,
+body.dark-mode .form-select,
+body.black-mode .form-select,
+body.dark-mode .input-group-text,
+body.black-mode .input-group-text,
+body.dark-mode .dropdown-menu,
+body.black-mode .dropdown-menu,
+body.dark-mode .dropdown-item,
+body.black-mode .dropdown-item {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-body.dark-mode .dropdown-item:hover, body.black-mode .dropdown-item:hover,
-body.dark-mode .dropdown-item:focus, body.black-mode .dropdown-item:focus {
+body.dark-mode .dropdown-item:hover,
+body.black-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus,
+body.black-mode .dropdown-item:focus {
   background-color: var(--border) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode .form-control:focus, body.black-mode .form-control:focus,
-body.dark-mode .form-select:focus, body.black-mode .form-select:focus {
+body.dark-mode .form-control:focus,
+body.black-mode .form-control:focus,
+body.dark-mode .form-select:focus,
+body.black-mode .form-select:focus {
   background-color: var(--card) !important;
   color: var(--text) !important;
   border-color: var(--primary) !important;
 }
 
-body.dark-mode select option, body.black-mode select option {
+body.dark-mode select option,
+body.black-mode select option {
   background-color: var(--card);
   color: var(--text);
 }
 
 /* Forçar visibilidade de inputs de data e selects que usam bg-transparent */
-body.dark-mode input[type="date"].text-on-surface, body.black-mode input[type="date"].text-on-surface,
-body.dark-mode select.text-on-surface, body.black-mode select.text-on-surface {
+body.dark-mode input[type="date"].text-on-surface,
+body.black-mode input[type="date"].text-on-surface,
+body.dark-mode select.text-on-surface,
+body.black-mode select.text-on-surface {
   color: var(--text) !important;
 }
 
-body.dark-mode .bg-white:not(.no-dark), body.black-mode .bg-white:not(.no-dark),
-body.dark-mode .bg-light:not(.no-dark), body.black-mode .bg-light:not(.no-dark),
-body.dark-mode .bg-primary-subtle:not(.no-dark), body.black-mode .bg-primary-subtle:not(.no-dark),
-body.dark-mode .bg-secondary-subtle:not(.no-dark), body.black-mode .bg-secondary-subtle:not(.no-dark),
-body.dark-mode .bg-surface-container-lowest:not(.no-dark), body.black-mode .bg-surface-container-lowest:not(.no-dark),
-body.dark-mode .bg-surface-container-low:not(.no-dark), body.black-mode .bg-surface-container-low:not(.no-dark),
-body.dark-mode .bg-\[\#F8FAFC\]:not(.no-dark), body.black-mode .bg-\[\#F8FAFC\]:not(.no-dark),
-body.dark-mode .bg-\[\#F1F5F9\]:not(.no-dark), body.black-mode .bg-\[\#F1F5F9\]:not(.no-dark) {
+body.dark-mode .bg-white:not(.no-dark),
+body.black-mode .bg-white:not(.no-dark),
+body.dark-mode .bg-light:not(.no-dark),
+body.black-mode .bg-light:not(.no-dark),
+body.dark-mode .bg-primary-subtle:not(.no-dark),
+body.black-mode .bg-primary-subtle:not(.no-dark),
+body.dark-mode .bg-secondary-subtle:not(.no-dark),
+body.black-mode .bg-secondary-subtle:not(.no-dark),
+body.dark-mode .bg-surface-container-lowest:not(.no-dark),
+body.black-mode .bg-surface-container-lowest:not(.no-dark),
+body.dark-mode .bg-surface-container-low:not(.no-dark),
+body.black-mode .bg-surface-container-low:not(.no-dark),
+body.dark-mode .bg-\[\#F8FAFC\]:not(.no-dark),
+body.black-mode .bg-\[\#F8FAFC\]:not(.no-dark),
+body.dark-mode .bg-\[\#F1F5F9\]:not(.no-dark),
+body.black-mode .bg-\[\#F1F5F9\]:not(.no-dark) {
   background-color: var(--card) !important;
 }
 
-body.dark-mode .bg-slate-50:not(.no-dark), body.black-mode .bg-slate-50:not(.no-dark),
-body.dark-mode .bg-slate-100:not(.no-dark), body.black-mode .bg-slate-100:not(.no-dark) {
+body.dark-mode .bg-slate-50:not(.no-dark),
+body.black-mode .bg-slate-50:not(.no-dark),
+body.dark-mode .bg-slate-100:not(.no-dark),
+body.black-mode .bg-slate-100:not(.no-dark) {
   background-color: var(--bg) !important;
 }
 
 /* Utilitários globais de texto para garantir compatibilidade 100% no Dark Mode */
-body.dark-mode .text-dark:not(.no-dark), body.black-mode .text-dark:not(.no-dark),
-body.dark-mode .text-slate-900:not(.no-dark), body.black-mode .text-slate-900:not(.no-dark),
-body.dark-mode .text-slate-800:not(.no-dark), body.black-mode .text-slate-800:not(.no-dark),
-body.dark-mode .text-slate-700:not(.no-dark), body.black-mode .text-slate-700:not(.no-dark),
-body.dark-mode .text-on-surface:not(.no-dark), body.black-mode .text-on-surface:not(.no-dark),
-body.dark-mode .text-foreground:not(.no-dark), body.black-mode .text-foreground:not(.no-dark),
-body.dark-mode .text-\[\#1e293b\]:not(.no-dark), body.black-mode .text-\[\#1e293b\]:not(.no-dark),
-body.dark-mode .sicoob-list-item *, body.black-mode .sicoob-list-item *,
-body.dark-mode .sicoob-list-content *, body.black-mode .sicoob-list-content *,
-body.dark-mode .date-display span, body.black-mode .date-display span,
-body.dark-mode .user-profile-btn div, body.black-mode .user-profile-btn div,
-body.dark-mode .text-foreground, body.black-mode .text-foreground,
-body.dark-mode .SettingsView h1, body.black-mode .SettingsView h1,
-body.dark-mode .SettingsView h2, body.black-mode .SettingsView h2,
-body.dark-mode .SettingsView h3, body.black-mode .SettingsView h3,
-body.dark-mode .SettingsView h4, body.black-mode .SettingsView h4,
-body.dark-mode .SettingsView .fw-bold, body.black-mode .SettingsView .fw-bold {
+body.dark-mode .text-dark:not(.no-dark),
+body.black-mode .text-dark:not(.no-dark),
+body.dark-mode .text-slate-900:not(.no-dark),
+body.black-mode .text-slate-900:not(.no-dark),
+body.dark-mode .text-slate-800:not(.no-dark),
+body.black-mode .text-slate-800:not(.no-dark),
+body.dark-mode .text-slate-700:not(.no-dark),
+body.black-mode .text-slate-700:not(.no-dark),
+body.dark-mode .text-on-surface:not(.no-dark),
+body.black-mode .text-on-surface:not(.no-dark),
+body.dark-mode .text-foreground:not(.no-dark),
+body.black-mode .text-foreground:not(.no-dark),
+body.dark-mode .text-\[\#1e293b\]:not(.no-dark),
+body.black-mode .text-\[\#1e293b\]:not(.no-dark),
+body.dark-mode .sicoob-list-item *,
+body.black-mode .sicoob-list-item *,
+body.dark-mode .sicoob-list-content *,
+body.black-mode .sicoob-list-content *,
+body.dark-mode .date-display span,
+body.black-mode .date-display span,
+body.dark-mode .user-profile-btn div,
+body.black-mode .user-profile-btn div,
+body.dark-mode .text-foreground,
+body.black-mode .text-foreground,
+body.dark-mode .SettingsView h1,
+body.black-mode .SettingsView h1,
+body.dark-mode .SettingsView h2,
+body.black-mode .SettingsView h2,
+body.dark-mode .SettingsView h3,
+body.black-mode .SettingsView h3,
+body.dark-mode .SettingsView h4,
+body.black-mode .SettingsView h4,
+body.dark-mode .SettingsView .fw-bold,
+body.black-mode .SettingsView .fw-bold {
   color: var(--text) !important;
 }
 
 /* Mudando os acentos azuis para branco em modo dark conforme solicitado */
-body.dark-mode .text-primary:not(.text-white):not(.no-dark), 
+body.dark-mode .text-primary:not(.text-white):not(.no-dark),
 body.black-mode .text-primary:not(.text-white):not(.no-dark),
-body.dark-mode .text-navy:not(.no-dark), 
+body.dark-mode .text-navy:not(.no-dark),
 body.black-mode .text-navy:not(.no-dark),
 body.dark-mode .text-edit-blue,
 body.black-mode .text-edit-blue,
@@ -339,82 +527,109 @@ body.black-mode .text-blue-400 {
   color: #ffffff !important;
 }
 
-body.dark-mode .text-muted-foreground, body.black-mode .text-muted-foreground,
-body.dark-mode .text-muted, body.black-mode .text-muted,
-body.dark-mode .SettingsView p, body.black-mode .SettingsView p,
-body.dark-mode .SettingsView .text-muted-foreground, body.black-mode .SettingsView .text-muted-foreground {
+body.dark-mode .text-muted-foreground,
+body.black-mode .text-muted-foreground,
+body.dark-mode .text-muted,
+body.black-mode .text-muted,
+body.dark-mode .SettingsView p,
+body.black-mode .SettingsView p,
+body.dark-mode .SettingsView .text-muted-foreground,
+body.black-mode .SettingsView .text-muted-foreground {
   color: var(--gray) !important;
 }
 
-body.dark-mode .text-slate-600, body.black-mode .text-slate-600,
-body.dark-mode .text-slate-500, body.black-mode .text-slate-500,
-body.dark-mode .text-slate-400, body.black-mode .text-slate-400,
-body.dark-mode .text-on-surface-variant, body.black-mode .text-on-surface-variant,
-body.dark-mode .text-\[\#64748b\], body.black-mode .text-\[\#64748b\] {
+body.dark-mode .text-slate-600,
+body.black-mode .text-slate-600,
+body.dark-mode .text-slate-500,
+body.black-mode .text-slate-500,
+body.dark-mode .text-slate-400,
+body.black-mode .text-slate-400,
+body.dark-mode .text-on-surface-variant,
+body.black-mode .text-on-surface-variant,
+body.dark-mode .text-\[\#64748b\],
+body.black-mode .text-\[\#64748b\] {
   color: var(--gray) !important;
 }
 
-body.dark-mode .text-navy\/20, body.black-mode .text-navy\/20,
-body.dark-mode .text-navy\/40, body.black-mode .text-navy\/40,
-body.dark-mode .text-slate-900\/20, body.black-mode .text-slate-900\/20 {
+body.dark-mode .text-navy\/20,
+body.black-mode .text-navy\/20,
+body.dark-mode .text-navy\/40,
+body.black-mode .text-navy\/40,
+body.dark-mode .text-slate-900\/20,
+body.black-mode .text-slate-900\/20 {
   color: rgba(248, 250, 252, 0.4) !important;
 }
 
 /* Forçar cores claras para elementos marcados como no-dark (previews) */
-body.dark-mode .no-dark, body.black-mode .no-dark {
+body.dark-mode .no-dark,
+body.black-mode .no-dark {
   color: #1e293b !important;
 }
 
-body.dark-mode .no-dark .text-primary, body.black-mode .no-dark .text-primary {
+body.dark-mode .no-dark .text-primary,
+body.black-mode .no-dark .text-primary {
   color: var(--primary) !important;
 }
 
-body.dark-mode .badge.bg-primary-subtle, body.black-mode .badge.bg-primary-subtle {
+body.dark-mode .badge.bg-primary-subtle,
+body.black-mode .badge.bg-primary-subtle {
   background-color: rgba(67, 97, 238, 0.2) !important;
   color: #a5b4fc !important;
 }
 
-body.dark-mode .badge.bg-light, body.black-mode .badge.bg-light {
+body.dark-mode .badge.bg-light,
+body.black-mode .badge.bg-light {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: var(--gray) !important;
 }
 
 /* Ícone de calendário nos inputs do tipo date */
-body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator, body.black-mode input[type="date"]::-webkit-calendar-picker-indicator {
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
+body.black-mode input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.7);
 }
 
 /* Utilitários globais de borda para Dark Mode */
-body.dark-mode .border-slate-100, body.black-mode .border-slate-100,
-body.dark-mode .border-slate-200, body.black-mode .border-slate-200,
-body.dark-mode .border-gray-200, body.black-mode .border-gray-200,
-body.dark-mode .border-outline-variant\/30, body.black-mode .border-outline-variant\/30 {
+body.dark-mode .border-slate-100,
+body.black-mode .border-slate-100,
+body.dark-mode .border-slate-200,
+body.black-mode .border-slate-200,
+body.dark-mode .border-gray-200,
+body.black-mode .border-gray-200,
+body.dark-mode .border-outline-variant\/30,
+body.black-mode .border-outline-variant\/30 {
   border-color: var(--border) !important;
 }
 
 /* Recharts Tooltip override para Dark Mode */
-body.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip, body.black-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
+body.dark-mode .recharts-tooltip-wrapper .recharts-default-tooltip,
+body.black-mode .recharts-tooltip-wrapper .recharts-default-tooltip {
   background-color: var(--card) !important;
   border-color: var(--border) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode .sidebar, body.black-mode .sidebar {
+body.dark-mode .sidebar,
+body.black-mode .sidebar {
   background-color: var(--card) !important;
   border-right-color: var(--border) !important;
   color: var(--text) !important;
 }
 
-body.dark-mode .recharts-tooltip-item, body.black-mode .recharts-tooltip-item,
-body.dark-mode .recharts-tooltip-label, body.black-mode .recharts-tooltip-label {
+body.dark-mode .recharts-tooltip-item,
+body.black-mode .recharts-tooltip-item,
+body.dark-mode .recharts-tooltip-label,
+body.black-mode .recharts-tooltip-label {
   color: var(--text) !important;
 }
 
-body.dark-mode .recharts-legend-item-text, body.black-mode .recharts-legend-item-text {
+body.dark-mode .recharts-legend-item-text,
+body.black-mode .recharts-legend-item-text {
   color: var(--text) !important;
 }
 
-body.dark-mode .recharts-cartesian-axis-tick-value, body.black-mode .recharts-cartesian-axis-tick-value {
+body.dark-mode .recharts-cartesian-axis-tick-value,
+body.black-mode .recharts-cartesian-axis-tick-value {
   fill: var(--gray) !important;
 }
 
@@ -446,7 +661,7 @@ body {
   top: 0;
   left: 0;
   background: var(--bg-surface, #0a0a0f);
-  border-right: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-right: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-direction: column;
   padding: 24px 12px;
@@ -477,6 +692,7 @@ body {
   .sidebar {
     display: none !important;
   }
+
   .content {
     margin-left: 0 !important;
     width: 100% !important;
@@ -565,7 +781,7 @@ body {
 
 .nav-item:hover {
   color: var(--text, #ffffff);
-  background: var(--card-hover, rgba(255,255,255,0.05));
+  background: var(--card-hover, rgba(255, 255, 255, 0.05));
 }
 
 .nav-item:active {
@@ -606,7 +822,7 @@ body {
 
 .sidebar-footer {
   padding-top: 18px;
-  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -639,7 +855,7 @@ body {
 }
 
 .user-profile:hover {
-  background: var(--card-hover, rgba(255,255,255,0.05));
+  background: var(--card-hover, rgba(255, 255, 255, 0.05));
 }
 
 .user-profile .avatar {
@@ -653,7 +869,7 @@ body {
   font-weight: 700;
   font-size: 0.85rem;
   color: #ffffff;
-  border: 2px solid var(--border, rgba(255,255,255,0.1));
+  border: 2px solid var(--border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
 }
 
@@ -720,7 +936,7 @@ body {
 }
 
 /* Icon and Highlight Colors Dynamically Driven by Theme */
-.text-primary, 
+.text-primary,
 [class*="text-primary"],
 .text-edit-blue,
 .topbar-icon,
@@ -748,7 +964,8 @@ span.text-primary {
 }
 
 .text-delete-red {
-  color: #ef4444 !important; /* Red 500 */
+  color: #ef4444 !important;
+  /* Red 500 */
 }
 
 .family-list::-webkit-scrollbar {
@@ -1078,12 +1295,29 @@ body:not(.dark-mode):not(.black-mode) .btn-icon:hover {
   color: var(--text-muted) !important;
 }
 
-.text-success { color: var(--success, #10b981) !important; }
-.text-danger { color: var(--danger, #ef4444) !important; }
-.text-primary { color: var(--primary, #10b981) !important; }
-.text-purple { color: var(--purple, #8b5cf6) !important; }
-.text-warning { color: var(--warning, #f59e0b) !important; }
-.text-muted { color: var(--text-muted, #94a3b8) !important; }
+.text-success {
+  color: var(--success, #10b981) !important;
+}
+
+.text-danger {
+  color: var(--danger, #ef4444) !important;
+}
+
+.text-primary {
+  color: var(--primary, #10b981) !important;
+}
+
+.text-purple {
+  color: var(--purple, #8b5cf6) !important;
+}
+
+.text-warning {
+  color: var(--warning, #f59e0b) !important;
+}
+
+.text-muted {
+  color: var(--text-muted, #94a3b8) !important;
+}
 
 @media (max-width: 992px) {
   .kpi-grid {
@@ -1196,7 +1430,8 @@ td {
   font-size: 0.75rem;
 }
 
-body.dark-mode .status-pago, body.black-mode .status-pago {
+body.dark-mode .status-pago,
+body.black-mode .status-pago {
   background: rgba(46, 196, 182, 0.2) !important;
   color: #2ec4b6 !important;
 }
@@ -1210,12 +1445,14 @@ body.dark-mode .status-pago, body.black-mode .status-pago {
   font-size: 0.75rem;
 }
 
-body.dark-mode .status-aberto, body.black-mode .status-aberto {
+body.dark-mode .status-aberto,
+body.black-mode .status-aberto {
   background: rgba(255, 159, 28, 0.2) !important;
   color: #ff9f1c !important;
 }
 
-.status-vencida, .badge-overdue {
+.status-vencida,
+.badge-overdue {
   background-color: #ef4444 !important;
   color: #ffffff !important;
   padding: 4px 12px;
@@ -1228,8 +1465,10 @@ body.dark-mode .status-aberto, body.black-mode .status-aberto {
   gap: 4px;
 }
 
-body.dark-mode .status-vencida, body.black-mode .status-vencida,
-body.dark-mode .badge-overdue, body.black-mode .badge-overdue {
+body.dark-mode .status-vencida,
+body.black-mode .status-vencida,
+body.dark-mode .badge-overdue,
+body.black-mode .badge-overdue {
   background-color: #ef4444 !important;
   color: #ffffff !important;
   animation: pulse-vencido 1.2s infinite ease-in-out !important;
@@ -1242,12 +1481,14 @@ body.dark-mode .badge-overdue, body.black-mode .badge-overdue {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     background-color: #dc2626 !important;
     box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.6);
     opacity: 0.88;
     transform: scale(1.03);
   }
+
   100% {
     background-color: #ef4444 !important;
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
@@ -1265,7 +1506,8 @@ body.dark-mode .badge-overdue, body.black-mode .badge-overdue {
   font-weight: 700;
 }
 
-body.dark-mode .status-hoje, body.black-mode .status-hoje {
+body.dark-mode .status-hoje,
+body.black-mode .status-hoje {
   background: rgba(67, 97, 238, 0.2) !important;
   color: #4361ee !important;
 }
@@ -1280,7 +1522,8 @@ body.dark-mode .status-hoje, body.black-mode .status-hoje {
   border: 1px dashed #cbd5e1;
 }
 
-body.dark-mode .status-simulado, body.black-mode .status-simulado {
+body.dark-mode .status-simulado,
+body.black-mode .status-simulado {
   background: rgba(148, 163, 184, 0.1) !important;
   color: #94a3b8 !important;
   border-color: rgba(148, 163, 184, 0.2) !important;
@@ -1298,7 +1541,8 @@ body.dark-mode .status-simulado, body.black-mode .status-simulado {
   border-left: 4px solid var(--primary) !important;
 }
 
-body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
+body.dark-mode .table-primary-subtle,
+body.black-mode .table-primary-subtle {
   background-color: rgba(67, 97, 238, 0.15) !important;
 }
 
@@ -1342,9 +1586,17 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   align-items: flex-end;
 }
 
-.entry-accent-primary { border-top: 5px solid var(--primary); }
-.entry-accent-success { border-top: 5px solid var(--success); }
-.entry-accent-purple { border-top: 5px solid var(--faturas); }
+.entry-accent-primary {
+  border-top: 5px solid var(--primary);
+}
+
+.entry-accent-success {
+  border-top: 5px solid var(--success);
+}
+
+.entry-accent-purple {
+  border-top: 5px solid var(--faturas);
+}
 
 .mobile-nav {
   display: none;
@@ -1358,7 +1610,8 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   z-index: 2000;
   justify-content: space-around;
   align-items: center;
-  padding: 0 10px 15px 10px; /* Padding bottom for safe area / indicator */
+  padding: 0 10px 15px 10px;
+  /* Padding bottom for safe area / indicator */
   box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.1);
 }
 
@@ -1394,14 +1647,22 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
 }
 
 @media (max-width: 768px) {
-  .sidebar { display: none; }
-  .mobile-nav { display: none !important; }
-  .mobile-nav-container { display: block !important; }
-  
-  .content { 
-    margin-left: 0 !important; 
-    width: 100% !important; 
-    padding: 15px 15px 100px 15px !important; 
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: none !important;
+  }
+
+  .mobile-nav-container {
+    display: block !important;
+  }
+
+  .content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 15px 15px 100px 15px !important;
   }
 
   .kpi-card {
@@ -1421,7 +1682,8 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     display: none !important;
   }
 
-  .table td, .table th {
+  .table td,
+  .table th {
     padding: 8px 6px;
     font-size: 0.75rem;
   }
@@ -1469,40 +1731,47 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
 
   /* Sicoob Premium App Mobile Styles */
   body {
-    background-color: var(--sicoob-bg); /* Use Sicoob light gray on mobile */
+    background-color: var(--sicoob-bg);
+    /* Use Sicoob light gray on mobile */
   }
-  
+
   .sicoob-mobile-header {
     background-color: var(--sicoob-teal);
     color: white;
-    padding: 8px 15px 10px 15px; /* Shorter padding */
-    margin: -12px -12px 12px -12px; /* Full width edge-to-edge */
-    border-radius: 0; /* Straight edge for "de fora a fora" look */
+    padding: 8px 15px 10px 15px;
+    /* Shorter padding */
+    margin: -12px -12px 12px -12px;
+    /* Full width edge-to-edge */
+    border-radius: 0;
+    /* Straight edge for "de fora a fora" look */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
   }
-  
+
   .sicoob-mobile-header .user-greeting {
     font-size: 1.2rem;
     font-weight: 700;
   }
-  
+
   /* Deprecated: sicoob-balance-card is now a flat card in JSX */
-  
+
   .sicoob-quick-actions {
     display: flex;
     overflow-x: auto;
     padding: 15px 5px;
     gap: 15px;
     margin: 0 -10px;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    /* Firefox */
   }
+
   .sicoob-quick-actions::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+    display: none;
+    /* Chrome/Safari */
   }
-  
+
   .sicoob-action-btn {
     display: flex;
     flex-direction: column;
@@ -1510,7 +1779,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     gap: 8px;
     min-width: 72px;
   }
-  
+
   .sicoob-action-icon {
     width: 50px;
     height: 50px;
@@ -1521,9 +1790,9 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     justify-content: center;
     color: var(--sicoob-teal);
     font-size: 1.2rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   }
-  
+
   .sicoob-action-label {
     font-size: 0.65rem;
     font-weight: 600;
@@ -1536,12 +1805,12 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     border-radius: 12px;
     padding: 8px 12px;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  
+
   .sicoob-list-icon {
     width: 40px;
     height: 40px;
@@ -1552,12 +1821,12 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     font-size: 1rem;
     flex-shrink: 0;
   }
-  
+
   .sicoob-list-content {
     flex-grow: 1;
     overflow: hidden;
   }
-  
+
   .sicoob-list-value {
     text-align: right;
     flex-shrink: 0;
@@ -1568,24 +1837,24 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     height: 80px;
     background: var(--sicoob-teal);
     border-top: none;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
     padding-bottom: env(safe-area-inset-bottom);
     border-radius: 24px 24px 0 0;
   }
-  
+
   .mobile-nav-item {
     color: rgba(255, 255, 255, 0.5);
   }
-  
+
   .mobile-nav-item.active {
     color: var(--sicoob-green);
   }
-  
+
   .mobile-nav-fab-container {
     position: relative;
     flex: 1;
   }
-  
+
   .mobile-nav-bump {
     position: absolute;
     top: -39px;
@@ -1601,7 +1870,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     height: 100%;
     display: block;
   }
-  
+
   .mobile-fab {
     width: 56px;
     height: 56px;
@@ -1622,6 +1891,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     transform: translateX(-50%);
     z-index: 10;
   }
+
   .mobile-fab:active {
     transform: scale(0.95);
   }
@@ -1730,7 +2000,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     height: auto;
     background: var(--card);
     border-radius: 24px 24px 0 0;
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
     z-index: 2000;
     overflow: hidden;
     display: flex;
@@ -1776,7 +2046,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   }
 
   .btn-view-option:active:not(.active) {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .active-selection-pop {
@@ -1784,9 +2054,17 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   }
 
   @keyframes selectionPulse {
-    0% { filter: brightness(1); }
-    50% { filter: brightness(1.2); }
-    100% { filter: brightness(1); }
+    0% {
+      filter: brightness(1);
+    }
+
+    50% {
+      filter: brightness(1.2);
+    }
+
+    100% {
+      filter: brightness(1);
+    }
   }
 
   /* Back Button */
@@ -1802,7 +2080,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     justify-content: center;
     font-size: 1.1rem;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   .btn-back-mobile:active {
@@ -1821,7 +2099,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
     position: sticky;
     top: 0;
     z-index: 40;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   .SettingsView main {
@@ -1831,6 +2109,7 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -1847,7 +2126,8 @@ body.dark-mode .table-primary-subtle, body.black-mode .table-primary-subtle {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-body.dark-mode .controls, body.black-mode .controls {
+body.dark-mode .controls,
+body.black-mode .controls {
   background: var(--card);
   border-color: var(--border);
 }
@@ -1866,7 +2146,8 @@ body.dark-mode .controls, body.black-mode .controls {
   cursor: pointer;
 }
 
-body.dark-mode .controls button, body.black-mode .controls button {
+body.dark-mode .controls button,
+body.black-mode .controls button {
   color: #ffffff;
 }
 
@@ -1874,7 +2155,8 @@ body.dark-mode .controls button, body.black-mode .controls button {
   background: rgba(0, 0, 0, 0.05);
 }
 
-body.dark-mode .controls button:hover, body.black-mode .controls button:hover {
+body.dark-mode .controls button:hover,
+body.black-mode .controls button:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -1891,7 +2173,8 @@ body.dark-mode .controls button:hover, body.black-mode .controls button:hover {
   gap: 8px;
 }
 
-body.dark-mode .date-display, body.black-mode .date-display {
+body.dark-mode .date-display,
+body.black-mode .date-display {
   color: #ffffff;
 }
 
@@ -1914,7 +2197,8 @@ body.dark-mode .date-display, body.black-mode .date-display {
   background-color: var(--light) !important;
 }
 
-body.dark-mode .bg-muted, body.black-mode .bg-muted {
+body.dark-mode .bg-muted,
+body.black-mode .bg-muted {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
@@ -1948,7 +2232,8 @@ html {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-body.dark-mode, body.black-mode {
+body.dark-mode,
+body.black-mode {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
@@ -1972,11 +2257,13 @@ body.dark-mode, body.black-mode {
   background: rgba(0, 0, 0, 0.4);
 }
 
-body.dark-mode ::-webkit-scrollbar-thumb, body.black-mode ::-webkit-scrollbar-thumb {
+body.dark-mode ::-webkit-scrollbar-thumb,
+body.black-mode ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
 }
 
-body.dark-mode ::-webkit-scrollbar-thumb:hover, body.black-mode ::-webkit-scrollbar-thumb:hover {
+body.dark-mode ::-webkit-scrollbar-thumb:hover,
+body.black-mode ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
@@ -2332,7 +2619,8 @@ body:not(.dark-mode):not(.black-mode) .tx-item:hover {
   gap: 18px;
 }
 
-body.dark-mode .card-panel, body.black-mode .card-panel {
+body.dark-mode .card-panel,
+body.black-mode .card-panel {
   border-color: rgba(255, 255, 255, 0.04) !important;
 }
 
@@ -2457,7 +2745,7 @@ body.dark-mode .card-panel, body.black-mode .card-panel {
   height: 28px;
   border-radius: 6px;
   background: linear-gradient(135deg, #fcd34d, #f59e0b);
-  box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
   position: relative;
 }
 
@@ -2465,7 +2753,7 @@ body.dark-mode .card-panel, body.black-mode .card-panel {
   content: '';
   position: absolute;
   inset: 4px;
-  border: 1px solid rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 3px;
 }
 
@@ -2571,6 +2859,9 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
   border-radius: 100px;
   font-size: 0.72rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }
 
 .badge-paid {
@@ -2580,10 +2871,15 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
 
 .badge-pending {
   background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  color: #d97706;
 }
 
 .badge-overdue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.badge-danger {
   background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
 }
@@ -2593,8 +2889,52 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
   color: #8b5cf6;
 }
 
+.badge-neutral {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--text-muted, #64748b);
+}
+
+/* Dark & Black Mode Badges Optimization */
+body.dark-mode .badge-pending,
+body.black-mode .badge-pending {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fcd34d !important;
+  font-weight: 700;
+}
+
+body.dark-mode .badge-paid,
+body.black-mode .badge-paid {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  font-weight: 700;
+}
+
+body.dark-mode .badge-overdue,
+body.black-mode .badge-overdue,
+body.dark-mode .badge-danger,
+body.black-mode .badge-danger {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  font-weight: 700;
+}
+
+body.dark-mode .badge-purple,
+body.black-mode .badge-purple {
+  background: rgba(139, 92, 246, 0.18) !important;
+  color: #c084fc !important;
+  font-weight: 700;
+}
+
+body.dark-mode .badge-neutral,
+body.black-mode .badge-neutral {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+  font-weight: 700;
+}
+
 /* MOBILE RESPONSIVE HARDENING (Prevents horizontal overflow and ugly text breaks) */
 @media (max-width: 768px) {
+
   /* Hide all scrollbar tracks and thumbs on mobile for a clean native app feel */
   *::-webkit-scrollbar,
   .custom-scrollbar::-webkit-scrollbar,
@@ -2605,7 +2945,7 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
     width: 0 !important;
     height: 0 !important;
   }
-  
+
   *,
   .custom-scrollbar,
   .table-responsive,
@@ -2615,7 +2955,8 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
     scrollbar-width: none !important;
   }
 
-  html, body {
+  html,
+  body {
     overflow-x: hidden !important;
     width: 100% !important;
     max-width: 100vw !important;
@@ -2700,7 +3041,7 @@ body:not(.dark-mode):not(.black-mode) .styled-table tr:hover td {
   }
 }
 
-.grid-2col > * {
+.grid-2col>* {
   min-width: 0 !important;
   min-height: 0 !important;
   max-width: 100% !important;

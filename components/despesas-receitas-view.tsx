@@ -472,14 +472,7 @@ export function DespesasReceitasView({
                           <>
                             <span className="flex-shrink-0">•</span>
                             <span
-                              className="badge-tag flex-shrink-0"
-                              style={{
-                                padding: '1px 5px',
-                                fontSize: '9px',
-                                background: 'var(--card-hover)',
-                                fontWeight: 700,
-                                color: 'var(--foreground)'
-                              }}
+                              className="badge-tag badge-neutral flex-shrink-0 font-mono font-bold text-[9.5px] px-1.5 py-0.5 dark:text-slate-200 dark:bg-white/10"
                             >
                               {tx.parcela}
                             </span>
@@ -667,14 +660,7 @@ export function DespesasReceitasView({
                       <td style={{ textAlign: 'center' }} className="whitespace-nowrap">
                         {tx.parcela ? (
                           <span
-                            className="badge-tag"
-                            style={{
-                              fontSize: '0.72rem',
-                              padding: '2px 8px',
-                              background: 'var(--card-hover)',
-                              fontWeight: 700,
-                              color: 'var(--foreground)'
-                            }}
+                            className="badge-tag badge-neutral font-mono font-bold text-[11px] px-2 py-0.5 dark:text-slate-200 dark:bg-white/10"
                           >
                             {tx.parcela}
                           </span>

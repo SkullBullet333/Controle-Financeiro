@@ -773,7 +773,7 @@ export function RadarFinanceiroView({
                       Taxa: {c.taxa}% a.m. • {c.openCount} parcelas a vencer
                     </span>
                   </div>
-                  <span className="badge-tag badge-pending flex-shrink-0" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                  <span className="badge-tag badge-pending flex-shrink-0 font-mono tracking-tight font-bold text-[11px] py-0.5 px-2 dark:text-amber-300 dark:bg-amber-500/20">
                     {c.parcelaDisplay}
                   </span>
                 </div>
@@ -841,7 +841,7 @@ export function RadarFinanceiroView({
                       <div className="text-xs text-muted">Taxa: {c.taxa}% a.m. • {c.openCount} parcelas a vencer</div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <span className="badge-tag badge-pending" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span className="badge-tag badge-pending font-mono tracking-tight font-bold text-xs px-2.5 py-1 dark:text-amber-300 dark:bg-amber-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>
                         {c.parcelaDisplay}
                       </span>
                     </td>

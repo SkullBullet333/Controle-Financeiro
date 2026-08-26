@@ -595,7 +595,7 @@ export function CartoesView({
                             </div>
                           </td>
                           <td style={{ padding: '8px 10px' }}>
-                            <span className="badge-tag badge-neutral text-[10px] py-0.5 px-2">
+                            <span className="badge-tag badge-neutral font-mono font-bold text-[10px] py-0.5 px-2 dark:text-slate-200 dark:bg-white/10">
                               {t.parcela_atual || 1}/{t.parcela_total || 1}
                             </span>
                           </td>
