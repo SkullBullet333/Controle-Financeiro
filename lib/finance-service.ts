@@ -199,8 +199,34 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string, fam
     return data;
   } else {
     // Se for uma parcela específica (empréstimo ou conta fixa), 
-    // salvamos apenas ela ao invés de disparar o gerador de parcelas múltiplas.
+    // verificamos se já existe antes de inserir para evitar duplicidades
     if ((dados.emprestimo_id || dados.conta_fixa_id) && dados.parcela_atual) {
+      let query = supabase.from('despesas').select('id, status').eq('family_id', familyId);
+      if (dados.conta_fixa_id) {
+        query = query.eq('conta_fixa_id', dados.conta_fixa_id).eq('parcela_atual', dados.parcela_atual);
+      } else if (dados.emprestimo_id) {
+        query = query.eq('emprestimo_id', dados.emprestimo_id).eq('parcela_atual', dados.parcela_atual);
+      }
+
+      const { data: existing } = await query.maybeSingle();
+
+      if (existing) {
+        // Se já existe, atualiza o registro existente em vez de criar duplicata
+        const { id: _, ...updateFields } = dados as any;
+        const { data, error } = await supabase
+          .from('despesas')
+          .update({
+            ...updateFields,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+
       const { data, error } = await supabase
         .from('despesas')
         .insert([{
@@ -248,7 +274,34 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string, fam
     if (error) throw error;
     return data;
   } else {
-    // Para inserções simples via conta fixa, usamos lancarParcelas
+    // Se for uma receita específica de conta fixa com parcela_atual
+    if (dados.conta_fixa_id && dados.parcela_atual) {
+      const { data: existing } = await supabase
+        .from('receitas')
+        .select('id')
+        .eq('family_id', familyId)
+        .eq('conta_fixa_id', dados.conta_fixa_id)
+        .eq('parcela_atual', dados.parcela_atual)
+        .maybeSingle();
+
+      if (existing) {
+        const { id: _, ...updateFields } = dados as any;
+        const { data, error } = await supabase
+          .from('receitas')
+          .update({
+            ...updateFields,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    }
+
+    // Para novas receitas ou múltiplos lançamentos
     return lancarParcelas('receita', dados, userId, familyId);
   }
 }

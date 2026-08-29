@@ -154,34 +154,43 @@ export function useFinance(activeView: string) {
       }
       if (emprestimosData) setEmprestimos(emprestimosData);
 
-      // Filtrar e expurgar contas_fixas parceladas que já foram concluídas
+      // Filtrar e expurgar contas_fixas parceladas que já foram concluídas E tiveram a ÚLTIMA parcela efetivamente paga
       const activeContasFixas: ContaFixaConfig[] = [];
       const finishedContaFixaIds: number[] = [];
 
       (contasFixasData || []).forEach((cf: any) => {
         const total = Number(cf.total_parcelas || 0);
         if (total > 0) {
-          let count = 0;
+          let lastPaid = false;
           if (cf.tipo === 'receita') {
-            count = (receitasData || []).filter((r: any) => Number(r.conta_fixa_id) === Number(cf.id)).length;
+            lastPaid = (receitasData || []).some((r: any) => 
+              Number(r.conta_fixa_id) === Number(cf.id) && 
+              Number(r.parcela_atual) >= total && 
+              r.status === 'Recebido'
+            );
           } else if (cf.cartao_id) {
-            count = (cartaoTransacoesData || []).filter((ct: any) => 
+            lastPaid = (cartaoTransacoesData || []).some((ct: any) => 
               Number(ct.cartao_id) === Number(cf.cartao_id) && 
-              ct.estabelecimento === cf.descricao
-            ).length;
+              ct.estabelecimento === cf.descricao && 
+              Number(ct.parcela_atual) >= total
+            );
           } else {
-            count = (despesasData || []).filter((d: any) => Number(d.conta_fixa_id) === Number(cf.id)).length;
+            lastPaid = (despesasData || []).some((d: any) => 
+              Number(d.conta_fixa_id) === Number(cf.id) && 
+              Number(d.parcela_atual) >= total && 
+              d.status === 'Pago'
+            );
           }
 
-          if (count >= total) {
+          if (lastPaid) {
             finishedContaFixaIds.push(cf.id);
-            return; // Concluída! Não inclui nas ativas
+            return; // Concluída e paga! Não inclui nas ativas
           }
         }
         activeContasFixas.push(cf);
       });
 
-      // Exclui automaticamente do servidor as contas fixas parceladas que já finalizaram
+      // Exclui automaticamente do servidor as contas fixas parceladas que já finalizaram e foram pagas
       if (finishedContaFixaIds.length > 0) {
         Promise.all(finishedContaFixaIds.map(id => deletarContaFixaConfig(id))).catch(err => {
           console.error('Erro ao expurgar contas fixas finalizadas no servidor:', err);
@@ -713,6 +722,20 @@ export function useFinance(activeView: string) {
         await salvarDespesa({ ...updates, id }, user.id, familyId);
       }
 
+      // Verificação de quitação da última parcela de conta fixa parcelada
+      const finalContaFixaId = item.conta_fixa_id || (updates as any).conta_fixa_id;
+      if (finalContaFixaId) {
+        const totalParcelas = Number(updates.parcela_total !== undefined ? updates.parcela_total : item.parcela_total || 0);
+        const parcelaAtual = Number(updates.parcela_atual !== undefined ? updates.parcela_atual : item.parcela_atual || 0);
+        const finalStatus = updates.status !== undefined ? updates.status : item.status;
+
+        // Somente exclui a conta fixa quando a última parcela for efetivamente marcada como Pago
+        if (totalParcelas > 0 && parcelaAtual >= totalParcelas && finalStatus === 'Pago') {
+          setContasFixas(prev => prev.filter(c => c.id !== finalContaFixaId));
+          await deletarContaFixaConfig(finalContaFixaId);
+        }
+      }
+
       await fetchData();
     } catch (error: any) {
       console.error('Error updating despesa (rolling back optimistic update):', error);
@@ -735,13 +758,8 @@ export function useFinance(activeView: string) {
       setDespesas(prev => prev.filter(d => d.id !== id));
 
       if (isVirtual && item) {
-        if (item.conta_fixa_id) {
-          setContasFixas(prev => prev.filter(c => c.id !== item.conta_fixa_id));
-          await deletarContaFixaConfig(item.conta_fixa_id);
-        } else if (item.emprestimo_id) {
-          setEmprestimos(prev => prev.filter(e => e.id !== item.emprestimo_id));
-          await deletarEmprestimo(item.emprestimo_id);
-        }
+        // Se for um item virtual avulso da lista de despesas, NÃO exclui a conta fixa mestre!
+        // A exclusão da conta fixa mestre deve ocorrer exclusivamente pela aba/modal de Contas Fixas
       } else {
         const { data: itemDb } = await supabase.from('despesas').select('competencia').eq('id', id).single();
         const { error } = await supabase.from('despesas').delete().eq('id', id);
@@ -895,6 +913,19 @@ export function useFinance(activeView: string) {
         await salvarReceita({ ...updates, id }, user.id, familyId);
       }
       
+      // Verificação de quitação da última parcela de conta fixa parcelada (receita)
+      const finalContaFixaId = item.conta_fixa_id || (updates as any).conta_fixa_id;
+      if (finalContaFixaId) {
+        const totalParcelas = Number(updates.parcela_total !== undefined ? updates.parcela_total : item.parcela_total || 0);
+        const parcelaAtual = Number(updates.parcela_atual !== undefined ? updates.parcela_atual : item.parcela_atual || 0);
+        const finalStatus = updates.status !== undefined ? updates.status : item.status;
+
+        if (totalParcelas > 0 && parcelaAtual >= totalParcelas && finalStatus === 'Recebido') {
+          setContasFixas(prev => prev.filter(c => c.id !== finalContaFixaId));
+          await deletarContaFixaConfig(finalContaFixaId);
+        }
+      }
+
       await fetchData();
     } catch (error) {
       console.error('Error updating receita (rolling back optimistic update):', error);
@@ -916,8 +947,7 @@ export function useFinance(activeView: string) {
       setReceitas(prev => prev.filter(r => r.id !== id));
 
       if (isVirtual && item?.conta_fixa_id) {
-        setContasFixas(prev => prev.filter(c => c.id !== item.conta_fixa_id));
-        await deletarContaFixaConfig(item.conta_fixa_id);
+        // Não exclui a conta fixa mestre ao remover visualização avulsa
       } else {
         const { error } = await supabase.from('receitas').delete().eq('id', id);
         if (error) throw error;
@@ -1233,34 +1263,28 @@ export function useFinance(activeView: string) {
   };
 
   const quitarParcelas = async (parcelas: Despesa[]) => {
-    if (!user?.id) return;
+    if (!user?.id || !familyId) return;
     
-    const { error } = await supabase.from('despesas').insert(
-      parcelas.map(p => {
-        const isLoan = !!p.emprestimo_id;
-        const isFixed = !!p.conta_fixa_id;
-        
-        return {
-          descricao: p.descricao,
-          valor: p.valor,
-          status: 'Pago',
-          titular_id: p.titular_id,
-          vencimento: format(new Date(), 'yyyy-MM-dd'),
-          competencia: competencia,
-          parcela_atual: p.parcela_atual,
-          parcela_total: p.parcela_total,
-          emprestimo_id: p.emprestimo_id || null,
-          conta_fixa_id: p.conta_fixa_id || null,
-          categoria: isLoan ? 'Empréstimos e Financiamentos' : (isFixed ? (p.categoria || 'Contas Fixas') : 'Outros'),
-          user_id: user.id,
-          family_id: familyId
-        };
-      })
-    );
+    for (const p of parcelas) {
+      await salvarDespesa({
+        descricao: p.descricao,
+        valor: p.valor,
+        status: 'Pago',
+        titular_id: p.titular_id,
+        vencimento: p.vencimento && p.vencimento !== '-' ? p.vencimento : format(new Date(), 'yyyy-MM-dd'),
+        competencia: p.competencia || competencia,
+        parcela_atual: p.parcela_atual,
+        parcela_total: p.parcela_total,
+        emprestimo_id: p.emprestimo_id || undefined,
+        conta_fixa_id: p.conta_fixa_id || undefined,
+        categoria: p.emprestimo_id ? 'Empréstimos e Financiamentos' : (p.conta_fixa_id ? (p.categoria || 'Contas Fixas') : 'Outros')
+      }, user.id, familyId);
 
-    if (error) {
-      console.error('Error quitting parcelas:', error);
-      throw error;
+      // Se a parcela quitada for a última de uma conta fixa, exclui a conta fixa
+      if (p.conta_fixa_id && Number(p.parcela_total) > 0 && Number(p.parcela_atual) >= Number(p.parcela_total)) {
+        setContasFixas(prev => prev.filter(c => c.id !== p.conta_fixa_id));
+        await deletarContaFixaConfig(p.conta_fixa_id);
+      }
     }
 
     await fetchData();
@@ -1956,224 +1980,7 @@ export function useFinance(activeView: string) {
     return projecao;
   }, [despesas, receitas, currentMonth, currentYear, allProjectedCartaoTransacoes, contasFixas, emprestimos, config.cartoes]);
 
-  const lastAutoLaunchRef = useRef<string | null>(null);
-  const syncedExpensesRef = useRef<Set<string>>(new Set());
 
-  // Auto-lançamento de despesas projetadas (cartões no dia da compra, empréstimos e fixas comuns 5 dias antes do fim do mês)
-  useEffect(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    
-    const autoLaunch = async () => {
-      if (isLoading || !familyId || !user?.id || (emprestimos.length === 0 && contasFixas.length === 0)) return;
-      if (lastAutoLaunchRef.current === todayStr) return;
-      
-      const today = new Date();
-      const lastDay = lastDayOfMonth(today);
-      const daysToLast = lastDay.getDate() - today.getDate();
-      
-      const nextMonthDate = addMonths(today, 1);
-      const currentComp = format(today, 'MM/yyyy');
-      const nextComp = format(nextMonthDate, 'MM/yyyy');
-      const targetComps = [currentComp, nextComp];
-      
-      const toLaunch: any[] = [];
-
-      // 1. Verificar Empréstimos (Apenas nos últimos 5 dias do mês)
-      if (daysToLast <= 5) {
-        for (const loan of emprestimos) {
-          const dataIni = parseISO(loan.data_primeiro_vencimento);
-          const diaOriginal = getDate(dataIni);
-          const isUltimo = isLastDayOfMonth(dataIni);
-
-          for (let i = 1; i <= loan.total_parcelas; i++) {
-            let comp = '';
-            if (loan.competencia_inicial) {
-              const [m, y] = loan.competencia_inicial.split('/').map(Number);
-              comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
-            } else {
-              const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-              comp = format(dataV, 'MM/yyyy');
-            }
-
-            if (targetComps.includes(comp)) {
-              const exists = despesas.find(d => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i));
-              if (!exists) {
-                const dataVenc = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-                toLaunch.push({
-                  descricao: loan.descricao,
-                  valor: loan.valor_parcela,
-                  vencimento: format(dataVenc, 'yyyy-MM-dd'),
-                  competencia: comp,
-                  status: 'Em aberto',
-                  titular_id: loan.titular_id,
-                  emprestimo_id: loan.id,
-                  parcela_atual: i,
-                  parcela_total: loan.total_parcelas,
-                  categoria: 'Empréstimos e Financiamentos',
-                  user_id: user.id,
-                  family_id: familyId
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // 2. Verificar Contas Fixas
-      for (const fixedConfig of contasFixas) {
-        if (fixedConfig.tipo === 'receita') continue;
-        const dataIni = parseISO(fixedConfig.data_inicio);
-        const diaOriginal = getDate(dataIni);
-        const isUltimo = isLastDayOfMonth(dataIni);
-        const limit = fixedConfig.total_parcelas || 24;
-
-        for (let i = 1; i <= limit; i++) {
-          const dataV = projetarProximoVencimento(dataIni, i - 1, isUltimo, diaOriginal);
-          
-          let comp = '';
-          if (fixedConfig.competencia_inicial) {
-            const [m, y] = fixedConfig.competencia_inicial.split('/').map(Number);
-            comp = format(addMonths(new Date(y, m - 1, 1), i - 1), 'MM/yyyy');
-          } else {
-            if (fixedConfig.cartao_id) {
-              const card = config.cartoes.find(c => c.id === fixedConfig.cartao_id);
-              if (card) {
-                comp = calcularCompetenciaCartao(dataV, card.dia_vencimento, card.dia_fechamento);
-              } else {
-                comp = format(dataV, 'MM/yyyy');
-              }
-            } else {
-              comp = format(dataV, 'MM/yyyy');
-            }
-          }
-
-          const isCartao = !!fixedConfig.cartao_id;
-          let shouldLaunch = false;
-
-          if (isCartao) {
-            const dataVencStr = format(dataV, 'yyyy-MM-dd');
-            shouldLaunch = dataVencStr <= todayStr;
-          } else {
-            shouldLaunch = (daysToLast <= 5) && targetComps.includes(comp);
-          }
-
-          if (shouldLaunch) {
-            const existsInDespesas = despesas.find(d => Number(d.conta_fixa_id) === Number(fixedConfig.id) && Number(d.parcela_atual) === Number(i));
-            const existsInCartoes = cartaoTransacoes.find(ct => 
-              Number(ct.cartao_id) === Number(fixedConfig.cartao_id) && 
-              ct.estabelecimento === fixedConfig.descricao && 
-              ct.competencia === comp &&
-              Number(ct.parcela_atual) === Number(i)
-            );
-            
-            if (!existsInDespesas && !existsInCartoes) {
-              toLaunch.push({
-                descricao: fixedConfig.descricao,
-                valor: fixedConfig.valor_mensal,
-                vencimento: format(dataV, 'yyyy-MM-dd'), // Para despesas comuns
-                data_compra: format(dataV, 'yyyy-MM-dd'), // Para cartões
-                competencia: comp,
-                status: 'Em aberto',
-                titular_id: fixedConfig.titular_id,
-                conta_fixa_id: fixedConfig.id,
-                parcela_atual: i,
-                parcela_total: fixedConfig.total_parcelas || 0,
-                categoria: fixedConfig.categoria || (isCartao ? 'cartoes' : 'Contas Fixas'),
-                cartao_id: fixedConfig.cartao_id || null,
-                user_id: user.id,
-                family_id: familyId
-              });
-            }
-          }
-        }
-      }
-
-      if (toLaunch.length > 0) {
-        // Filtrar o que já está sendo lançado para evitar duplicidade em disparos rápidos
-        const finalToLaunch = toLaunch.filter(item => {
-          const key = item.emprestimo_id 
-            ? `loan-${item.emprestimo_id}-${item.parcela_atual}`
-            : `fixed-${item.conta_fixa_id}-${item.parcela_atual}`;
-          
-          if (syncedExpensesRef.current.has(key)) return false;
-          syncedExpensesRef.current.add(key);
-          return true;
-        });
-
-        if (finalToLaunch.length > 0) {
-          console.log(`Auto-lançando ${finalToLaunch.length} despesas projetadas.`);
-          lastAutoLaunchRef.current = todayStr; 
-          
-          // Separa o que é cartão do que é despesa comum
-          const cardsToLaunch = finalToLaunch.filter(item => (item as any).cartao_id);
-          const normalsToLaunch = finalToLaunch.filter(item => !(item as any).cartao_id);
-
-          if (cardsToLaunch.length > 0) {
-            const mappedCards = cardsToLaunch.map(item => {
-              const payload: any = {
-                user_id: item.user_id,
-                family_id: item.family_id,
-                estabelecimento: item.descricao,
-                valor: Number(item.valor || 0),
-                competencia: item.competencia,
-                cartao_id: item.cartao_id,
-                categoria: item.categoria || 'cartoes',
-                parcela_atual: item.parcela_atual,
-                parcela_total: item.parcela_total,
-                data_compra: item.data_compra
-              };
-              if (item.titular_id) payload.titular_id = item.titular_id;
-              return payload;
-            });
-            const { error: cardError } = await supabase.from('cartoes').insert(mappedCards);
-            if (cardError) console.error('Erro ao auto-lançar transações de cartão:', cardError);
-          }
-
-          if (normalsToLaunch.length > 0) {
-            const mappedNormals = normalsToLaunch.map(item => {
-              const payload: any = {
-                descricao: item.descricao,
-                valor: Number(item.valor || 0),
-                vencimento: item.vencimento,
-                competencia: item.competencia,
-                status: item.status || 'Em aberto',
-                categoria: item.categoria || 'Contas Fixas',
-                parcela_atual: item.parcela_atual,
-                parcela_total: item.parcela_total,
-                user_id: item.user_id,
-                family_id: item.family_id
-              };
-              if (item.titular_id) payload.titular_id = item.titular_id;
-              if (item.emprestimo_id) payload.emprestimo_id = item.emprestimo_id;
-              if (item.conta_fixa_id) payload.conta_fixa_id = item.conta_fixa_id;
-              return payload;
-            });
-            const { error: normalError } = await supabase.from('despesas').insert(mappedNormals);
-            if (normalError) {
-              console.error('Erro ao auto-lançar despesas:', normalError);
-              // Fallback
-              lastAutoLaunchRef.current = null;
-            }
-          }
-
-          // Se alguma conta fixa finalizou a última parcela neste auto-lançamento, exclui do servidor
-          const finishedFixed = finalToLaunch.filter(item => item.conta_fixa_id && Number(item.parcela_total) > 0 && Number(item.parcela_atual) >= Number(item.parcela_total));
-          if (finishedFixed.length > 0) {
-            Promise.all(finishedFixed.map(f => deletarContaFixaConfig(f.conta_fixa_id))).catch(err => {
-              console.error('Erro ao deletar conta fixa finalizada:', err);
-            });
-          }
-
-          fetchData();
-        }
-      } else {
-        // Se não tem nada para lançar, também marcamos como checado para hoje
-        lastAutoLaunchRef.current = todayStr;
-      }
-    };
-
-    autoLaunch();
-  }, [isLoading, familyId, user?.id, emprestimos, contasFixas, despesas.length, config.cartoes, fetchData]);
 
   return {
     user,

@@ -458,14 +458,6 @@ export default function Home() {
             onEditDespesa={(item: Despesa) => {
               const isRevenue = (item as any).data_recebimento || (item as any).tipo === 'receita';
               setModalType(isRevenue ? 'receita' : 'despesa');
-              if ((item as any).conta_fixa_id && (item as any).id < 0) {
-                const masterConfig = contasFixas.find(c => c.id === (item as any).conta_fixa_id);
-                if (masterConfig) {
-                  setEditingItem(masterConfig as any);
-                  setIsModalOpen(true);
-                  return;
-                }
-              }
               setEditingItem(item);
               setIsModalOpen(true);
             }}
@@ -509,16 +501,6 @@ export default function Home() {
             onEdit={(item) => {
               const isRevenue = (item as any).data_recebimento || (item as any).tipo === 'receita';
               setModalType(isRevenue ? 'receita' : 'despesa');
-              
-              if ((item as any).conta_fixa_id && (item as any).id < 0) {
-                const masterConfig = contasFixas.find(c => c.id === (item as any).conta_fixa_id);
-                if (masterConfig) {
-                  setEditingItem(masterConfig as any);
-                  setIsModalOpen(true);
-                  return;
-                }
-              }
-
               setEditingItem(item);
               setIsModalOpen(true);
             }}

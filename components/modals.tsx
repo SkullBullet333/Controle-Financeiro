@@ -488,6 +488,8 @@ export function FinanceForm({
       data.parcela_atual = formData.parcela_atual;
       data.parcela_total = paymentType === 'A vista' ? 1 : (parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2));
       data.cartao_vencimento_id = formData.cartao_vencimento_id ? parseInt(formData.cartao_vencimento_id as string) : undefined;
+      data.conta_fixa_id = (initialData as any)?.conta_fixa_id;
+      data.emprestimo_id = (initialData as any)?.emprestimo_id;
 
       if (!data.cartao_vencimento_id) {
         data.competencia = calcularCompetencia(parseISO(finalDate));
@@ -501,10 +503,12 @@ export function FinanceForm({
       data.data_recebimento = finalDate;
       const dataAjustada = ajustarDataReceita(parseISO(finalDate));
       data.competencia = calcularCompetenciaReceita(dataAjustada);
+      data.parcela_atual = formData.parcela_atual;
       data.parcela_total = paymentType === 'A vista' ? 1 : (parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2));
+      data.conta_fixa_id = (initialData as any)?.conta_fixa_id;
     }
 
-    if ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente)) {
+    if (!initialData && ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente))) {
       if (onSubmitContaFixa) {
         await onSubmitContaFixa({
           descricao: formData.descricao,
