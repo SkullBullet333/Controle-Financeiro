@@ -31,6 +31,20 @@ export function chaveJanelaFinanceira(competencias: string[]): string {
   return `${competencias[0]}_${competencias[competencias.length - 1]}`.replaceAll('/', '-');
 }
 
+export function deveAbrirProximoMesQuandoQuitado(
+  mesSelecionado: number,
+  anoSelecionado: number,
+  despesasDoMes: readonly { status: string }[],
+  agora = new Date()
+): boolean {
+  const correspondeAoMesAtual = mesSelecionado === agora.getMonth() + 1
+    && anoSelecionado === agora.getFullYear();
+
+  return correspondeAoMesAtual
+    && despesasDoMes.length > 0
+    && despesasDoMes.every(item => item.status === 'Pago');
+}
+
 export async function carregarTodasPaginas<T>(
   buscarPagina: (inicio: number, fim: number) => PromiseLike<PaginatedResult<T>>,
   tamanhoPagina = 500

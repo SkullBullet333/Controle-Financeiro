@@ -130,6 +130,7 @@ describe('contrato arquitetural do carregamento financeiro', () => {
     expect(fetchDataSource).toContain(".eq('status', 'Em aberto')");
     expect(fetchDataSource).not.toContain('sixMonthsAgo');
     expect(fetchDataSource).not.toMatch(/\.gte\('(vencimento|data_recebimento|data_compra)'/);
+    expect(source).toContain('criarJanelaCompetencias(currentMonth, currentYear, 12)');
   });
 
   it('isola cada janela financeira em cache próprio e ignora respostas atrasadas', () => {
@@ -142,6 +143,7 @@ describe('contrato arquitetural do carregamento financeiro', () => {
     expect(cacheSource).toContain('`fin_cache_${userId}_${windowKey}`');
     expect(fetchDataSource).toContain('financialCacheKey(targetId, financialWindowKey)');
     expect(fetchDataSource).toContain('requestId !== fetchSequence.current');
+    expect(fetchDataSource).toContain('if (!cached && isInitialLoad.current)');
     expect(source).toContain('purgeLegacyFinancialCache()');
     expect(source).not.toContain('setCompressedCache(');
   });

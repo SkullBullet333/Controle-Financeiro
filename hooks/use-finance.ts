@@ -6,7 +6,7 @@ import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvar
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 import { clearFinancialCache, financialCacheKey, getFinancialCache, purgeLegacyFinancialCache, setFinancialCache } from '@/lib/financial-cache';
 import { categorizar } from '@/lib/categories-utils';
-import { carregarTodasPaginas, chaveJanelaFinanceira, criarJanelaCompetencias } from '@/lib/finance-period';
+import { carregarTodasPaginas, chaveJanelaFinanceira, criarJanelaCompetencias, deveAbrirProximoMesQuandoQuitado } from '@/lib/finance-period';
 import { normalizarDinheiro } from '@/lib/money';
 import { projetarFluxoCaixa } from '@/lib/cashflow-projection';
 import { calcularTotaisPorCartao } from '@/lib/card-projection';
@@ -36,7 +36,9 @@ export function useFinance(activeView: string) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const financialCompetencies = useMemo(
-    () => criarJanelaCompetencias(currentMonth, currentYear),
+    // O painel de evolução exibe doze meses; a consulta precisa cobrir o
+    // mesmo intervalo para que um mês comum não mude de valor ao navegar.
+    () => criarJanelaCompetencias(currentMonth, currentYear, 12),
     [currentMonth, currentYear]
   );
   const financialWindowKey = useMemo(
@@ -53,6 +55,8 @@ export function useFinance(activeView: string) {
   const loadedFinancialWindow = useRef<string | null>(null);
   const fetchSequence = useRef(0);
   const authenticatedUserId = useRef<string | null>(null);
+  const periodWasManuallyChanged = useRef(false);
+  const initialPeriodWasResolved = useRef(false);
 
   // Após uma alteração administrativa local, nenhuma leitura anterior pode
   // repor cadastros antigos; janelas futuras serão consultadas novamente.
@@ -93,7 +97,10 @@ export function useFinance(activeView: string) {
       // Cada janela possui seu próprio snapshot. Uma navegação histórica nunca
       // reutiliza silenciosamente o recorte de outro período.
       const cached = getFinancialCache(cacheKey);
-      if (!cached) {
+      // Em trocas de período, preservamos os dados que já estão na tela e
+      // atualizamos a nova janela em segundo plano. A tela de carregamento
+      // fica reservada ao primeiro acesso, quando ainda não há dados úteis.
+      if (!cached && isInitialLoad.current) {
         setIsLoading(true);
       }
     }
@@ -474,6 +481,8 @@ export function useFinance(activeView: string) {
       loadedFinancialWindow.current = null;
       fetchSequence.current++;
       isInitialLoad.current = true;
+      periodWasManuallyChanged.current = false;
+      initialPeriodWasResolved.current = false;
       setDespesas([]);
       setReceitas([]);
       setCartaoTransacoes([]);
@@ -1771,6 +1780,15 @@ export function useFinance(activeView: string) {
     return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments, ...virtualFixedInstallments].filter(Boolean);
   }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, contasFixas, despesas, occurrenceIsIgnored]);
 
+  useEffect(() => {
+    if (isLoading || initialPeriodWasResolved.current || periodWasManuallyChanged.current) return;
+
+    initialPeriodWasResolved.current = true;
+    if (deveAbrirProximoMesQuandoQuitado(currentMonth, currentYear, consolidatedDespesas)) {
+      changeMonth(1);
+    }
+  }, [isLoading, currentMonth, currentYear, consolidatedDespesas]);
+
   const alertas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
@@ -1937,6 +1955,7 @@ export function useFinance(activeView: string) {
   }, [consolidatedReceitas, consolidatedDespesas]);
 
   const changeMonth = (delta: number) => {
+    periodWasManuallyChanged.current = true;
     let newMonth = currentMonth + delta;
     let newYear = currentYear;
 
@@ -1953,10 +1972,12 @@ export function useFinance(activeView: string) {
   };
 
   const setMonth = (month: number) => {
+    periodWasManuallyChanged.current = true;
     setCurrentMonth(month);
   };
 
   const setYear = (year: number) => {
+    periodWasManuallyChanged.current = true;
     setCurrentYear(year);
   };
 
