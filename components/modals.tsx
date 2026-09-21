@@ -6,10 +6,13 @@ import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
-import { calcularCompetencia, calcularCompetenciaReceita, ajustarDataReceita, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento, getProximoFechamento } from '@/lib/finance-service';
+import { calcularCompetencia, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento, getProximoFechamento, resolverAgendamentoReceita } from '@/lib/finance-service';
 import { parseISO, format, getDate, isLastDayOfMonth, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
 import { getCardLogo } from '@/lib/finance-service';
+import { PendingCreationOperation, resolveCreationOperation } from '@/lib/idempotency';
+import { normalizarDinheiro, somarDinheiro, subtrairDinheiro } from '@/lib/money';
+import { reportOperationFailure } from '@/lib/safe-log';
 
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
@@ -454,6 +457,7 @@ export function FinanceForm({
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const pendingCreationOperation = useRef<PendingCreationOperation | null>(null);
 
   useEffect(() => {
     if (validationError) {
@@ -476,7 +480,7 @@ export function FinanceForm({
 
     const data: Partial<Despesa> & Partial<Receita> = {
       descricao: formData.descricao,
-      valor: parseFloat(formData.valor),
+      valor: normalizarDinheiro(formData.valor),
       titular_id: titularId,
       competencia,
     };
@@ -501,8 +505,8 @@ export function FinanceForm({
       }
     } else {
       data.data_recebimento = finalDate;
-      const dataAjustada = ajustarDataReceita(parseISO(finalDate));
-      data.competencia = calcularCompetenciaReceita(dataAjustada);
+      const agendamento = resolverAgendamentoReceita(parseISO(finalDate));
+      data.competencia = agendamento.competencia;
       data.parcela_atual = formData.parcela_atual;
       data.parcela_total = paymentType === 'A vista' ? 1 : (parseInt(formData.parcela_total as any) || (isRecorrente ? 12 : 2));
       data.conta_fixa_id = (initialData as any)?.conta_fixa_id;
@@ -512,12 +516,12 @@ export function FinanceForm({
       if (onSubmitContaFixa) {
         await onSubmitContaFixa({
           descricao: formData.descricao,
-          valor_mensal: parseFloat(formData.valor),
+          valor_mensal: normalizarDinheiro(formData.valor),
           total_parcelas: isIndefinite ? null : (parseInt(formData.parcela_total as any) || 12),
           parcela_atual: 1,
           data_inicio: finalDate,
           competencia_inicial: type === 'receita' 
-            ? calcularCompetenciaReceita(ajustarDataReceita(parseISO(finalDate))) 
+            ? resolverAgendamentoReceita(parseISO(finalDate)).competencia
             : (subType === 'cartao' ? (data.competencia || competencia) : calcularCompetencia(parseISO(finalDate))),
           titular_id: titularId,
           categoria: subType === 'cartao' ? 'cartoes' : (formData.categoria || categorizar(formData.descricao)),
@@ -528,7 +532,18 @@ export function FinanceForm({
       }
     }
 
+    if (!initialData) {
+      const operation = resolveCreationOperation(
+        pendingCreationOperation.current,
+        { type, subType, data }
+      );
+      pendingCreationOperation.current = operation;
+      data.operation_id = operation.id;
+    }
+
     await onSubmit(data as Omit<Despesa, 'id'> | Omit<Receita, 'id'>);
+    } catch {
+      setValidationError('Não foi possível salvar o lançamento. Seus dados foram preservados; tente novamente.');
     } finally {
       setIsProcessing(false);
     }
@@ -1092,7 +1107,7 @@ export function TitularForm({
   onCancel,
   themeColor
 }: {
-  onSubmit: (data: Omit<Titular, 'id'>) => void,
+  onSubmit: (data: Omit<Titular, 'id'>) => Promise<void> | void,
   initialData?: Titular,
   onCancel?: () => void,
   themeColor?: string
@@ -1103,6 +1118,8 @@ export function TitularForm({
   });
   const [isUploading, setIsUploading] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1131,7 +1148,7 @@ export function TitularForm({
 
       setFormData({ ...formData, foto: publicUrl });
     } catch (error: any) {
-      console.warn('Supabase Storage error (falling back to local):', error.message || error);
+      reportOperationFailure('holder_avatar_upload', error);
 
       await new Promise<void>((resolve) => {
         const reader = new FileReader();
@@ -1146,8 +1163,23 @@ export function TitularForm({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting || isUploading) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` });
+    } catch {
+      setSubmitError('Não foi possível salvar o titular. Seus dados foram preservados; tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit({ ...formData, foto: formData.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.nome)}&background=random&color=fff&bold=true` }); }} className="row g-3">
+    <form onSubmit={handleSubmit} className="row g-3">
       <div className="col-12">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Nome do Titular</label>
         <input
@@ -1195,25 +1227,27 @@ export function TitularForm({
           </div>
         </div>
       </div>
+      {submitError && <div className="col-12 alert alert-danger small py-2 mb-0" role="alert">{submitError}</div>}
       <div className="col-12 mt-2 md:mt-4 d-flex gap-2 md:gap-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSubmitting}
             className="btn btn-outline-secondary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
           >
             Cancelar
           </button>
         )}
         <button
-          disabled={isUploading}
+          disabled={isUploading || isSubmitting}
           className={cn(
             "btn w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm",
             !themeColor ? "btn-primary" : "text-white"
           )}
           style={{ backgroundColor: themeColor }}
         >
-          <i className="fa-solid fa-check me-2"></i>Salvar Titular
+          {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Salvando...</> : <><i className="fa-solid fa-check me-2"></i>Salvar Titular</>}
         </button>
       </div>
 
@@ -1246,7 +1280,7 @@ export function CartaoForm({
   onCancel,
   themeColor
 }: {
-  onSubmit: (data: Omit<CartaoConfig, 'id'>) => void,
+  onSubmit: (data: Omit<CartaoConfig, 'id'>) => Promise<void> | void,
   titulares: Titular[],
   initialData?: CartaoConfig,
   onCancel?: () => void,
@@ -1317,6 +1351,8 @@ export function CartaoForm({
   }, [initialData, titulares]);
 
   const [iconError, setIconError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const PRESET_COLORS = [
     { name: 'Sicoob Verde', color: '#00AE9A' },
@@ -1371,8 +1407,23 @@ export function CartaoForm({
     });
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit(formData);
+    } catch {
+      setSubmitError('Não foi possível salvar o cartão. Seus dados foram preservados; tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+    <form onSubmit={handleSubmit} className="row g-3">
       {/* Nome do Cartão */}
       <div className="col-12">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Nome do Cartão</label>
@@ -1547,25 +1598,29 @@ export function CartaoForm({
         />
       </div>
 
+      {submitError && <div className="col-12 alert alert-danger small py-2 mb-0" role="alert">{submitError}</div>}
+
       {/* Botões de Ação */}
       <div className="col-12 mt-2 md:mt-4 d-flex gap-2 md:gap-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSubmitting}
             className="btn btn-outline-secondary w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
           >
             Cancelar
           </button>
         )}
-        <button 
+        <button
+          disabled={isSubmitting}
           className={cn(
             "btn w-100 py-2.5 md:py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm",
             !themeColor ? "btn-primary" : "text-white"
           )}
           style={{ backgroundColor: themeColor || 'var(--primary)' }}
         >
-          <i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão
+          {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Salvando...</> : <><i className="fa-solid fa-credit-card me-2"></i>Salvar Cartão</>}
         </button>
       </div>
     </form>
@@ -2016,7 +2071,10 @@ export function ConfirmModal({
   title,
   message,
   confirmLabel = 'Confirmar',
-  variant = 'danger'
+  secondaryLabel,
+  onSecondaryConfirm,
+  variant = 'danger',
+  failureMessage = 'Não foi possível concluir a exclusão. O item pode possuir histórico vinculado.'
 }: {
   isOpen: boolean,
   onClose: () => void,
@@ -2024,16 +2082,40 @@ export function ConfirmModal({
   title: string,
   message: string,
   confirmLabel?: string,
-  variant?: 'danger' | 'primary' | 'success'
+  secondaryLabel?: string,
+  onSecondaryConfirm?: () => Promise<void> | void,
+  variant?: 'danger' | 'primary' | 'success',
+  failureMessage?: string
 }) {
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen) setSubmitError(null);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleConfirm = async () => {
     setIsProcessing(true);
+    setSubmitError(null);
     try {
       await onConfirm();
+    } catch {
+      setSubmitError(failureMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSecondaryConfirm = async () => {
+    if (!onSecondaryConfirm) return;
+    setIsProcessing(true);
+    setSubmitError(null);
+    try {
+      await onSecondaryConfirm();
+    } catch {
+      setSubmitError(failureMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -2052,9 +2134,24 @@ export function ConfirmModal({
               <i className={`fa-solid ${variant === 'danger' ? 'fa-trash-can' : 'fa-circle-question'} fa-2xl`}></i>
             </div>
             <p className="text-muted mb-0">{message}</p>
+            {submitError && (
+              <div className="alert alert-danger mt-3 mb-0 text-start" role="alert">
+                {submitError}
+              </div>
+            )}
           </div>
           <div className="modal-footer border-0 pt-0 gap-2">
             <button type="button" className="btn btn-light rounded-pill px-4 fw-bold flex-grow-1" onClick={onClose} disabled={isProcessing}>Cancelar</button>
+            {secondaryLabel && onSecondaryConfirm && (
+              <button
+                type="button"
+                className="btn btn-outline-danger rounded-pill px-3 fw-bold flex-grow-1"
+                onClick={handleSecondaryConfirm}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Aguarde...' : secondaryLabel}
+              </button>
+            )}
             <button
               type="button"
               className={`btn btn-${variant} rounded-pill px-4 fw-bold flex-grow-1 d-flex justify-content-center align-items-center gap-2`}
@@ -2074,7 +2171,7 @@ export function ProfileForm({
   onSubmit,
   initialData
 }: {
-  onSubmit: (data: Partial<Profile>) => void,
+  onSubmit: (data: Partial<Profile>) => Promise<void> | void,
   initialData?: Profile | null
 }) {
   const [formData, setFormData] = useState({
@@ -2083,6 +2180,8 @@ export function ProfileForm({
   });
   const [isUploading, setIsUploading] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2111,7 +2210,7 @@ export function ProfileForm({
 
       setFormData({ ...formData, foto: publicUrl });
     } catch (error: any) {
-      console.warn('Supabase Storage error (falling back to local):', error.message || error);
+      reportOperationFailure('profile_avatar_upload', error);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev: { nome: string; foto: string }) => ({ ...prev, foto: reader.result as string }));
@@ -2122,8 +2221,23 @@ export function ProfileForm({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting || isUploading) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit(formData);
+    } catch {
+      setSubmitError('Não foi possível atualizar o perfil. Seus dados foram preservados; tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={(e: React.FormEvent) => { e.preventDefault(); onSubmit(formData); }} className="row g-3">
+    <form onSubmit={handleSubmit} className="row g-3">
       <div className="col-12">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block whitespace-nowrap">Seu Nome</label>
         <input
@@ -2171,12 +2285,13 @@ export function ProfileForm({
         </div>
       </div>
       {sizeError && <div className="col-12 mt-2 alert alert-danger small py-2">{sizeError}</div>}
+      {submitError && <div className="col-12 mt-2 alert alert-danger small py-2" role="alert">{submitError}</div>}
       <div className="col-12 mt-4 d-flex gap-2">
         <button
-          disabled={isUploading}
+          disabled={isUploading || isSubmitting}
           className="btn btn-primary w-100 py-3 fw-bold rounded-pill text-uppercase text-xs md:text-sm"
         >
-          <i className="fa-solid fa-check me-2"></i>Atualizar Perfil
+          {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Salvando...</> : <><i className="fa-solid fa-check me-2"></i>Atualizar Perfil</>}
         </button>
       </div>
     </form>
@@ -2196,13 +2311,15 @@ export function EmprestimoForm({
   hideHeader,
   themeColor = '#1e293b'
 }: {
-  onSubmit: (data: Partial<Emprestimo>) => void,
+  onSubmit: (data: Partial<Emprestimo>) => Promise<void> | void,
   titulares: Titular[],
   onClose: () => void,
   editingItem?: Emprestimo | null,
   hideHeader?: boolean,
   themeColor?: string
 }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     descricao: '',
     valor_parcela: '',
@@ -2238,15 +2355,25 @@ export function EmprestimoForm({
     }
   }, [formData.data_primeiro_vencimento, editingItem]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      id: editingItem?.id,
-      valor_parcela: parseFloat(formData.valor_parcela),
-      taxa_mensal_percentual: parseFloat(formData.taxa_mensal_percentual),
-      total_parcelas: parseInt(formData.total_parcelas)
-    });
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    setSubmitError(null);
+    try {
+      await onSubmit({
+        ...formData,
+        id: editingItem?.id,
+        valor_parcela: normalizarDinheiro(formData.valor_parcela),
+        taxa_mensal_percentual: parseFloat(formData.taxa_mensal_percentual),
+        total_parcelas: parseInt(formData.total_parcelas)
+      });
+    } catch {
+      setSubmitError('Não foi possível salvar o empréstimo. Seus dados foram preservados; tente novamente.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -2397,16 +2524,23 @@ export function EmprestimoForm({
           </div>
         </div>
 
+        {submitError && (
+          <p role="alert" className="text-sm font-semibold text-red-600 mt-3 mb-0">
+            {submitError}
+          </p>
+        )}
+
         <div className="pt-3 grid grid-cols-2 gap-x-6 items-center">
-          <button type="button" className="text-sm font-semibold text-muted hover:text-foreground transition-colors text-left" onClick={onClose}>
+          <button type="button" disabled={isProcessing} className="text-sm font-semibold text-muted hover:text-foreground transition-colors text-left disabled:opacity-50" onClick={onClose}>
             Cancelar
           </button>
           <button
             type="submit"
+            disabled={isProcessing}
             style={{ borderRadius: '9999px', backgroundColor: themeColor }}
-            className="text-white h-[46px] font-bold text-sm shadow-md transition-all w-full hover:shadow-lg hover:scale-[1.01] active:scale-95 opacity-95 hover:opacity-100"
+            className="text-white h-[46px] font-bold text-sm shadow-md transition-all w-full hover:shadow-lg hover:scale-[1.01] active:scale-95 opacity-95 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {editingItem ? 'Salvar Alterações' : 'Cadastrar Empréstimo'}
+            {isProcessing ? 'Salvando...' : (editingItem ? 'Salvar Alterações' : 'Cadastrar Empréstimo')}
           </button>
         </div>
       </form>
@@ -2538,14 +2672,14 @@ export function PayoffModal({
     return [...selectedParcelas].sort((a, b) => a.parcela_atual - b.parcela_atual);
   }, [selectedParcelas]);
 
-  const totalNominal = selectedParcelas.reduce((acc, i) => acc + i.valor, 0);
-  const totalVP = selectedParcelas.reduce((acc, i) => acc + i.vp, 0);
-  const totalDiscount = Math.max(0, totalNominal - totalVP);
+  const totalNominal = somarDinheiro(selectedParcelas.map(i => i.valor));
+  const totalVP = somarDinheiro(selectedParcelas.map(i => i.vp));
+  const totalDiscount = Math.max(0, subtrairDinheiro(totalNominal, totalVP));
   const discountPercent = totalNominal > 0 ? (totalDiscount / totalNominal) * 100 : 0;
-  const totalNominalAll = simulation.reduce((acc, i) => acc + i.valor, 0);
+  const totalNominalAll = somarDinheiro(simulation.map(i => i.valor));
   const cheapestVP = simulation.length > 0 ? Math.min(...simulation.map(i => i.vp)) : 0;
   const budgetNum = parseFloat(budgetAmount) || 0;
-  const leftoverBudget = Math.max(0, budgetNum - totalVP);
+  const leftoverBudget = Math.max(0, subtrairDinheiro(budgetNum, totalVP));
 
   const selectLastN = (n: number) => {
     const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
@@ -2690,7 +2824,7 @@ export function PayoffModal({
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-secondary rounded-lg py-1 px-2.5 text-[10px] md:text-xs font-bold"
-                  onClick={() => setBudgetAmount(String(Math.ceil(totalNominalAll)))}
+                  onClick={() => setBudgetAmount(String(normalizarDinheiro(totalNominalAll)))}
                   title="Preencher com o total da dívida"
                 >
                   Tudo
@@ -3097,6 +3231,7 @@ export function ExpenseSettingsModal({
   onUpdateCategoryByDescription,
   onUpdateDespesa,
   onDeleteEmprestimo,
+  onEndContaFixa,
   onDeleteContaFixa,
   themeColor,
   themeMode,
@@ -3116,7 +3251,9 @@ export function ExpenseSettingsModal({
   onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
   onUpdateDespesa?: (id: number, updates: Partial<Despesa>) => Promise<any> | void;
   onDeleteEmprestimo: (id: number) => void;
-  onDeleteContaFixa: (id: number) => void;
+  onEndContaFixa?: (id: number) => void;
+  /** Compatibilidade temporária com a cópia legada em _backup. */
+  onDeleteContaFixa?: (id: number) => void;
   themeColor: string;
   themeMode: 'light' | 'dark' | 'black';
   isDarkMode: boolean;
@@ -3210,7 +3347,7 @@ export function ExpenseSettingsModal({
         const payload: Partial<Emprestimo> = {
           id: inlineEdit.item.id,
           descricao: editDescricao,
-          valor_parcela: Number(editValor) || 0,
+          valor_parcela: normalizarDinheiro(editValor),
           total_parcelas: Number(editTotalParcelas) || 0,
           parcela_atual: Number(editParcelaAtual) || 1,
           taxa_mensal_percentual: editTaxa !== '' ? Number(editTaxa) : 0,
@@ -3224,7 +3361,7 @@ export function ExpenseSettingsModal({
       } else {
         const payload: Partial<ContaFixaConfig> = {
           descricao: editDescricao,
-          valor_mensal: Number(editValor) || 0,
+          valor_mensal: normalizarDinheiro(editValor),
           categoria: editCategoria,
           total_parcelas: Number(editTotalParcelas) > 0 ? Number(editTotalParcelas) : null,
           parcela_atual: Number(editParcelaAtual) || 1,
@@ -3238,7 +3375,7 @@ export function ExpenseSettingsModal({
       }
       setInlineEdit(null);
     } catch (err) {
-      console.error('Erro ao salvar ajuste in-place:', err);
+      reportOperationFailure('inline_adjustment_save', err);
     } finally {
       setIsSaving(false);
     }
@@ -3690,6 +3827,14 @@ export function ExpenseSettingsModal({
                               {config.categoria}
                             </span>
                           )}
+                          {(config.status ?? 'ativo') !== 'ativo' && (
+                            <span
+                              className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0"
+                              style={{ backgroundColor: 'rgba(148, 163, 184, 0.12)', color: 'var(--muted-foreground)', borderRadius: '9999px' }}
+                            >
+                              {config.status === 'concluido' ? 'Concluída' : 'Encerrada'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3698,20 +3843,22 @@ export function ExpenseSettingsModal({
                       <button 
                         type="button"
                         onClick={() => handleStartEdit('conta_fixa', config)} 
+                        disabled={(config.status ?? 'ativo') !== 'ativo'}
                         className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer"
-                        title="Editar Configuração"
+                        title={(config.status ?? 'ativo') === 'ativo' ? 'Editar configuração' : 'Série encerrada'}
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
                         <i className="fa-solid fa-pen-to-square text-xs"></i>
                       </button>
                       <button 
                         type="button"
-                        onClick={() => onDeleteContaFixa(config.id)} 
+                        onClick={() => (onEndContaFixa ?? onDeleteContaFixa)?.(config.id)}
+                        disabled={(config.status ?? 'ativo') !== 'ativo'}
                         className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer"
-                        title="Excluir Configuração"
+                        title={(config.status ?? 'ativo') === 'ativo' ? 'Encerrar série' : 'Série encerrada'}
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
-                        <i className="fa-solid fa-trash-can text-xs"></i>
+                        <i className="fa-solid fa-circle-stop text-xs"></i>
                       </button>
                     </div>
                   </div>

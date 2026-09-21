@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { Despesa, Receita, Titular, CartaoConfig, ContaFixaConfig, Emprestimo } from '@/lib/types';
+import { normalizarDinheiro } from '@/lib/money';
+import { calcularTotaisFluxo } from '@/lib/finance-selectors';
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -83,7 +85,7 @@ export function DespesasReceitasView({
         status: d.status || 'Em aberto',
         isOverdue,
         isIncome: false,
-        amount: Number(d.valor || 0),
+        amount: normalizarDinheiro(d.valor),
         parcela: d.parcela_atual ? `${d.parcela_atual}/${d.parcela_total || 1}` : null,
         isVirtual: d.id < 0,
         sortDate
@@ -106,7 +108,7 @@ export function DespesasReceitasView({
         status: r.status || 'Recebido',
         isOverdue: false,
         isIncome: true,
-        amount: Number(r.valor || 0),
+        amount: normalizarDinheiro(r.valor),
         parcela: r.parcela_atual ? `${r.parcela_atual}/${r.parcela_total || 1}` : null,
         isVirtual: r.id < 0,
         sortDate
@@ -168,15 +170,10 @@ export function DespesasReceitasView({
   }, [allTransactions, typeFilter, memberFilter, statusFilter, searchTerm]);
 
   // Totals calculations
-  const totalReceitas = useMemo(() => {
-    return receitas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-  }, [receitas]);
-
-  const totalDespesas = useMemo(() => {
-    return despesas.reduce((sum, d) => sum + Number(d.valor || 0), 0);
-  }, [despesas]);
-
-  const saldoLiquido = totalReceitas - totalDespesas;
+  const { totalReceitas, totalDespesas, saldo: saldoLiquido } = useMemo(
+    () => calcularTotaisFluxo(receitas, despesas),
+    [receitas, despesas]
+  );
 
   return (
     <div className="space-y-3">

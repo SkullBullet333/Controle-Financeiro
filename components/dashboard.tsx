@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { normalizarDinheiro, somarDinheiro, subtrairDinheiro } from '@/lib/money';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -50,6 +51,8 @@ import { Despesa, Receita, Titular, CartaoConfig } from '@/lib/types';
 interface KPICardsProps {
   stats: {
     totalReceitas: number;
+    totalRecebido: number;
+    totalPendenteReceber: number;
     totalDespesas: number;
     totalPago: number;
     totalAberto: number;
@@ -115,7 +118,7 @@ export function KPICards({
 
         <div className="text-center py-1.5">
           <span className="text-[11px] font-bold text-muted uppercase tracking-wider block mb-0.5">
-            Saldo Disponível / Margem
+            Margem Prevista
           </span>
           <div
             className={cn('text-2xl font-black tracking-tight sensitive-val', stats.margem < 0 ? 'text-danger' : 'text-success', isHidden && 'hidden-amount')}
@@ -124,14 +127,14 @@ export function KPICards({
             {formatHidden(stats.margem)}
           </div>
           <span className={cn('badge-tag text-[10px] mt-1 inline-block', stats.margem < 0 ? 'badge-overdue' : 'badge-paid')}>
-            {marginPercentage}% de Margem Livre
+            {marginPercentage}% da receita prevista
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-2.5 mt-2 border-top border-border/40">
           <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
             <span className="text-[10px] font-bold text-muted d-flex align-items-center gap-1 mb-0.5">
-              <ArrowDown className="w-3 h-3 text-success" /> Entradas
+              <ArrowDown className="w-3 h-3 text-success" /> Entradas previstas
             </span>
             <span className={cn('text-xs font-black text-success block', isHidden && 'hidden-amount')}>
               {formatHidden(stats.totalReceitas)}
@@ -140,7 +143,7 @@ export function KPICards({
 
           <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
             <span className="text-[10px] font-bold text-muted d-flex align-items-center gap-1 mb-0.5">
-              <ArrowUp className="w-3 h-3 text-danger" /> Saídas
+              <ArrowUp className="w-3 h-3 text-danger" /> Saídas previstas
             </span>
             <span className={cn('text-xs font-black text-danger block', isHidden && 'hidden-amount')}>
               {formatHidden(stats.totalDespesas)}
@@ -158,7 +161,7 @@ export function KPICards({
 
           <div className="bg-muted/20 border border-border/40 rounded-2xl p-2">
             <span className="text-[10px] font-bold block mb-0.5" style={{ color: 'var(--purple, #8b5cf6)' }}>
-              Em Aberto ({pendingCount})
+              A pagar ({pendingCount})
             </span>
             <span className={cn('text-[11px] font-bold block', isHidden && 'hidden-amount')} style={{ color: 'var(--purple, #8b5cf6)' }}>
               {formatHidden(stats.totalAberto)}
@@ -173,7 +176,7 @@ export function KPICards({
         {/* Card 1: Receitas Totais */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Receitas Totais</span>
+            <span className="kpi-title">Receitas Previstas</span>
             <div className="kpi-icon-wrap" style={{ background: 'var(--success-glow, rgba(16, 185, 129, 0.2))', color: 'var(--success, #10b981)' }}>
               <Wallet className="w-4 h-4" />
             </div>
@@ -183,14 +186,14 @@ export function KPICards({
           </div>
           <div className="kpi-footer">
             <TrendingUp className="w-3.5 h-3.5 text-success" />
-            <span>Mês em andamento</span>
+            <span>Recebido: {formatHidden(stats.totalRecebido)}</span>
           </div>
         </div>
 
         {/* Card 2: Despesas Totais */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Despesas Totais</span>
+            <span className="kpi-title">Despesas Previstas</span>
             <div className="kpi-icon-wrap" style={{ background: 'var(--danger-glow, rgba(239, 68, 68, 0.2))', color: 'var(--danger, #ef4444)' }}>
               <Receipt className="w-4 h-4" />
             </div>
@@ -207,7 +210,7 @@ export function KPICards({
         {/* Card 3: Saldo Líquido */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Saldo Líquido</span>
+            <span className="kpi-title">Margem Prevista</span>
             <div 
               className="kpi-icon-wrap" 
               style={{ 
@@ -225,7 +228,7 @@ export function KPICards({
           </div>
           <div className="kpi-footer">
             <span className={cn('badge-tag', stats.margem < 0 ? 'badge-overdue' : 'badge-paid')}>
-              {marginPercentage}% de Margem
+              {marginPercentage}% da receita prevista
             </span>
           </div>
         </div>
@@ -233,7 +236,7 @@ export function KPICards({
         {/* Card 4: Total em Aberto */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Total em Aberto</span>
+            <span className="kpi-title">A Pagar</span>
             <div className="kpi-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.2)', color: 'var(--purple, #8b5cf6)' }}>
               <Clock className="w-4 h-4" />
             </div>
@@ -243,7 +246,7 @@ export function KPICards({
           </div>
           <div className="kpi-footer">
             <span className="badge-tag badge-pending">
-              {pendingCount > 0 ? `${pendingCount} pendentes` : 'Em aberto'}
+              {pendingCount > 0 ? `${pendingCount} pendentes` : 'Nada pendente'}
             </span>
           </div>
         </div>
@@ -277,22 +280,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
   const chartData = useMemo(() => {
     let rawList: any[] = [];
 
-    if (!projecaoSemestral || projecaoSemestral.length === 0) {
-      rawList = [
-        { monthName: 'Jan', receitas: 18000, despesas: 12000, ano: currentYear },
-        { monthName: 'Fev', receitas: 19500, despesas: 11000, ano: currentYear },
-        { monthName: 'Mar', receitas: 18000, despesas: 13500, ano: currentYear },
-        { monthName: 'Abr', receitas: 21000, despesas: 10000, ano: currentYear },
-        { monthName: 'Mai', receitas: 20500, despesas: 14000, ano: currentYear },
-        { monthName: 'Jun', receitas: 22000, despesas: 9000, ano: currentYear },
-        { monthName: 'Jul', receitas: 22400, despesas: 7810, ano: currentYear },
-        { monthName: 'Ago', receitas: 21500, despesas: 8400, ano: currentYear },
-        { monthName: 'Set', receitas: 23000, despesas: 9200, ano: currentYear },
-        { monthName: 'Out', receitas: 22800, despesas: 8900, ano: currentYear },
-        { monthName: 'Nov', receitas: 24500, despesas: 11200, ano: currentYear },
-        { monthName: 'Dez', receitas: 28000, despesas: 14500, ano: currentYear }
-      ];
-    } else {
+    if (projecaoSemestral && projecaoSemestral.length > 0) {
       rawList = projecaoSemestral.map((item) => {
         let label = item.competencia;
         let anoItem = currentYear;
@@ -400,7 +388,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
       const data = payload[0]?.payload || {};
       const receitas = typeof data.receitas === 'number' ? data.receitas : (payload.find((p: any) => p.dataKey === 'receitas')?.value || 0);
       const despesas = typeof data.despesas === 'number' ? data.despesas : (payload.find((p: any) => p.dataKey === 'despesas')?.value || 0);
-      const saldoLiquido = receitas - despesas;
+      const saldoLiquido = subtrairDinheiro(receitas, despesas);
       const anoItem = data.ano || currentYear;
 
       return (
@@ -449,7 +437,7 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
                   backgroundColor: saldoLiquido >= 0 ? '#10b981' : '#ef4444'
                 }}
               />
-              <span className="text-foreground font-semibold">Saldo Líquido:</span>
+              <span className="text-foreground font-semibold">Saldo previsto:</span>
             </div>
             <span
               className="font-bold"
@@ -480,7 +468,14 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
       </div>
 
       <div className="chart-container chart-height-dashboard w-100">
-        <ResponsiveContainer width="100%" height="100%">
+        {chartData.length === 0 ? (
+          <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center px-4">
+            <ChartLineIcon className="w-8 h-8 text-muted mb-2" />
+            <span className="text-sm font-semibold text-foreground">Ainda não há dados para este gráfico</span>
+            <span className="text-xs text-muted mt-1">Cadastre lançamentos para acompanhar a evolução mensal.</span>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
             margin={{ top: 8, right: 12, left: 6, bottom: 12 }}
@@ -530,7 +525,8 @@ export function EvolucaoMensalChart({ projecaoSemestral = [], isHidden = false }
               fill="url(#despGradCompleto)"
             />
           </AreaChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
@@ -589,10 +585,10 @@ export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasC
         cat = 'Outros';
       }
 
-      const val = Number(d.valor || 0);
+      const val = normalizarDinheiro(d.valor);
       if (val > 0) {
-        map[cat] = (map[cat] || 0) + val;
-        total += val;
+        map[cat] = somarDinheiro([map[cat], val]);
+        total = somarDinheiro([total, val]);
       }
     });
 
@@ -724,37 +720,27 @@ const PRESET_CARDS_CONFIG = [
   {
     name: 'Sicoob Clássico',
     color: '#00AE9A',
-    gradientClass: 'card-sicoob-classico',
-    last4: '7376',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-sicoob-classico'
   },
   {
     name: 'Sicoob Platinum',
     color: '#00353E',
-    gradientClass: 'card-sicoob-platinum',
-    last4: '7262',
-    defaultHolder: 'Mariana Rocha'
+    gradientClass: 'card-sicoob-platinum'
   },
   {
     name: 'Mercado Pago',
     color: '#222A37',
-    gradientClass: 'card-mercado-pago',
-    last4: '4904',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-mercado-pago'
   },
   {
     name: 'Inter',
     color: '#FF5100',
-    gradientClass: 'card-inter',
-    last4: '1234',
-    defaultHolder: 'Mariana Rocha'
+    gradientClass: 'card-inter'
   },
   {
     name: 'Nubank',
     color: '#6834AE',
-    gradientClass: 'card-nubank',
-    last4: '4321',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-nubank'
   }
 ];
 
@@ -767,16 +753,7 @@ export function CreditCardsWidget({
 }: CreditCardsWidgetProps) {
   const cardsList = useMemo(() => {
     if (!cartoes || cartoes.length === 0) {
-      return PRESET_CARDS_CONFIG.map((preset, idx) => ({
-        id: idx + 1,
-        brand: preset.name,
-        holder: preset.defaultHolder,
-        number: `•••• •••• •••• ${preset.last4}`,
-        fatura: 0,
-        gradientClass: preset.gradientClass,
-        color: preset.color,
-        icone: undefined
-      }));
+      return [];
     }
 
     return cartoes.map((card) => {
@@ -786,19 +763,19 @@ export function CreditCardsWidget({
         return normCard.includes(normPreset) || normPreset.includes(normCard);
       });
 
-      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || matchedPreset?.defaultHolder || 'Titular';
-      const finalDigits = card.final || matchedPreset?.last4 || '0000';
+      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || 'Titular';
+      const finalDigits = card.final || '••••';
       const cardColor = card.color || matchedPreset?.color || '#00AE9A';
       const cardGradientClass = !card.color && matchedPreset?.gradientClass ? matchedPreset.gradientClass : '';
 
       // Calculate invoice from despesas
-      const cardFatura = despesas
+      const cardFatura = somarDinheiro(despesas
         .filter((d) => {
           if (d.cartao_vencimento_id === card.id) return true;
           const desc = (d.descricao || '').toLowerCase();
           return desc.includes(normCard) || (card.final && desc.includes(card.final));
         })
-        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
+        .map(d => d.valor));
 
       return {
         id: card.id,
@@ -833,7 +810,13 @@ export function CreditCardsWidget({
       </div>
 
       <div className="card-slider">
-        {cardsList.map((c) => (
+        {cardsList.length === 0 ? (
+          <button type="button" className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center bg-transparent" onClick={onViewAllCards}>
+            <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
+            <span className="d-block text-sm font-semibold text-foreground">Nenhum cartão cadastrado</span>
+            <span className="d-block text-xs text-muted mt-1">Cadastre um cartão para acompanhar faturas e limites.</span>
+          </button>
+        ) : cardsList.map((c) => (
           <div
             key={c.id}
             className={cn('credit-card-ui cursor-pointer transition-all duration-300', c.gradientClass)}
@@ -1148,7 +1131,7 @@ export function PaymentStatusChart({ stats }: { stats: { totalReceitas: number; 
             <Pie
               data={[
                 { name: 'Pago', value: stats.totalPago },
-                { name: 'Em Aberto', value: stats.totalAberto }
+                { name: 'A pagar', value: stats.totalAberto }
               ]}
               cx="50%"
               cy="50%"
@@ -1183,6 +1166,8 @@ export function PaymentStatusChart({ stats }: { stats: { totalReceitas: number; 
 export interface DashboardViewProps {
   stats: {
     totalReceitas: number;
+    totalRecebido: number;
+    totalPendenteReceber: number;
     totalDespesas: number;
     totalPago: number;
     totalAberto: number;

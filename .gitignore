@@ -1,7 +1,14 @@
 node_modules/
 .next/
+.next-local/
+.next-staging/
 coverage/
 .DS_Store
 *.log
 .env*
 !.env.example
+!.env.staging.example
+
+# Backups locais do Supabase podem conter dados financeiros e pessoais.
+.BaseCSV/
+.BaseSQL/

@@ -8,11 +8,11 @@ import { CardLogo } from './card-ui';
 import { getCardLogo } from '@/lib/finance-service';
 
 const PRESET_CARDS_STYLE = [
-  { name: 'Sicoob Clássico', color: '#00AE9A', last4: '7376', defaultHolder: 'Rodrigo Rocha' },
-  { name: 'Sicoob Platinum', color: '#00353E', last4: '7262', defaultHolder: 'Mariana Rocha' },
-  { name: 'Mercado Pago', color: '#222A37', last4: '4904', defaultHolder: 'Rodrigo Rocha' },
-  { name: 'Inter', color: '#FF5100', last4: '1234', defaultHolder: 'Mariana Rocha' },
-  { name: 'Nubank', color: '#6834AE', last4: '4321', defaultHolder: 'Rodrigo Rocha' }
+  { name: 'Sicoob Clássico', color: '#00AE9A' },
+  { name: 'Sicoob Platinum', color: '#00353E' },
+  { name: 'Mercado Pago', color: '#222A37' },
+  { name: 'Inter', color: '#FF5100' },
+  { name: 'Nubank', color: '#6834AE' }
 ];
 
 interface SettingsViewProps {
@@ -30,11 +30,11 @@ interface SettingsViewProps {
   cartoes: CartaoConfig[];
   despesas?: Despesa[];
   contasFixas?: ContaFixaConfig[];
-  onAddTitular: (t: Omit<Titular, 'id'>) => void;
-  onUpdateTitular: (id: number, t: Partial<Titular>) => void;
+  onAddTitular: (t: Omit<Titular, 'id'>) => Promise<void> | void;
+  onUpdateTitular: (id: number, t: Partial<Titular>) => Promise<void> | void;
   onDeleteTitular: (id: number) => void;
-  onAddCartao: (c: Omit<CartaoConfig, 'id'>) => void;
-  onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => void;
+  onAddCartao: (c: Omit<CartaoConfig, 'id'>) => Promise<void> | void;
+  onUpdateCartao: (id: number, c: Partial<CartaoConfig>) => Promise<void> | void;
   onDeleteCartao: (id: number) => void;
   onRenameCategory?: (oldCat: string, newCat: string) => Promise<any> | void;
   onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
@@ -58,6 +58,7 @@ export function SettingsView({
   setThemeColor,
   familyMembers = [],
   onInvite,
+  userType,
   titulares = [],
   cartoes = [],
   despesas = [],
@@ -77,6 +78,7 @@ export function SettingsView({
   avisosConfig = { vencidas: true, hoje: true, radar: false },
   onUpdateAvisosConfig
 }: SettingsViewProps) {
+  const canManageSharedSettings = userType === 'titular';
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState(false);
 
@@ -96,6 +98,7 @@ export function SettingsView({
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [renamingCategory, setRenamingCategory] = useState<{ oldName: string; newName: string } | null>(null);
   const [isRenamingSaving, setIsRenamingSaving] = useState(false);
+  const [categoryOperationError, setCategoryOperationError] = useState<string | null>(null);
 
   // Category stats calculation
   const categoryStats = useMemo(() => {
@@ -193,13 +196,14 @@ export function SettingsView({
     e.preventDefault();
     if (!renamingCategory || !renamingCategory.newName.trim()) return;
     setIsRenamingSaving(true);
+    setCategoryOperationError(null);
     try {
       if (onRenameCategory) {
         await onRenameCategory(renamingCategory.oldName, renamingCategory.newName.trim());
       }
       setRenamingCategory(null);
-    } catch (err) {
-      console.error('Erro ao renomear categoria:', err);
+    } catch {
+      setCategoryOperationError('Não foi possível concluir a alteração. Confira os dados exibidos e tente novamente.');
     } finally {
       setIsRenamingSaving(false);
     }
@@ -664,24 +668,28 @@ export function SettingsView({
                     Pessoas responsáveis por despesas, faturas e contas
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingTitular(null);
-                    setIsTitularModalOpen(true);
-                  }}
-                  className="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 text-xs font-bold d-flex align-items-center gap-1.5"
-                >
-                  <i className="fa-solid fa-plus text-xs"></i>
-                  <span>Novo Titular</span>
-                </button>
+                {canManageSharedSettings && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingTitular(null);
+                      setIsTitularModalOpen(true);
+                    }}
+                    className="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 text-xs font-bold d-flex align-items-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-plus text-xs"></i>
+                    <span>Novo Titular</span>
+                  </button>
+                )}
               </div>
 
               {/* Titulares em Grid Multicolunas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
                 {titulares.length === 0 ? (
                   <div className="col-span-full text-center py-8 text-muted text-xs italic bg-[var(--card-hover)] rounded-2xl border border-border">
-                    Nenhum titular cadastrado ainda. Clique em &quot;Novo Titular&quot; para adicionar.
+                    {canManageSharedSettings
+                      ? 'Nenhum titular cadastrado ainda. Clique em "Novo Titular" para adicionar.'
+                      : 'Nenhum titular cadastrado nesta família.'}
                   </div>
                 ) : (
                   titulares.map((t) => (
@@ -703,7 +711,8 @@ export function SettingsView({
                         <span className="text-xs font-bold text-foreground truncate">{t.nome}</span>
                       </div>
 
-                      <div className="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
+                      {canManageSharedSettings && (
+                        <div className="d-flex align-items-center gap-1 flex-shrink-0 ms-2">
                         <button
                           type="button"
                           className="btn btn-sm btn-link p-1.5 text-muted hover:text-foreground"
@@ -718,16 +727,13 @@ export function SettingsView({
                         <button
                           type="button"
                           className="btn btn-sm btn-link p-1.5 text-muted hover:text-danger"
-                          onClick={() => {
-                            if (confirm(`Deseja realmente excluir o titular "${t.nome}"?`)) {
-                              onDeleteTitular(t.id);
-                            }
-                          }}
+                          onClick={() => onDeleteTitular(t.id)}
                           title="Excluir Titular"
                         >
                           <i className="fa-solid fa-trash text-xs"></i>
                         </button>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -753,24 +759,28 @@ export function SettingsView({
                     Configure os dias de fechamento e vencimento de cada cartão cadastrado
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingCartao(null);
-                    setIsCartaoModalOpen(true);
-                  }}
-                  className="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 text-xs font-bold d-flex align-items-center gap-1.5"
-                >
-                  <i className="fa-solid fa-plus text-xs"></i>
-                  <span>Novo Cartão</span>
-                </button>
+                {canManageSharedSettings && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCartao(null);
+                      setIsCartaoModalOpen(true);
+                    }}
+                    className="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 text-xs font-bold d-flex align-items-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-plus text-xs"></i>
+                    <span>Novo Cartão</span>
+                  </button>
+                )}
               </div>
 
               {/* Grade de Cartões Idênticos à Aba de Cartões */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {cartoes.length === 0 ? (
                   <div className="col-span-full text-center py-10 text-muted text-xs italic bg-[var(--card-hover)] rounded-2xl border border-border">
-                    Nenhum cartão de crédito cadastrado ainda. Clique em &quot;Novo Cartão&quot; para adicionar.
+                    {canManageSharedSettings
+                      ? 'Nenhum cartão de crédito cadastrado ainda. Clique em "Novo Cartão" para adicionar.'
+                      : 'Nenhum cartão de crédito cadastrado nesta família.'}
                   </div>
                 ) : (
                   cartoes.map((c) => {
@@ -779,8 +789,8 @@ export function SettingsView({
                       const normPreset = p.name.toLowerCase();
                       return normCard.includes(normPreset) || normPreset.includes(normCard);
                     });
-                    const titularNome = (c.titular_id ? titulares.find((t) => t.id === c.titular_id)?.nome : null) || matchedPreset?.defaultHolder || user?.nome || 'Titular';
-                    const finalDigits = c.final || matchedPreset?.last4 || '••••';
+                    const titularNome = (c.titular_id ? titulares.find((t) => t.id === c.titular_id)?.nome : null) || user?.nome || 'Titular';
+                    const finalDigits = c.final || '••••';
                     const cardColor = c.color || matchedPreset?.color || '#00AE9A';
                     const cardBg = cardColor.startsWith('linear') ? cardColor : `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}cc 100%)`;
                     const cardIcon = c.icone || getCardLogo(c.nome_cartao);
@@ -792,7 +802,8 @@ export function SettingsView({
                           <span className="text-xs font-bold text-foreground truncate">
                             {c.nome_cartao}
                           </span>
-                          <div className="d-flex align-items-center gap-1">
+                          {canManageSharedSettings && (
+                            <div className="d-flex align-items-center gap-1">
                             <button
                               type="button"
                               className="btn btn-sm btn-link p-1 text-muted hover:text-primary transition-colors"
@@ -807,29 +818,26 @@ export function SettingsView({
                             <button
                               type="button"
                               className="btn btn-sm btn-link p-1 text-muted hover:text-danger transition-colors"
-                              onClick={() => {
-                                if (confirm(`Deseja realmente excluir o cartão "${c.nome_cartao}"?`)) {
-                                  onDeleteCartao(c.id);
-                                }
-                              }}
+                              onClick={() => onDeleteCartao(c.id)}
                               title="Excluir Cartão"
                             >
                               <i className="fa-solid fa-trash text-xs"></i>
                             </button>
-                          </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Cartão com o Layout e Cores da Aba Meus Cartões & Faturas */}
                         <div
-                          className="credit-card-ui cursor-pointer transition-all duration-300 shadow-md hover:scale-[1.02]"
+                          className={`credit-card-ui transition-all duration-300 shadow-md${canManageSharedSettings ? ' cursor-pointer hover:scale-[1.02]' : ''}`}
                           style={{
                             background: cardBg
                           }}
-                          onClick={() => {
+                          onClick={canManageSharedSettings ? () => {
                             setEditingCartao(c);
                             setIsCartaoModalOpen(true);
-                          }}
-                          title={`Clique para editar ${c.nome_cartao}`}
+                          } : undefined}
+                          title={canManageSharedSettings ? `Clique para editar ${c.nome_cartao}` : undefined}
                         >
                           <div className="cc-top">
                             <div className="cc-chip"></div>
@@ -903,6 +911,10 @@ export function SettingsView({
                 )}
               </div>
 
+              {categoryOperationError && (
+                <div className="alert alert-danger text-xs" role="alert">{categoryOperationError}</div>
+              )}
+
               {/* Subview: Detalhes da Categoria Selecionada (Descrições em Lote) */}
               {selectedCategoryForDetails ? (
                 <div className="space-y-4 animate-in fade-in duration-200">
@@ -952,7 +964,12 @@ export function SettingsView({
                               onChange={async (e) => {
                                 const newCat = e.target.value;
                                 if (onUpdateCategoryByDescription) {
-                                  await onUpdateCategoryByDescription(item.desc, newCat);
+                                  setCategoryOperationError(null);
+                                  try {
+                                    await onUpdateCategoryByDescription(item.desc, newCat);
+                                  } catch {
+                                    setCategoryOperationError('Não foi possível concluir a reclassificação. Confira os dados exibidos e tente novamente.');
+                                  }
                                 }
                               }}
                               className="bg-card border border-border text-foreground text-xs font-semibold py-1 px-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
@@ -1206,6 +1223,10 @@ export function SettingsView({
               </span>
             </div>
 
+            {categoryOperationError && (
+              <div className="alert alert-danger text-xs" role="alert">{categoryOperationError}</div>
+            )}
+
             <div className="d-flex align-items-center justify-content-end gap-2.5 pt-3 border-t border-border">
               <button
                 type="button"
@@ -1241,11 +1262,11 @@ export function SettingsView({
             setIsTitularModalOpen(false);
             setEditingTitular(null);
           }}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (editingTitular) {
-              onUpdateTitular(editingTitular.id, data);
+              await onUpdateTitular(editingTitular.id, data);
             } else {
-              onAddTitular(data);
+              await onAddTitular(data);
             }
             setIsTitularModalOpen(false);
             setEditingTitular(null);
@@ -1270,11 +1291,11 @@ export function SettingsView({
             setIsCartaoModalOpen(false);
             setEditingCartao(null);
           }}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (editingCartao) {
-              onUpdateCartao(editingCartao.id, data);
+              await onUpdateCartao(editingCartao.id, data);
             } else {
-              onAddCartao(data);
+              await onAddCartao(data);
             }
             setIsCartaoModalOpen(false);
             setEditingCartao(null);

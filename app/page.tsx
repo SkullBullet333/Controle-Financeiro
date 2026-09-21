@@ -1,17 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Sidebar, Topbar, MobileNav } from '@/components/layout';
 import Image from 'next/image';
-import { DashboardView, KPICards, ExtratoTable, TitularChart, PaymentStatusChart } from '@/components/dashboard';
+import { DashboardView } from '@/components/dashboard';
 
-import { FinanceTable, FilterBar, SummaryCards } from '@/components/finance-views';
-import { DespesasReceitasView } from '@/components/despesas-receitas-view';
-import { CartoesView } from '@/components/cards-view';
-import { RadarFinanceiroView } from '@/components/radar-view';
-import { AnalysisPlan } from '@/components/analysis-view';
 import { Modal, ConfirmModal, FinanceForm, TitularForm, CartaoForm, MonthYearModal, ProfileForm, EmprestimoForm, PayoffModal, ExpenseSettingsModal, UniversalFinanceForm } from '@/components/modals';
-import { SettingsView } from '@/components/settings-view';
 import { useFinance } from '@/hooks/use-finance';
 import { Vault, LogIn, Loader2, Plus, Trash2, UserCircle, CreditCard as CardIcon, Settings as SettingsIcon, Lightbulb, Users, Mail, Send } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -20,6 +15,27 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths, addMonths } from 'date-fns';
 import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
 import { motion, AnimatePresence } from 'motion/react';
+
+function ViewLoading() {
+  return <div role="status" className="card-panel p-4 text-muted">Carregando tela...</div>;
+}
+
+const DespesasReceitasView = dynamic(
+  () => import('@/components/despesas-receitas-view').then(module => module.DespesasReceitasView),
+  { loading: ViewLoading }
+);
+const CartoesView = dynamic(
+  () => import('@/components/cards-view').then(module => module.CartoesView),
+  { loading: ViewLoading }
+);
+const RadarFinanceiroView = dynamic(
+  () => import('@/components/radar-view').then(module => module.RadarFinanceiroView),
+  { loading: ViewLoading }
+);
+const SettingsView = dynamic(
+  () => import('@/components/settings-view').then(module => module.SettingsView),
+  { loading: ViewLoading }
+);
 
 function LoadingScreen({ themeColor }: { themeColor: string }) {
   return (
@@ -131,7 +147,12 @@ export default function Home() {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [selectedFixed, setSelectedFixed] = useState<any>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number, type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'emprestimo' | 'conta_fixa' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{
+    id: number;
+    type: 'despesa' | 'receita' | 'cartao_transacao' | 'titular' | 'cartao' | 'emprestimo' | 'conta_fixa';
+    contaFixaId?: number;
+    occurrence?: number;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
   const [selectedRadarIds, setSelectedRadarIds] = useState<number[]>([]);
@@ -261,9 +282,11 @@ export default function Home() {
     updateEmprestimo,
     deleteEmprestimo,
     contasFixas,
+    contasFixasExcecoes,
     addContaFixa,
     updateContaFixa,
-    deleteContaFixa,
+    endContaFixa,
+    endContaFixaFromOccurrence,
     quitarParcelas,
     alertas,
     lembretes,
@@ -275,6 +298,28 @@ export default function Home() {
     renameCategory,
     updateCategoryByDescription
   } = useFinance(activeView);
+
+  const openFinancialDeletion = (
+    id: number,
+    type: 'despesa' | 'receita' | 'cartao_transacao'
+  ) => {
+    const item = type === 'despesa'
+      ? despesasGerais.find(entry => entry.id === id)
+      : type === 'receita'
+        ? consolidatedReceitas.find(entry => entry.id === id)
+        : allProjectedCartaoTransacoes.find(entry => entry.id === id);
+    const contaFixaId = Number(item?.conta_fixa_id || 0);
+    const occurrence = type === 'cartao_transacao'
+      ? Number((item as CartaoTransacao | undefined)?.conta_fixa_parcela || 0)
+      : Number((item as Despesa | Receita | undefined)?.conta_fixa_ocorrencia || item?.parcela_atual || 0);
+
+    setItemToDelete({
+      id,
+      type,
+      ...(contaFixaId > 0 && occurrence > 0 ? { contaFixaId, occurrence } : {})
+    });
+    setIsConfirmDeleteOpen(true);
+  };
 
 
   React.useEffect(() => {
@@ -488,14 +533,17 @@ export default function Home() {
               setIsModalOpen(true);
             }}
             onDelete={(id, type) => {
-              setItemToDelete({ id, type });
-              setIsConfirmDeleteOpen(true);
+              openFinancialDeletion(id, type);
             }}
-            onToggleStatus={(id, type, currentVal) => {
-              if (type === 'despesa') {
-                updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
-              } else {
-                updateReceita(id, { status: currentVal === 'Recebido' ? 'Pendente' : 'Recebido' });
+            onToggleStatus={async (id, type, currentVal) => {
+              try {
+                if (type === 'despesa') {
+                  await updateDespesa(id, { status: currentVal === 'Pago' ? 'Em aberto' : 'Pago' });
+                } else {
+                  await updateReceita(id, { status: currentVal === 'Recebido' ? 'Pendente' : 'Recebido' });
+                }
+              } catch {
+                alert('Não foi possível atualizar o status. Tente novamente.');
               }
             }}
             onEdit={(item) => {
@@ -535,6 +583,7 @@ export default function Home() {
             cartoes={config.cartoes}
             titulares={config.titulares}
             transacoes={filteredCartaoTransacoes}
+            allTransacoes={allProjectedCartaoTransacoes}
             despesas={despesasGerais}
             totalsByCard={totalsByCard}
             competencia={competencia}
@@ -557,8 +606,7 @@ export default function Home() {
               setIsModalOpen(true);
             }}
             onDelete={(id) => {
-              setItemToDelete({ id, type: 'cartao_transacao' });
-              setIsConfirmDeleteOpen(true);
+              openFinancialDeletion(id, 'cartao_transacao');
             }}
           />
         );
@@ -572,6 +620,7 @@ export default function Home() {
             titulares={config.titulares}
             emprestimos={emprestimos}
             contasFixas={contasFixas}
+            contasFixasExcecoes={contasFixasExcecoes}
             allProjectedCartaoTransacoes={allProjectedCartaoTransacoes}
             currentMonth={currentMonth}
             currentYear={currentYear}
@@ -795,8 +844,8 @@ export default function Home() {
               {modalType === 'profile' ? (
                 <ProfileForm 
                   initialData={userProfile}
-                  onSubmit={(data) => {
-                    updateProfile(data);
+                  onSubmit={async (data) => {
+                    await updateProfile(data);
                     setIsModalOpen(false);
                   }}
                 />
@@ -813,15 +862,36 @@ export default function Home() {
                     setIsModalOpen(false);
                     setEditingItem(null);
                   }}
-                  onSubmitFinance={(data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => {
+                  onSubmitFinance={async (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => {
                     if (editingItem) {
                       if ((editingItem as any).taxa_mensal_percentual !== undefined) {
-                          updateEmprestimo(data as any);
-                      } else if (modalType === 'despesa' || (editingItem as any).vencimento) updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
-                      else updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
+                        await updateEmprestimo(data as any);
+                      } else if (modalType === 'despesa_cartao' || (editingItem as any).estabelecimento) {
+                        const cardData = data as Omit<Despesa, 'id'>;
+                        await updateCartaoTransacao(editingItem.id, {
+                          estabelecimento: cardData.descricao,
+                          valor: cardData.valor,
+                          categoria: cardData.categoria,
+                          titular_id: cardData.titular_id,
+                          data_compra: cardData.vencimento,
+                          competencia: cardData.competencia,
+                          cartao_id: cardData.cartao_vencimento_id,
+                          parcela_atual: cardData.parcela_atual,
+                          parcela_total: cardData.parcela_total,
+                          conta_fixa_id: (editingItem as CartaoTransacao).conta_fixa_id,
+                          conta_fixa_parcela: (editingItem as CartaoTransacao).conta_fixa_parcela,
+                        });
+                      } else if (modalType === 'despesa' || (editingItem as any).vencimento) {
+                        await updateDespesa(editingItem.id, data as Omit<Despesa, 'id'>);
+                      } else {
+                        await updateReceita(editingItem.id, data as Omit<Receita, 'id'>);
+                      }
                     } else {
-                      if ((data as any).data_recebimento) addReceita(data as Omit<Receita, 'id'>);
-                      else addDespesa(data as Omit<Despesa, 'id'>);
+                      if ((data as any).data_recebimento) {
+                        await addReceita(data as Omit<Receita, 'id'>);
+                      } else {
+                        await addDespesa(data as Omit<Despesa, 'id'>);
+                      }
                     }
                     setIsModalOpen(false);
                     setEditingItem(null);
@@ -835,9 +905,9 @@ export default function Home() {
                     setIsModalOpen(false);
                     setEditingItem(null);
                   }}
-                  onSubmitEmprestimo={(data: Partial<Emprestimo>) => {
-                    if (editingItem) updateEmprestimo(data);
-                    else addEmprestimo(data);
+                  onSubmitEmprestimo={async (data: Partial<Emprestimo>) => {
+                    if (editingItem) await updateEmprestimo(data);
+                    else await addEmprestimo(data);
                     setIsModalOpen(false);
                     setEditingItem(null);
                   }}
@@ -846,9 +916,9 @@ export default function Home() {
                 <TitularForm
                   key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
                   initialData={editingItem as Titular}
-                  onSubmit={(data) => {
-                    if (editingItem) updateTitular(editingItem.id, data);
-                    else addTitular(data);
+                  onSubmit={async (data) => {
+                    if (editingItem) await updateTitular(editingItem.id, data);
+                    else await addTitular(data);
                     setIsModalOpen(false);
                     setEditingItem(null);
                   }}
@@ -858,9 +928,9 @@ export default function Home() {
                   key={editingItem ? `edit-${(editingItem as any).id}` : 'new'}
                   initialData={editingItem as CartaoConfig}
                   titulares={config.titulares}
-                  onSubmit={(data) => {
-                    if (editingItem) updateCartao(editingItem.id, data);
-                    else addCartao(data);
+                  onSubmit={async (data) => {
+                    if (editingItem) await updateCartao(editingItem.id, data);
+                    else await addCartao(data);
                     setIsModalOpen(false);
                     setEditingItem(null);
                   }}
@@ -901,24 +971,49 @@ export default function Home() {
                 setIsConfirmDeleteOpen(false);
                 setItemToDelete(null);
               }}
-              onConfirm={() => {
+              onConfirm={async () => {
                 if (!itemToDelete) return;
                 const { id, type } = itemToDelete;
-                // Fecha o modal na hora (0ms) e executa a exclusão otimista instantaneamente
+
+                if (type === 'despesa') await deleteDespesa(id);
+                else if (type === 'receita') await deleteReceita(id);
+                else if (type === 'cartao_transacao') await deleteCartaoTransacao(id);
+                else if (type === 'titular') await deleteTitular(id);
+                else if (type === 'cartao') await deleteCartao(id);
+                else if (type === 'emprestimo') await deleteEmprestimo(id);
+                else if (type === 'conta_fixa') await endContaFixa(id);
+
                 setIsConfirmDeleteOpen(false);
                 setItemToDelete(null);
-
-                if (type === 'despesa') deleteDespesa(id);
-                else if (type === 'receita') deleteReceita(id);
-                else if (type === 'cartao_transacao') deleteCartaoTransacao(id);
-                else if (type === 'titular') deleteTitular(id);
-                else if (type === 'cartao') deleteCartao(id);
-                else if (type === 'emprestimo') deleteEmprestimo(id);
-                else if (type === 'conta_fixa') deleteContaFixa(id);
               }}
-              title="Confirmar Exclusão"
-              message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
-              confirmLabel="Excluir"
+              onSecondaryConfirm={itemToDelete?.contaFixaId && itemToDelete.occurrence
+                ? async () => {
+                    await endContaFixaFromOccurrence(itemToDelete.contaFixaId!, itemToDelete.occurrence!);
+                    setIsConfirmDeleteOpen(false);
+                    setItemToDelete(null);
+                  }
+                : undefined}
+              secondaryLabel={itemToDelete?.contaFixaId ? 'Encerrar daqui em diante' : undefined}
+              title={itemToDelete?.contaFixaId ? 'Gerenciar ocorrência recorrente' : 'Confirmar Exclusão'}
+              message={itemToDelete?.contaFixaId
+                ? 'Você pode ignorar somente esta ocorrência ou encerrar a série a partir dela. Os lançamentos já registrados permanecerão preservados para auditoria.'
+                : itemToDelete?.type === 'titular' || itemToDelete?.type === 'cartao'
+                ? 'O cadastro só será excluído se não possuir histórico financeiro vinculado. Deseja continuar?'
+                : itemToDelete?.type === 'conta_fixa'
+                  ? 'Deseja encerrar esta série? Novas ocorrências deixarão de ser projetadas, mas todo o histórico será preservado.'
+                  : 'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.'}
+              failureMessage={itemToDelete?.type === 'titular'
+                ? 'Este titular está em uso e foi mantido para preservar o histórico financeiro.'
+                : itemToDelete?.type === 'cartao'
+                  ? 'Este cartão está em uso e foi mantido para preservar o histórico financeiro.'
+                  : itemToDelete?.contaFixaId
+                    ? 'Nenhum lançamento foi apagado e a série permaneceu inalterada.'
+                    : itemToDelete?.type === 'conta_fixa'
+                      ? 'A série foi mantida ativa porque não foi possível concluir o encerramento seguro.'
+                  : undefined}
+              confirmLabel={itemToDelete?.contaFixaId
+                ? 'Ignorar ocorrência'
+                : itemToDelete?.type === 'conta_fixa' ? 'Encerrar série' : 'Excluir'}
             />
           </div>
 
@@ -957,7 +1052,7 @@ export default function Home() {
             setItemToDelete({ id, type: 'emprestimo' });
             setIsConfirmDeleteOpen(true);
           }}
-          onDeleteContaFixa={(id) => {
+          onEndContaFixa={(id) => {
             setItemToDelete({ id, type: 'conta_fixa' });
             setIsConfirmDeleteOpen(true);
           }}

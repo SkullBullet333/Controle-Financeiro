@@ -2,8 +2,11 @@
 
 import React, { useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
-import { Titular, CartaoConfig, Despesa, Receita, Emprestimo, ContaFixaConfig, CartaoTransacao } from '@/lib/types';
-import { calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaReceita } from '@/lib/finance-service';
+import { Titular, CartaoConfig, Despesa, Receita, Emprestimo, ContaFixaConfig, CartaoTransacao, ContaFixaExcecao } from '@/lib/types';
+import { calculatePresentValue, projetarProximoVencimento } from '@/lib/finance-service';
+import { normalizarDinheiro, somarDinheiro, subtrairDinheiro } from '@/lib/money';
+import { projetarFluxoCaixa } from '@/lib/cashflow-projection';
+import { calcularScoreOrcamentario } from '@/lib/finance-selectors';
 import {
   Wand2,
   ShieldCheck,
@@ -35,6 +38,7 @@ interface RadarFinanceiroViewProps {
   titulares: Titular[];
   emprestimos: Emprestimo[];
   contasFixas: ContaFixaConfig[];
+  contasFixasExcecoes?: ContaFixaExcecao[];
   allProjectedCartaoTransacoes: CartaoTransacao[];
   currentMonth: number;
   currentYear: number;
@@ -51,6 +55,7 @@ export function RadarFinanceiroView({
   titulares = [],
   emprestimos = [],
   contasFixas = [],
+  contasFixasExcecoes = [],
   allProjectedCartaoTransacoes = [],
   currentMonth = new Date().getMonth() + 1,
   currentYear = new Date().getFullYear(),
@@ -69,7 +74,6 @@ export function RadarFinanceiroView({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  const competenciaAtual = `${String(currentMonth).padStart(2, '0')}/${currentYear}`;
   const currentCompSortable = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -156,17 +160,17 @@ export function RadarFinanceiroView({
         const dataFim = lastInst?.vencimento && lastInst.vencimento !== '-' ? formatDate(lastInst.vencimento) : 'Final';
 
         // Sum of all remaining open parcels
-        const totalNominal = openInsts.reduce((sum, d) => sum + Number(d.valor || 0), 0);
+        const totalNominal = somarDinheiro(openInsts.map(d => d.valor));
 
         // Sum of VP for all remaining open parcels
-        const totalVP = openInsts.reduce((sum, d) => {
+        const totalVP = somarDinheiro(openInsts.map(d => {
           const { vp } = (taxa > 0 && d.vencimento && d.vencimento !== '-')
-            ? calculatePresentValue(Number(d.valor || 0), taxa, d.vencimento, new Date())
-            : { vp: Number(d.valor || 0) };
-          return sum + vp;
-        }, 0);
+            ? calculatePresentValue(normalizarDinheiro(d.valor), taxa, d.vencimento, new Date())
+            : { vp: normalizarDinheiro(d.valor) };
+          return vp;
+        }));
 
-        const totalDiscount = Math.max(0, totalNominal - totalVP);
+        const totalDiscount = Math.max(0, subtrairDinheiro(totalNominal, totalVP));
 
         return {
           id: loan.id,
@@ -190,214 +194,53 @@ export function RadarFinanceiroView({
 
   // Debt & Present Value Calculations
   const debtStats = useMemo(() => {
-    const totalDivida = loanContractsSummary.reduce((sum, c) => sum + c.totalNominal, 0);
-    const totalVP = loanContractsSummary.reduce((sum, c) => sum + c.totalVP, 0);
-    const totalDiscount = loanContractsSummary.reduce((sum, c) => sum + c.totalDiscount, 0);
+    const totalDivida = somarDinheiro(loanContractsSummary.map(c => c.totalNominal));
+    const totalVP = somarDinheiro(loanContractsSummary.map(c => c.totalVP));
+    const totalDiscount = somarDinheiro(loanContractsSummary.map(c => c.totalDiscount));
     const qtdParcelas = loanContractsSummary.reduce((sum, c) => sum + c.openCount, 0);
     const discountPercent = totalDivida > 0 ? (totalDiscount / totalDivida) * 100 : 0;
 
     return { totalDivida, totalVP, totalDiscount, qtdParcelas, discountPercent };
   }, [loanContractsSummary]);
 
-  // Monthly totals for health score
-  const totalDespesasMesAtual = useMemo(() => {
-    return despesas
-      .filter((d) => d.competencia === competenciaAtual)
-      .reduce((sum, d) => sum + Number(d.valor || 0), 0);
-  }, [despesas, competenciaAtual]);
-
-  const totalReceitasMesAtual = useMemo(() => {
-    return receitas
-      .filter((r) => r.competencia === competenciaAtual)
-      .reduce((sum, r) => sum + Number(r.valor || 0), 0);
-  }, [receitas, competenciaAtual]);
+  // Projeção de Fluxo de Caixa (12 Meses no PC / 8 Meses no Celular)
+  const cashflowProjection = useMemo(() => {
+    const monthsLimit = isMobile ? 8 : 12;
+    return projetarFluxoCaixa({
+      mesInicial: currentMonth,
+      anoInicial: currentYear,
+      quantidadeMeses: monthsLimit,
+      despesas,
+      receitas,
+      cartoes,
+      transacoesCartao: allProjectedCartaoTransacoes,
+      emprestimos,
+      contasFixas,
+      contasFixasExcecoes,
+      titularId: activeFilterId,
+    });
+  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, contasFixas, contasFixasExcecoes, emprestimos, cartoes, activeFilterId, isMobile]);
 
   const healthScore = useMemo(() => {
-    if (totalReceitasMesAtual <= 0) return 72;
-    const ratio = totalDespesasMesAtual / totalReceitasMesAtual;
-    const score = Math.round(Math.max(10, Math.min(100, (1 - ratio * 0.7) * 100)));
-    return score;
-  }, [totalDespesasMesAtual, totalReceitasMesAtual]);
+    const mesAtual = cashflowProjection[0];
+    return calcularScoreOrcamentario(mesAtual?.receitas ?? 0, mesAtual?.totalDespesas ?? 0);
+  }, [cashflowProjection]);
 
-  // Projeção de Fluxo de Caixa (12 Meses no PC / 8 Meses no Celular)
   const projectionChartData = useMemo(() => {
-    const data = [];
-    let tempMonth = currentMonth;
-    let tempYear = currentYear;
-    const monthsLimit = isMobile ? 8 : 12;
-
-    for (let i = 0; i < monthsLimit; i++) {
-      const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
-      const [mStr] = comp.split('/');
-      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      const label = `${monthNames[Number(mStr) - 1]}/${String(tempYear).slice(2)}`;
-
-      // 1. RECEITAS
-      // 1.1 Receitas físicas
-      const baseRec = receitas
-        .filter((r) => {
-          const matchTitular = activeFilterId ? Number(r.titular_id) === Number(activeFilterId) : true;
-          return matchTitular && r.competencia === comp;
-        })
-        .reduce((sum, r) => sum + Number(r.valor || 0), 0);
-
-      // 1.2 Receitas virtuais recorrentes (contasFixas com tipo 'receita')
-      let virtualRec = 0;
-      contasFixas
-        .filter((c) => c.tipo === 'receita' && (activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true))
-        .forEach((cfg) => {
-          const dataInicial = parseISO(cfg.data_inicio);
-          const diaOriginal = getDate(dataInicial);
-          const isUltimoDia = isLastDayOfMonth(dataInicial);
-          const limit = cfg.total_parcelas || 36;
-
-          for (let p = 1; p <= limit; p++) {
-            let dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal, false);
-            let cComp = '';
-            if (cfg.competencia_inicial) {
-              const [m, y] = cfg.competencia_inicial.split('/').map(Number);
-              const baseDate = new Date(y, m - 1, 1);
-              cComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
-            } else {
-              cComp = calcularCompetenciaReceita(dataVenc);
-            }
-
-            if (cComp === comp) {
-              const existeNoBanco = receitas.find(
-                (r) => Number(r.conta_fixa_id) === Number(cfg.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(p))
-              );
-              if (!existeNoBanco) {
-                virtualRec += Number(cfg.valor_mensal || 0);
-              }
-            }
-          }
-        });
-
-      const totalRec = baseRec + virtualRec;
-
-      // 2. DESPESAS FIXAS E REGULARES
-      // 2.1 Despesas físicas regulares (não faturas de cartão)
-      const baseDesp = despesas
-        .filter((d) => {
-          const matchTitular = activeFilterId ? Number(d.titular_id) === Number(activeFilterId) : true;
-          return matchTitular && d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura ');
-        })
-        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
-
-      // 2.2 Despesas virtuais recorrentes (contasFixas de despesa não cartão)
-      let virtualFixed = 0;
-      contasFixas
-        .filter((c) => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id && (activeFilterId ? Number(c.titular_id) === Number(activeFilterId) : true))
-        .forEach((cfg) => {
-          const dataInicial = parseISO(cfg.data_inicio);
-          const diaOriginal = getDate(dataInicial);
-          const isUltimoDia = isLastDayOfMonth(dataInicial);
-          const limit = cfg.total_parcelas || 36;
-
-          for (let p = 1; p <= limit; p++) {
-            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
-            let fComp = '';
-            if (cfg.competencia_inicial) {
-              const [m, y] = cfg.competencia_inicial.split('/').map(Number);
-              const baseDate = new Date(y, m - 1, 1);
-              fComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
-            } else {
-              fComp = calcularCompetencia(dataVenc);
-            }
-
-            if (fComp === comp) {
-              const existeNoBanco = despesas.find(
-                (d) => Number(d.conta_fixa_id) === Number(cfg.id) && Number(d.parcela_atual) === Number(p)
-              );
-              if (!existeNoBanco) {
-                virtualFixed += Number(cfg.valor_mensal || 0);
-              }
-            }
-          }
-        });
-
-      // 2.3 Parcelas virtuais de empréstimos
-      let virtualLoans = 0;
-      emprestimos
-        .filter((loan) => (activeFilterId ? Number(loan.titular_id) === Number(activeFilterId) : true))
-        .forEach((loan) => {
-          const dataInicial = parseISO(loan.data_primeiro_vencimento);
-          const diaOriginal = getDate(dataInicial);
-          const isUltimoDia = isLastDayOfMonth(dataInicial);
-
-          for (let p = 1; p <= loan.total_parcelas; p++) {
-            const dataVenc = projetarProximoVencimento(dataInicial, p - 1, isUltimoDia, diaOriginal);
-            let lComp = '';
-            if (loan.competencia_inicial) {
-              const [m, y] = loan.competencia_inicial.split('/').map(Number);
-              const baseDate = new Date(y, m - 1, 1);
-              lComp = format(addMonths(baseDate, p - 1), 'MM/yyyy');
-            } else {
-              lComp = calcularCompetencia(dataVenc);
-            }
-
-            if (lComp === comp) {
-              const existeNoBanco = despesas.find(
-                (d) => Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(p)
-              );
-              if (!existeNoBanco) {
-                virtualLoans += Number(loan.valor_parcela || 0);
-              }
-            }
-          }
-        });
-
-      const totalDesp = baseDesp + virtualFixed + virtualLoans;
-
-      // 3. FATURAS DE CARTÃO (Projetadas & Físicas)
-      let cardFats = 0;
-      cartoes
-        .filter((card) => (activeFilterId ? Number(card.titular_id) === Number(activeFilterId) : true))
-        .forEach((card) => {
-          const cardTransactionsTotal = allProjectedCartaoTransacoes
-            .filter((ct) => {
-              const matchTitular = activeFilterId ? Number(ct.titular_id) === Number(activeFilterId) : true;
-              return matchTitular && ct.cartao_id === card.id && ct.competencia === comp;
-            })
-            .reduce((sum, ct) => sum + Number(ct.valor || 0), 0);
-
-          const existingInDB = despesas.find(
-            (f) =>
-              f.competencia === comp &&
-              (f.isSummary || f.descricao?.startsWith('Fatura ')) &&
-              (f.cartao_vencimento_id === card.id || f.descricao?.includes(card.nome_cartao))
-          );
-
-          if (existingInDB) {
-            cardFats += existingInDB.status === 'Pago'
-              ? Number(existingInDB.valor || 0)
-              : (cardTransactionsTotal || Number(existingInDB.valor || 0));
-          } else if (cardTransactionsTotal > 0) {
-            cardFats += cardTransactionsTotal;
-          }
-        });
-
-      const totalOutflow = totalDesp + cardFats;
-      const saldo = totalRec - totalOutflow;
-
-      data.push({
-        comp,
-        label,
-        receitas: totalRec,
-        despesas: totalDesp,
-        faturas: cardFats,
-        totalDespesas: totalOutflow,
-        saldo
-      });
-
-      tempMonth++;
-      if (tempMonth > 12) {
-        tempMonth = 1;
-        tempYear++;
-      }
-    }
-    return data;
-  }, [currentMonth, currentYear, receitas, despesas, allProjectedCartaoTransacoes, contasFixas, emprestimos, cartoes, activeFilterId, isMobile]);
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return cashflowProjection.map(item => {
+      const [mes, ano] = item.competencia.split('/');
+      return {
+        comp: item.competencia,
+        label: `${monthNames[Number(mes) - 1]}/${ano.slice(2)}`,
+        receitas: item.receitas,
+        despesas: item.despesas,
+        faturas: item.faturas,
+        totalDespesas: item.totalDespesas,
+        saldo: item.saldo,
+      };
+    });
+  }, [cashflowProjection]);
 
   return (
     <div className="space-y-4">
@@ -523,26 +366,26 @@ export function RadarFinanceiroView({
           </div>
         </div>
 
-        {/* Score de Saúde Financeira */}
+        {/* Score orçamentário */}
         <div className="kpi-card">
           <div className="kpi-header">
-            <span className="kpi-title">Score de Saúde</span>
+            <span className="kpi-title">Score Orçamentário</span>
             <div
               className="kpi-icon-wrap"
               style={{
-                background: healthScore >= 75 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                color: healthScore >= 75 ? 'var(--income, #10b981)' : 'var(--warning, #f59e0b)'
+                background: healthScore == null ? 'var(--card-hover)' : healthScore >= 75 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                color: healthScore == null ? 'var(--text-muted)' : healthScore >= 75 ? 'var(--income, #10b981)' : 'var(--warning, #f59e0b)'
               }}
             >
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className={cn('kpi-val sensitive-val', healthScore >= 75 ? 'text-success' : 'text-warning')} style={{ color: healthScore >= 75 ? '#10b981' : '#f59e0b' }}>
-            {healthScore}/100
+          <div className={cn('kpi-val sensitive-val', healthScore == null ? 'text-muted' : healthScore >= 75 ? 'text-success' : 'text-warning')} style={{ color: healthScore == null ? 'var(--text-muted)' : healthScore >= 75 ? '#10b981' : '#f59e0b' }}>
+            {healthScore == null ? '—' : `${healthScore}/100`}
           </div>
           <div className="kpi-footer">
-            <span className={cn('badge-tag', healthScore >= 75 ? 'badge-paid' : 'badge-pending')}>
-              {healthScore >= 75 ? 'Excelente Solvência' : 'Atenção ao Orçamento'}
+            <span className={cn('badge-tag', healthScore == null ? 'badge-neutral' : healthScore >= 75 ? 'badge-paid' : 'badge-pending')}>
+              {healthScore == null ? 'Sem receita prevista' : healthScore >= 75 ? 'Orçamento equilibrado' : 'Atenção ao orçamento'}
             </span>
           </div>
         </div>
@@ -566,11 +409,8 @@ export function RadarFinanceiroView({
             <div className="flex-grow-1">
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Reserva de Emergência</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                6.4 meses de despesas cobertas (Meta familiar: 6 meses).
+                Não calculada: o app ainda não registra o saldo da reserva.
               </p>
-              <div style={{ height: '6px', width: '100%', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: '100%', height: '100%', background: 'var(--success, #10b981)' }}></div>
-              </div>
             </div>
           </div>
         </div>
@@ -591,7 +431,7 @@ export function RadarFinanceiroView({
             <div className="flex-grow-1">
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '4px' }}>Contratos & Financiamentos</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                {loanContractsSummary.length} contratos ativos somando {formatCurrency(loanContractsSummary.reduce((s: number, c: any) => s + Number(c.loan?.valor_parcela || 0), 0))}/mês.
+                {loanContractsSummary.length} contratos ativos somando {formatCurrency(somarDinheiro(loanContractsSummary.map((c: any) => c.loan?.valor_parcela)))}/mês.
               </p>
               <span className="badge-tag badge-pending" style={{ fontSize: '0.72rem' }}>Amortização Disponível</span>
             </div>
@@ -706,7 +546,7 @@ export function RadarFinanceiroView({
                         </div>
 
                         <div className="d-flex align-items-center justify-content-between text-xs pt-1 border-t border-border/40">
-                          <span className="font-bold text-foreground">Saldo Líquido:</span>
+                          <span className="font-bold text-foreground">Saldo previsto:</span>
                           <strong className={cn("font-black", data.saldo >= 0 ? "text-success" : "text-danger")} style={{ color: data.saldo >= 0 ? '#10b981' : '#ef4444' }}>
                             {data.saldo >= 0 ? '+' : ''}{formatCurrency(data.saldo)}
                           </strong>
@@ -723,8 +563,8 @@ export function RadarFinanceiroView({
                 formatter={(value) => <span style={{ color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}>{value}</span>}
               />
               <Bar dataKey="receitas" name="Receitas Previstas" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="totalDespesas" name="Despesas  Previstas" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Line type="monotone" dataKey="saldo" name="Saldo Líquido" stroke="var(--primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--primary)' }} />
+              <Bar dataKey="totalDespesas" name="Despesas Previstas" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Line type="monotone" dataKey="saldo" name="Saldo previsto" stroke="var(--primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--primary)' }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

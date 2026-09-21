@@ -1,0 +1,5 @@
+-- Seed intencionalmente vazio.
+--
+-- Nunca copie os backups .BaseCSV/.BaseSQL para este arquivo: eles contêm dados
+-- financeiros e pessoais reais. Dados sintéticos de desenvolvimento serão
+-- adicionados somente depois que a stack local estiver disponível para validação.

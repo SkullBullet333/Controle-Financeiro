@@ -1,6 +1,36 @@
 -- 0. EXTENSÕES E LIMPEZA TOTAL
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Esta migration é um bootstrap para banco vazio. O bloqueio abaixo deve vir
+-- antes de qualquer DROP para impedir perda de dados caso um projeto legado,
+-- sem histórico em supabase_migrations, seja vinculado por engano.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name IN (
+              'profiles',
+              'convites',
+              'titulares',
+              'cartoes_config',
+              'emprestimos',
+              'contas_fixas',
+              'cartoes',
+              'despesas',
+              'receitas',
+              'table_notas'
+          )
+    ) THEN
+        RAISE EXCEPTION USING
+            ERRCODE = 'P0001',
+            MESSAGE = 'Bootstrap recusado: o banco já contém tabelas do Radar Financeiro.',
+            HINT = 'Adote o schema existente no histórico de migrations antes de executar migrations aditivas.';
+    END IF;
+END;
+$$;
+
 DROP TABLE IF EXISTS public.receitas CASCADE;
 DROP TABLE IF EXISTS public.despesas CASCADE;
 DROP TABLE IF EXISTS public.cartoes CASCADE;

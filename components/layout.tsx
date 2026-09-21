@@ -16,7 +16,7 @@ interface SidebarProps {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   onInvite: (email: string) => void;
-  onUpdateProfile: (updates: Partial<Profile>) => void;
+  onUpdateProfile: (updates: Partial<Profile>) => Promise<void> | void;
   onOpenModal: (type: 'titular' | 'cartao' | 'profile' | 'settings' | 'emprestimo') => void;
 }
 
@@ -238,7 +238,7 @@ export function Topbar({
               ref={userMenuRef}
             >
               <div 
-                className="cursor-pointer active:scale-95 transition-transform" 
+                className="position-relative cursor-pointer active:scale-95 transition-transform"
                 style={{ width: '36px', height: '36px' }}
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >

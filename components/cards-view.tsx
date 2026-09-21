@@ -4,6 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { CartaoConfig, Titular, CartaoTransacao, Despesa } from '@/lib/types';
 import { calculatePresentValue } from '@/lib/finance-service';
+import { multiplicarDinheiro, normalizarDinheiro, somarDinheiro, subtrairDinheiro } from '@/lib/money';
+import { projetarFaturasCartao } from '@/lib/card-projection';
 import {
   CreditCard as CardIcon,
   Calculator,
@@ -33,6 +35,7 @@ interface CartoesViewProps {
   cartoes: CartaoConfig[];
   titulares: Titular[];
   transacoes: CartaoTransacao[];
+  allTransacoes?: CartaoTransacao[];
   despesas?: Despesa[];
   totalsByCard: Record<number, number>;
   competencia?: string;
@@ -50,37 +53,27 @@ const PRESET_CARDS_STYLE = [
   {
     name: 'Sicoob Clássico',
     color: '#00AE9A',
-    gradientClass: 'card-sicoob-classico',
-    last4: '7376',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-sicoob-classico'
   },
   {
     name: 'Sicoob Platinum',
     color: '#00353E',
-    gradientClass: 'card-sicoob-platinum',
-    last4: '7262',
-    defaultHolder: 'Mariana Rocha'
+    gradientClass: 'card-sicoob-platinum'
   },
   {
     name: 'Mercado Pago',
     color: '#222A37',
-    gradientClass: 'card-mercado-pago',
-    last4: '4904',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-mercado-pago'
   },
   {
     name: 'Inter',
     color: '#FF5100',
-    gradientClass: 'card-inter',
-    last4: '1234',
-    defaultHolder: 'Mariana Rocha'
+    gradientClass: 'card-inter'
   },
   {
     name: 'Nubank',
     color: '#6834AE',
-    gradientClass: 'card-nubank',
-    last4: '4321',
-    defaultHolder: 'Rodrigo Rocha'
+    gradientClass: 'card-nubank'
   }
 ];
 
@@ -88,6 +81,7 @@ export function CartoesView({
   cartoes = [],
   titulares = [],
   transacoes = [],
+  allTransacoes = [],
   despesas = [],
   totalsByCard = {},
   competencia,
@@ -108,21 +102,7 @@ export function CartoesView({
   // Build enhanced cards list from registered cartoes
   const cardsList = useMemo(() => {
     if (!cartoes || cartoes.length === 0) {
-      return PRESET_CARDS_STYLE.map((preset, idx) => ({
-        id: (idx + 1) * 1000,
-        realId: null,
-        brand: preset.name,
-        holder: preset.defaultHolder,
-        number: `•••• •••• •••• ${preset.last4}`,
-        fatura: 0,
-        limite: 10000,
-        limiteDisponivel: 10000,
-        diaVencimento: 10,
-        diaFechamento: 3,
-        gradientClass: preset.gradientClass,
-        color: preset.color,
-        icone: undefined
-      }));
+      return [];
     }
 
     return cartoes.map((card) => {
@@ -132,11 +112,11 @@ export function CartoesView({
         return normCard.includes(normPreset) || normPreset.includes(normCard);
       });
 
-      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || matchedPreset?.defaultHolder || 'Titular';
+      const holder = (card.titular_id ? titulares.find((t) => t.id === card.titular_id)?.nome : null) || 'Titular';
       const fatura = totalsByCard[card.id] || 0;
-      const limite = (card as any).limite || 10000;
-      const limiteDisponivel = Math.max(0, limite - fatura);
-      const finalDigits = card.final || matchedPreset?.last4 || '0000';
+      const limite = card.limite == null ? null : normalizarDinheiro(card.limite);
+      const limiteDisponivel = limite == null ? null : Math.max(0, subtrairDinheiro(limite, fatura));
+      const finalDigits = card.final || '••••';
       const cardColor = card.color || matchedPreset?.color || '#00AE9A';
       const cardGradientClass = !card.color && matchedPreset?.gradientClass ? matchedPreset.gradientClass : '';
 
@@ -191,47 +171,46 @@ export function CartoesView({
   // Simulation calculations
   const simulationTotals = useMemo(() => {
     const selectedItems = futureInstallments.slice(0, 4);
-    const nominalTotal = selectedItems.reduce((sum, item) => {
+    const nominalTotal = somarDinheiro(selectedItems.map(item => {
       const remainingInstallments = (item.parcela_total || 1) - (item.parcela_atual || 1);
-      return sum + (Number(item.valor || 0) * remainingInstallments);
-    }, 0);
+      return multiplicarDinheiro(item.valor, remainingInstallments);
+    }));
 
-    const vpTotal = selectedItems.reduce((sum, item) => {
+    const vpTotal = somarDinheiro(selectedItems.map(item => {
       const remainingInstallments = (item.parcela_total || 1) - (item.parcela_atual || 1);
       let itemVp = 0;
       for (let i = 1; i <= remainingInstallments; i++) {
         const factor = Math.pow(1 + (discountRate / 100), i);
-        itemVp += Number(item.valor || 0) / factor;
+        itemVp = somarDinheiro([itemVp, normalizarDinheiro(normalizarDinheiro(item.valor) / factor)]);
       }
-      return sum + itemVp;
-    }, 0);
+      return itemVp;
+    }));
 
-    const discount = Math.max(0, nominalTotal - vpTotal);
+    const discount = Math.max(0, subtrairDinheiro(nominalTotal, vpTotal));
 
     return {
       count: selectedItems.length,
-      nominalTotal: nominalTotal || 4550.00,
-      discount: discount || 214.35,
-      quittanceValue: (nominalTotal ? vpTotal : 4335.65)
+      nominalTotal,
+      discount,
+      quittanceValue: vpTotal
     };
   }, [futureInstallments, discountRate]);
 
   // Active/Filtered KPIs
   const currentCardFatura = useMemo(() => {
     if (activeCard) return activeCard.fatura;
-    return Object.values(totalsByCard).reduce((sum, v) => sum + Number(v || 0), 0) ||
-      cardsList.reduce((sum, c) => sum + c.fatura, 0);
+    return somarDinheiro(Object.values(totalsByCard)) ||
+      somarDinheiro(cardsList.map(c => c.fatura));
   }, [activeCard, totalsByCard, cardsList]);
 
   const currentCardLimiteLivre = useMemo(() => {
     if (activeCard) return activeCard.limiteDisponivel;
-    return cardsList.reduce((sum, c) => sum + c.limiteDisponivel, 0);
+    if (cardsList.length === 0 || cardsList.some((c) => c.limiteDisponivel == null)) return null;
+    return somarDinheiro(cardsList.map(c => c.limiteDisponivel ?? 0));
   }, [activeCard, cardsList]);
 
   // Projeção dos Próximos 6 Meses de Fatura (Obedece estritamente a competência selecionada e o cartão ativo)
   const faturas6MesesData = useMemo(() => {
-    const monthsShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    
     let startM = currentMonth;
     let startY = currentYear;
 
@@ -247,65 +226,20 @@ export function CartoesView({
       }
     }
 
-    const data = [];
-    let tempM = startM;
-    let tempY = startY;
-
-    for (let i = 0; i < 6; i++) {
-      const comp = `${String(tempM).padStart(2, '0')}/${tempY}`;
-      const label = `${monthsShort[tempM - 1]}`;
-
-      let totalComp = 0;
-
-      // 1. Verificar despesas consolidadas de cartão nessa competência (filtrado por cartão se selecionado)
-      if (despesas && despesas.length > 0) {
-        const cardExpenses = despesas.filter((d) => {
-          if (d.competencia !== comp) return false;
-          const isCard = d.isSummary || !!d.cartao_vencimento_id || (d.categoria || '').toLowerCase().includes('cartão') || d.descricao?.startsWith('Fatura ');
-          if (!isCard) return false;
-          if (activeCard && activeCard.realId) {
-            const dCardId = (d as any).cartao_id || d.cartao_vencimento_id;
-            if (dCardId && Number(dCardId) !== Number(activeCard.realId)) return false;
-            if (d.descricao && d.descricao.startsWith('Fatura ') && !d.descricao.toLowerCase().includes(activeCard.brand.toLowerCase())) return false;
-          }
-          return true;
-        });
-        totalComp += cardExpenses.reduce((sum, d) => sum + Number(d.valor || 0), 0);
-      }
-
-      // 2. Mês atual se zero
-      if (i === 0 && totalComp === 0) {
-        totalComp = currentCardFatura;
-      }
-
-      // 3. Meses futuros com parcelas pendentes (filtrado por cartão se selecionado)
-      if (i > 0 && totalComp === 0 && transacoes && transacoes.length > 0) {
-        const futureTransTotal = transacoes.filter((t) => {
-          if (activeCard && activeCard.realId) {
-            if (Number(t.cartao_id) !== Number(activeCard.realId)) return false;
-          }
-          const rem = (t.parcela_total || 1) - (t.parcela_atual || 1);
-          return rem >= i;
-        }).reduce((sum, t) => sum + Number(t.valor || 0), 0);
-
-        totalComp = futureTransTotal || (currentCardFatura * Math.max(0.3, 1 - i * 0.15));
-      }
-
-      data.push({
-        comp,
-        monthName: label,
-        total: Math.round(totalComp)
-      });
-
-      tempM++;
-      if (tempM > 12) {
-        tempM = 1;
-        tempY++;
-      }
-    }
-
-    return data;
-  }, [despesas, transacoes, currentCardFatura, activeCard, currentMonth, currentYear, competencia]);
+    return projetarFaturasCartao({
+      mesInicial: startM,
+      anoInicial: startY,
+      quantidadeMeses: 6,
+      cartoes,
+      transacoes: allTransacoes,
+      despesas,
+      cartaoId: activeCard?.realId,
+    }).map(item => ({
+      comp: item.competencia,
+      monthName: item.mes,
+      total: item.total,
+    }));
+  }, [despesas, allTransacoes, activeCard, currentMonth, currentYear, competencia, cartoes]);
 
   return (
     <div className="d-flex flex-column" style={{ gap: '16px' }}>
@@ -343,7 +277,13 @@ export function CartoesView({
         </div>
 
         <div className="card-slider" style={{ marginTop: '-2px' }}>
-          {cardsList.map((c) => {
+          {cardsList.length === 0 ? (
+            <div className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center">
+              <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
+              <div className="text-sm font-semibold text-foreground">Nenhum cartão cadastrado</div>
+              <div className="text-xs text-muted mt-1">Cadastre seu primeiro cartão antes de registrar compras.</div>
+            </div>
+          ) : cardsList.map((c) => {
             const isSelected = selectedCardId === c.id || (c.realId && selectedCardId === c.realId);
 
             return (
@@ -674,7 +614,9 @@ export function CartoesView({
               </div>
               <div className="d-flex justify-content-between text-[11px] text-muted pt-1 border-top border-border/30">
                 <span>{activeCard ? 'Limite Disponível:' : 'Limite Livre Total:'}</span>
-                <strong className="text-foreground">{isHidden ? '••••••' : formatCurrency(currentCardLimiteLivre)}</strong>
+                <strong className="text-foreground">
+                  {isHidden ? '••••••' : currentCardLimiteLivre == null ? 'Não informado' : formatCurrency(currentCardLimiteLivre)}
+                </strong>
               </div>
             </div>
 

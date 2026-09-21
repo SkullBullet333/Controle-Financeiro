@@ -7,6 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "supabase:start": "supabase start",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset --local",
+    "supabase:lint": "supabase db lint --local",
+    "supabase:push:dry": "supabase db push --linked --dry-run --skip-vault",
+    "test:db": "supabase test db --local",
+    "backup:validate": "pwsh -NoProfile -File scripts/Test-LocalBackup.ps1",
+    "backup:rehearse": "pwsh -NoProfile -File scripts/Invoke-LocalRestoreRehearsal.ps1",
+    "backup:restore:local": "pwsh -NoProfile -File scripts/Restore-ActiveLocalBackup.ps1 -Apply",
+    "dev:local": "pwsh -NoProfile -File scripts/Start-LocalApp.ps1",
+    "dev:local:check": "pwsh -NoProfile -File scripts/Start-LocalApp.ps1 -CheckOnly",
+    "dev:staging": "pwsh -NoProfile -File scripts/Start-StagingApp.ps1",
+    "dev:staging:check": "pwsh -NoProfile -File scripts/Start-StagingApp.ps1 -CheckOnly",
     "clean": "next clean"
   },
   "dependencies": {
@@ -17,26 +32,32 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "fflate": "^0.8.3",
     "lucide-react": "^0.475.0",
     "motion": "^11.11.17",
-    "next": "15.5.12",
-    "postcss": "^8.4.49",
+    "next": "15.5.25",
+    "postcss": "8.5.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.5.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.10.0",
-    "eslint-config-next": "15.5.12",
+    "eslint-config-next": "15.5.25",
+    "supabase": "2.117.0",
     "tailwindcss": "^4.0.0",
     "tw-animate-css": "^1.4.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "postcss": "8.5.28",
+    "sharp": "0.35.4"
   }
 }

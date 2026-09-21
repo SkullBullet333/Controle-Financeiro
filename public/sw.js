@@ -1,5 +1,5 @@
-// Service Worker for PWA - Optimized for Updates
-const CACHE_NAME = 'financeiro-v2';
+// Service Worker for PWA. Financial/API responses must never enter Cache Storage.
+const CACHE_NAME = 'financeiro-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -7,61 +7,71 @@ const ASSETS_TO_CACHE = [
   '/icons/icon-512.png'
 ];
 
-// Install event - Cache initial assets
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force update
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
-// Activate event - Clear old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Clearing old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith('financeiro-') && cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch event - Network First for the root/HTML, Stale-While-Revalidate for others
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Let the browser handle mutations and every cross-origin request, including Supabase.
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
   
-  // Strategy: Network First for the main page (root) to ensure latest UI
-  if (url.origin === self.location.origin && (url.pathname === '/' || url.pathname === '/index.html')) {
+  // Navigation is network-first, with the cached app shell only as an offline fallback.
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clonedResponse = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clonedResponse);
-          });
+      fetch(request)
+        .then(async (response) => {
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('/', response.clone());
+          }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match('/'))
     );
     return;
   }
 
-  // Strategy: Stale-While-Revalidate for everything else
+  const isStaticAsset =
+    url.pathname === '/manifest.json' ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/_next/static/');
+
+  if (!isStaticAsset) {
+    return;
+  }
+
+  // Only immutable/local presentation assets use stale-while-revalidate.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-        });
-        return networkResponse;
-      });
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request)
+        .then(async (networkResponse) => {
+          if (networkResponse.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
       return cachedResponse || fetchPromise;
     })
   );

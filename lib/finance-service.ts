@@ -20,6 +20,7 @@ import {
   differenceInDays
 } from 'date-fns';
 import { categorizar } from './categories-utils';
+import { normalizarDinheiro, subtrairDinheiro } from './money';
 
 // ==================== UTILITÁRIOS PUROS ====================
 
@@ -69,12 +70,23 @@ export function ajustarDataReceita(date: Date): Date {
   return d;
 }
 
-export function calcularCompetenciaReceita(dateAjustada: Date): string {
-  const dia = getDate(dateAjustada);
+export function calcularCompetenciaReceita(dateReferencia: Date): string {
+  const dia = getDate(dateReferencia);
   if (dia >= 28) {
-    return formatCompetencia(addMonths(dateAjustada, 1));
+    return formatCompetencia(addMonths(dateReferencia, 1));
   }
-  return formatCompetencia(dateAjustada);
+  return formatCompetencia(dateReferencia);
+}
+
+/**
+ * Resolve a data efetiva e a competência a partir da data contratual da receita.
+ * A competência é definida antes do ajuste bancário de fim de semana/dia 1.
+ */
+export function resolverAgendamentoReceita(datePretendida: Date): { dataRecebimento: Date; competencia: string } {
+  return {
+    dataRecebimento: ajustarDataReceita(datePretendida),
+    competencia: calcularCompetenciaReceita(datePretendida),
+  };
 }
 
 export function calcularCompetenciaCartao(dataCompra: Date, diaVencimento: number, diasFechamento: number): string {
@@ -166,6 +178,202 @@ export function projetarProximoVencimento(
 
 // ==================== PERSISTÊNCIA SUPABASE ====================
 
+export interface DespesaVinculadaPayload {
+  emprestimo_id: number | null;
+  conta_fixa_id: number | null;
+  descricao: string | null;
+  categoria: string | null;
+  valor: number;
+  parcela_atual: number;
+  parcela_total: number | null;
+  vencimento: string;
+  status: Status;
+  titular_id: number | null;
+  competencia: string;
+}
+
+export function prepararDespesasVinculadas(
+  despesas: readonly Partial<Despesa>[]
+): DespesaVinculadaPayload[] {
+  if (despesas.length === 0 || despesas.length > 240) {
+    throw new Error('Informe entre 1 e 240 despesas vinculadas.');
+  }
+
+  return despesas.map((despesa) => {
+    const emprestimoId = despesa.emprestimo_id ?? null;
+    const contaFixaId = despesa.conta_fixa_id ?? null;
+    const possuiEmprestimo = Number.isInteger(emprestimoId) && Number(emprestimoId) > 0;
+    const possuiContaFixa = Number.isInteger(contaFixaId) && Number(contaFixaId) > 0;
+
+    if (possuiEmprestimo === possuiContaFixa) {
+      throw new Error('Cada despesa deve ter exatamente uma origem vinculada.');
+    }
+
+    const parcelaAtual = Number(despesa.parcela_atual);
+    const valor = normalizarDinheiro(despesa.valor);
+    if (!Number.isInteger(parcelaAtual) || parcelaAtual < 1) {
+      throw new Error('O número da parcela deve ser maior ou igual a 1.');
+    }
+    if (!Number.isFinite(valor) || valor <= 0) {
+      throw new Error('O valor da parcela deve ser maior que zero.');
+    }
+    if (!despesa.vencimento || !/^\d{4}-\d{2}-\d{2}$/.test(despesa.vencimento)) {
+      throw new Error('O vencimento da parcela deve usar o formato AAAA-MM-DD.');
+    }
+    if (!despesa.competencia || !/^(0[1-9]|1[0-2])\/\d{4}$/.test(despesa.competencia)) {
+      throw new Error('A competência deve usar o formato MM/AAAA.');
+    }
+
+    return {
+      emprestimo_id: possuiEmprestimo ? Number(emprestimoId) : null,
+      conta_fixa_id: possuiContaFixa ? Number(contaFixaId) : null,
+      descricao: despesa.descricao?.trim() || null,
+      categoria: despesa.categoria?.trim() || null,
+      valor,
+      parcela_atual: parcelaAtual,
+      parcela_total: Number.isInteger(Number(despesa.parcela_total))
+        ? Number(despesa.parcela_total)
+        : null,
+      vencimento: despesa.vencimento,
+      status: despesa.status || 'Pago',
+      titular_id: Number.isInteger(Number(despesa.titular_id))
+        ? Number(despesa.titular_id)
+        : null,
+      competencia: despesa.competencia,
+    };
+  });
+}
+
+export async function materializarDespesasVinculadas(
+  despesas: readonly Partial<Despesa>[]
+) {
+  const payload = prepararDespesasVinculadas(despesas);
+  const { data, error } = await supabase.rpc('materializar_despesas_vinculadas', {
+    p_despesas: payload,
+  });
+
+  if (error) throw error;
+  return data as Despesa[];
+}
+
+export interface ReceitaVinculadaPayload {
+  conta_fixa_id: number;
+  descricao: string | null;
+  categoria: string | null;
+  valor: number;
+  parcela_atual: number;
+  parcela_total: number | null;
+  data_recebimento: string;
+  status: Status;
+  titular_id: number | null;
+  competencia: string;
+}
+
+export function prepararReceitasVinculadas(
+  receitas: readonly Partial<Receita>[]
+): ReceitaVinculadaPayload[] {
+  if (receitas.length === 0 || receitas.length > 240) {
+    throw new Error('Informe entre 1 e 240 receitas vinculadas.');
+  }
+
+  return receitas.map((receita) => {
+    const contaFixaId = Number(receita.conta_fixa_id);
+    const parcelaAtual = Number(receita.parcela_atual);
+    const valor = normalizarDinheiro(receita.valor);
+
+    if (!Number.isInteger(contaFixaId) || contaFixaId < 1) {
+      throw new Error('A receita deve ter uma conta fixa vinculada.');
+    }
+    if (!Number.isInteger(parcelaAtual) || parcelaAtual < 1) {
+      throw new Error('O número da parcela deve ser maior ou igual a 1.');
+    }
+    if (!Number.isFinite(valor) || valor <= 0) {
+      throw new Error('O valor da receita deve ser maior que zero.');
+    }
+    if (!receita.data_recebimento || !/^\d{4}-\d{2}-\d{2}$/.test(receita.data_recebimento)) {
+      throw new Error('A data de recebimento deve usar o formato AAAA-MM-DD.');
+    }
+    if (!receita.competencia || !/^(0[1-9]|1[0-2])\/\d{4}$/.test(receita.competencia)) {
+      throw new Error('A competência deve usar o formato MM/AAAA.');
+    }
+
+    return {
+      conta_fixa_id: contaFixaId,
+      descricao: receita.descricao?.trim() || null,
+      categoria: receita.categoria?.trim() || null,
+      valor,
+      parcela_atual: parcelaAtual,
+      parcela_total: Number.isInteger(Number(receita.parcela_total))
+        ? Number(receita.parcela_total)
+        : null,
+      data_recebimento: receita.data_recebimento,
+      status: receita.status || 'Recebido',
+      titular_id: Number.isInteger(Number(receita.titular_id))
+        ? Number(receita.titular_id)
+        : null,
+      competencia: receita.competencia,
+    };
+  });
+}
+
+export async function materializarReceitasVinculadas(
+  receitas: readonly Partial<Receita>[]
+) {
+  const payload = prepararReceitasVinculadas(receitas);
+  const { data, error } = await supabase.rpc('materializar_receitas_vinculadas', {
+    p_receitas: payload,
+  });
+
+  if (error) throw error;
+  return data as Receita[];
+}
+
+export interface FaturaCartaoPayload {
+  cartao_vencimento_id: number;
+  valor: number;
+  vencimento: string;
+  status: Status;
+  competencia: string;
+}
+
+export function prepararFaturaCartao(
+  despesa: Partial<Despesa>
+): FaturaCartaoPayload {
+  const cartaoId = Number(despesa.cartao_vencimento_id);
+  const valor = normalizarDinheiro(despesa.valor);
+
+  if (!Number.isInteger(cartaoId) || cartaoId < 1) {
+    throw new Error('A fatura deve ter um cartão vinculado.');
+  }
+  if (!Number.isFinite(valor) || valor <= 0) {
+    throw new Error('O valor da fatura deve ser maior que zero.');
+  }
+  if (!despesa.vencimento || !/^\d{4}-\d{2}-\d{2}$/.test(despesa.vencimento)) {
+    throw new Error('O vencimento da fatura deve usar o formato AAAA-MM-DD.');
+  }
+  if (!despesa.competencia || !/^(0[1-9]|1[0-2])\/\d{4}$/.test(despesa.competencia)) {
+    throw new Error('A competência deve usar o formato MM/AAAA.');
+  }
+
+  return {
+    cartao_vencimento_id: cartaoId,
+    valor,
+    vencimento: despesa.vencimento,
+    status: despesa.status || 'Pago',
+    competencia: despesa.competencia,
+  };
+}
+
+export async function materializarFaturaCartao(despesa: Partial<Despesa>) {
+  const payload = prepararFaturaCartao(despesa);
+  const { data, error } = await supabase.rpc('materializar_fatura_cartao', {
+    p_fatura: payload,
+  });
+
+  if (error) throw error;
+  return data as Despesa;
+}
+
 export async function salvarDespesa(dados: Partial<Despesa>, userId: string, familyId: string) {
   if (dados.id && dados.id > 0) {
     const { id, isSummary, ...camposParaAtualizar } = dados as any;
@@ -175,6 +383,10 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string, fam
       ...camposParaAtualizar,
       updated_at: new Date().toISOString() 
     };
+
+    if (dados.valor !== undefined) {
+      updatePayload.valor = normalizarDinheiro(dados.valor);
+    }
 
     if (dados.vencimento && dados.vencimento !== '-') {
       const dataVenc = parseISO(dados.vencimento);
@@ -198,48 +410,15 @@ export async function salvarDespesa(dados: Partial<Despesa>, userId: string, fam
     if (error) throw error;
     return data;
   } else {
-    // Se for uma parcela específica (empréstimo ou conta fixa), 
-    // verificamos se já existe antes de inserir para evitar duplicidades
+    if (dados.cartao_vencimento_id) {
+      return materializarFaturaCartao(dados);
+    }
+
+    // Ocorrências virtuais são materializadas por uma RPC transacional. A
+    // constraint natural no banco torna retries e duas abas idempotentes.
     if ((dados.emprestimo_id || dados.conta_fixa_id) && dados.parcela_atual) {
-      let query = supabase.from('despesas').select('id, status').eq('family_id', familyId);
-      if (dados.conta_fixa_id) {
-        query = query.eq('conta_fixa_id', dados.conta_fixa_id).eq('parcela_atual', dados.parcela_atual);
-      } else if (dados.emprestimo_id) {
-        query = query.eq('emprestimo_id', dados.emprestimo_id).eq('parcela_atual', dados.parcela_atual);
-      }
-
-      const { data: existing } = await query.maybeSingle();
-
-      if (existing) {
-        // Se já existe, atualiza o registro existente em vez de criar duplicata
-        const { id: _, ...updateFields } = dados as any;
-        const { data, error } = await supabase
-          .from('despesas')
-          .update({
-            ...updateFields,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
-
-      const { data, error } = await supabase
-        .from('despesas')
-        .insert([{
-          ...dados,
-          user_id: userId,
-          family_id: familyId,
-          created_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const [despesa] = await materializarDespesasVinculadas([dados]);
+      return despesa;
     }
 
     return lancarParcelas('despesa', dados, userId, familyId);
@@ -255,13 +434,16 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string, fam
       updated_at: new Date().toISOString() 
     };
 
+    if (dados.valor !== undefined) {
+      updatePayload.valor = normalizarDinheiro(dados.valor);
+    }
+
     if (dados.data_recebimento) {
       const dataPretendida = parseISO(dados.data_recebimento);
-      const dataAjustada = ajustarDataReceita(dataPretendida);
-      const comp = calcularCompetenciaReceita(dataAjustada);
+      const agendamento = resolverAgendamentoReceita(dataPretendida);
       
-      updatePayload.data_recebimento = format(dataAjustada, 'yyyy-MM-dd');
-      updatePayload.competencia = comp;
+      updatePayload.data_recebimento = format(agendamento.dataRecebimento, 'yyyy-MM-dd');
+      updatePayload.competencia = agendamento.competencia;
     }
 
     const { data, error } = await supabase
@@ -274,31 +456,18 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string, fam
     if (error) throw error;
     return data;
   } else {
-    // Se for uma receita específica de conta fixa com parcela_atual
+    // Receitas recorrentes legadas podem repetir parcela_atual. A competência
+    // é a identidade estável usada pela RPC e pela constraint do banco.
     if (dados.conta_fixa_id && dados.parcela_atual) {
-      const { data: existing } = await supabase
-        .from('receitas')
-        .select('id')
-        .eq('family_id', familyId)
-        .eq('conta_fixa_id', dados.conta_fixa_id)
-        .eq('parcela_atual', dados.parcela_atual)
-        .maybeSingle();
-
-      if (existing) {
-        const { id: _, ...updateFields } = dados as any;
-        const { data, error } = await supabase
-          .from('receitas')
-          .update({
-            ...updateFields,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
+      const receitaNormalizada = { ...dados };
+      if (dados.data_recebimento) {
+        const agendamento = resolverAgendamentoReceita(parseISO(dados.data_recebimento));
+        receitaNormalizada.data_recebimento = format(agendamento.dataRecebimento, 'yyyy-MM-dd');
+        receitaNormalizada.competencia = dados.competencia || agendamento.competencia;
       }
+
+      const [receita] = await materializarReceitasVinculadas([receitaNormalizada]);
+      return receita;
     }
 
     // Para novas receitas ou múltiplos lançamentos
@@ -307,13 +476,13 @@ export async function salvarReceita(dados: Partial<Receita>, userId: string, fam
 }
 
 export async function lancarParcelas(
-  tipo: 'despesa' | 'receita' | 'cartao' | 'emprestimo', 
-  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number; emprestimo_id?: number; conta_fixa_id?: number }), 
+  tipo: 'despesa' | 'receita' | 'cartao',
+  dados: (Partial<Despesa> & Partial<Receita> & { cartao_config?: CartaoConfig; vencimento_original?: string; cartao_id?: number; emprestimo_id?: number; conta_fixa_id?: number; operation_id?: string }),
   userId: string,
-  familyId: string
+  _familyId: string
 ) {
   const totalParcelas = Number(dados.parcela_total || 1);
-  const valorParcela = Number(dados.valor || 0);
+  const valorParcela = normalizarDinheiro(dados.valor);
   const dataStr = dados.vencimento || dados.data_recebimento || dados.vencimento_original;
   
   if (!dataStr) throw new Error('Data não informada');
@@ -324,6 +493,11 @@ export async function lancarParcelas(
   
   const inserts = [];
   const competenciasAfetadas = new Set<string>();
+  const operationId = dados.operation_id || globalThis.crypto.randomUUID();
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)) {
+    throw new Error('Identificador da operação financeira inválido.');
+  }
 
   for (let i = 1; i <= totalParcelas; i++) {
     let dataVenc = projetarProximoVencimento(
@@ -337,9 +511,9 @@ export async function lancarParcelas(
     let comp: string;
     
     if (tipo === 'receita') {
-      // Para receitas, calcula competência sobre a data pretendida ANTES do ajuste
-      comp = calcularCompetenciaReceita(dataVenc);
-      dataVenc = ajustarDataReceita(dataVenc);
+      const agendamento = resolverAgendamentoReceita(dataVenc);
+      comp = agendamento.competencia;
+      dataVenc = agendamento.dataRecebimento;
     } else if (tipo === 'cartao') {
       // Para cartões, a competência da primeira parcela depende da regra de fechamento
       if (i === 1) {
@@ -367,15 +541,13 @@ export async function lancarParcelas(
     competenciasAfetadas.add(comp);
 
     const common = {
-      user_id: userId,
-      family_id: familyId,
       descricao: dados.descricao,
       valor: valorParcela,
       competencia: comp,
       categoria: dados.categoria || categorizar(dados.descricao || ''),
     };
 
-    if (tipo === 'despesa' || tipo === 'emprestimo') {
+    if (tipo === 'despesa') {
       inserts.push({
         ...common,
         parcela_atual: i,
@@ -398,8 +570,6 @@ export async function lancarParcelas(
       });
     } else if (tipo === 'cartao') {
       inserts.push({
-        user_id: userId,
-        family_id: familyId,
         estabelecimento: dados.descricao,
         valor: valorParcela,
         competencia: comp,
@@ -413,8 +583,11 @@ export async function lancarParcelas(
     }
   }
 
-  const table = tipo === 'despesa' || tipo === 'emprestimo' ? 'despesas' : tipo === 'receita' ? 'receitas' : 'cartoes';
-  const { data, error } = await supabase.from(table).insert(inserts).select();
+  const { data, error } = await supabase.rpc('criar_lancamentos_parcelados', {
+    p_tipo: tipo,
+    p_operation_id: operationId,
+    p_lancamentos: inserts,
+  });
   
   if (error) throw error;
 
@@ -427,59 +600,46 @@ export async function lancarParcelas(
   return data;
 }
 
-export async function consolidarFaturas(competencia: string, userId: string) {
-  // 1. Buscar configurações de cartões (RLS cuidará da visibilidade)
-  const { data: configs, error: configError } = await supabase
-    .from('cartoes_config')
-    .select('*');
-  
-  if (configError) throw configError;
+export async function materializarOcorrenciaCartao(
+  item: Pick<CartaoTransacao, 'conta_fixa_id' | 'conta_fixa_parcela' | 'parcela_atual' | 'data_compra' | 'valor' | 'estabelecimento' | 'categoria'>
+) {
+  const contaFixaId = Number(item.conta_fixa_id);
+  const ocorrencia = Number(item.conta_fixa_parcela ?? item.parcela_atual);
 
-  // 2. Buscar lançamentos de cartões para a competência (apenas reais, não simulados)
-  const { data: lancamentos, error: lancError } = await supabase
-    .from('cartoes')
-    .select('*, cartoes_config(nome_cartao, titular_id, titulares(nome))')
-    .eq('competencia', competencia);
-  
-  if (lancError) throw lancError;
+  if (!Number.isInteger(contaFixaId) || contaFixaId < 1) {
+    throw new Error('A ocorrência não possui uma recorrência de cartão válida.');
+  }
+  if (!Number.isInteger(ocorrencia) || ocorrencia < 1) {
+    throw new Error('O número da ocorrência é inválido.');
+  }
+  if (!item.data_compra || !/^\d{4}-\d{2}-\d{2}$/.test(item.data_compra)) {
+    throw new Error('A data da ocorrência deve usar o formato AAAA-MM-DD.');
+  }
 
-  // 3. Agrupar por cartão e titular
-  const totais: Record<string, { valor: number, cartao_id: number, titular_id: number, nome_cartao: string, nome_titular: string }> = {};
-
-  lancamentos?.forEach(l => {
-    // Supabase pode retornar objeto ou array dependendo da definição da FK
-    const configRaw = l.cartoes_config;
-    if (!configRaw) return;
-    
-    const config = (Array.isArray(configRaw) ? configRaw[0] : configRaw) as any;
-    if (!config) return;
-
-    const titularRaw = config.titulares;
-    const titularNome = (Array.isArray(titularRaw) ? titularRaw[0]?.nome : titularRaw?.nome) || 'N/A';
-
-    const key = `${l.cartao_id}-${config.titular_id}`;
-    if (!totais[key]) {
-      totais[key] = { 
-        valor: 0, 
-        cartao_id: l.cartao_id, 
-        titular_id: config.titular_id,
-        nome_cartao: config.nome_cartao,
-        nome_titular: titularNome
-      };
-    }
-    const valorNum = Number(l.valor);
-    if (!isNaN(valorNum)) {
-      totais[key].valor += valorNum;
-    }
+  const { data, error } = await supabase.rpc('materializar_ocorrencia_cartao', {
+    p_conta_fixa_id: contaFixaId,
+    p_ocorrencia: ocorrencia,
+    p_data_compra: item.data_compra,
+    p_valor: normalizarDinheiro(item.valor),
+    p_estabelecimento: item.estabelecimento,
+    p_categoria: item.categoria || null,
   });
 
-  // 4. Buscar faturas "Em aberto" para limpar (migração para virtual)
-  const { data: faturasEmAberto } = await supabase
+  if (error) throw error;
+  return data as CartaoTransacao;
+}
+
+export async function consolidarFaturas(competencia: string, _userId: string) {
+  // Faturas em aberto são projeções. Quando uma compra muda, removemos apenas
+  // o snapshot estrutural daquela competência para que o total seja recalculado.
+  const { data: faturasEmAberto, error: invoiceError } = await supabase
     .from('despesas')
     .select('id')
     .eq('competencia', competencia)
-    .like('descricao', 'Fatura %')
+    .not('cartao_vencimento_id', 'is', null)
     .eq('status', 'Em aberto');
+
+  if (invoiceError) throw invoiceError;
 
   const idsParaRemover = faturasEmAberto?.map(f => f.id);
 
@@ -492,13 +652,23 @@ export async function consolidarFaturas(competencia: string, userId: string) {
 // ==================== NOVOS: EMPRÉSTIMOS ====================
 
 export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: string, familyId: string) {
+  const dadosNormalizados = {
+    ...dados,
+    ...(dados.valor_total !== undefined
+      ? { valor_total: normalizarDinheiro(dados.valor_total) }
+      : {}),
+    ...(dados.valor_parcela !== undefined
+      ? { valor_parcela: normalizarDinheiro(dados.valor_parcela) }
+      : {}),
+  };
+
   if (dados.id) {
-    const { error } = await supabase.from('emprestimos').update(dados).eq('id', dados.id);
+    const { error } = await supabase.from('emprestimos').update(dadosNormalizados).eq('id', dados.id);
     if (error) throw error;
     return { success: true };
   } else {
     // 1. Salvar mestre do empréstimo
-    const { id, ...insertData } = dados;
+    const { id, ...insertData } = dadosNormalizados;
     const { data: emprestimo, error } = await supabase
       .from('emprestimos')
       .insert([{ ...insertData, user_id: userId, family_id: familyId }])
@@ -514,14 +684,8 @@ export async function salvarEmprestimo(dados: Partial<Emprestimo>, userId: strin
 }
 
 export async function deletarEmprestimo(id: number) {
-  // 1. Deletar as despesas associadas primeiro (evita erro de FK se não houver cascade)
-  // 1. Desvincular as despesas associadas para preservar o histórico
-  await supabase
-    .from('despesas')
-    .update({ emprestimo_id: null })
-    .eq('emprestimo_id', id);
-
-  // 2. Deletar o mestre do empréstimo
+  // A FK despesas→emprestimos usa ON DELETE SET NULL: o banco desvincula
+  // os lançamentos históricos na mesma transação da exclusão do mestre.
   const { error } = await supabase.from('emprestimos').delete().eq('id', id);
   if (error) throw error;
   
@@ -531,12 +695,19 @@ export async function deletarEmprestimo(id: number) {
 // ==================== NOVOS: CONTAS FIXAS ====================
 
 export async function salvarContaFixaConfig(dados: Partial<ContaFixaConfig>, userId: string, familyId: string) {
+  const dadosNormalizados = {
+    ...dados,
+    ...(dados.valor_mensal !== undefined
+      ? { valor_mensal: normalizarDinheiro(dados.valor_mensal) }
+      : {}),
+  };
+
   if (dados.id) {
-    const { error } = await supabase.from('contas_fixas').update(dados).eq('id', dados.id);
+    const { error } = await supabase.from('contas_fixas').update(dadosNormalizados).eq('id', dados.id);
     if (error) throw error;
     return { success: true };
   } else {
-    const { id, ...insertData } = dados;
+    const { id, ...insertData } = dadosNormalizados;
     const { data, error } = await supabase
       .from('contas_fixas')
       .insert([{ ...insertData, user_id: userId, family_id: familyId }])
@@ -548,21 +719,86 @@ export async function salvarContaFixaConfig(dados: Partial<ContaFixaConfig>, use
   }
 }
 
-export async function deletarContaFixaConfig(id: number) {
-  // 1. Desvincular as despesas associadas para preservar o histórico
-  await supabase.from('despesas').update({ conta_fixa_id: null }).eq('conta_fixa_id', id);
-  
-  // 2. Desvincular as receitas associadas
-  await supabase.from('receitas').update({ conta_fixa_id: null }).eq('conta_fixa_id', id);
+export function contaFixaEstaAtiva(config: Pick<ContaFixaConfig, 'status'>): boolean {
+  return (config.status ?? 'ativo') === 'ativo';
+}
 
-  // 3. Deletar o mestre
-  const { error } = await supabase.from('contas_fixas').delete().eq('id', id);
+export function contaFixaPermiteOcorrencia(
+  config: Pick<ContaFixaConfig, 'status' | 'encerrada_a_partir_da_ocorrencia'>,
+  ocorrencia: number
+): boolean {
+  if (!Number.isInteger(ocorrencia) || ocorrencia < 1) return false;
+  if (contaFixaEstaAtiva(config)) return true;
+
+  const corte = Number(config.encerrada_a_partir_da_ocorrencia || 1);
+  return ocorrencia < corte;
+}
+
+export function resolverOcorrenciaContaFixa(
+  competenciaInicial: string,
+  competencia: string
+): number | null {
+  const parse = (value: string) => {
+    const match = /^(0[1-9]|1[0-2])\/(\d{4})$/.exec(value || '');
+    return match ? { month: Number(match[1]), year: Number(match[2]) } : null;
+  };
+  const initial = parse(competenciaInicial);
+  const current = parse(competencia);
+  if (!initial || !current) return null;
+
+  const occurrence = ((current.year - initial.year) * 12) + current.month - initial.month + 1;
+  return occurrence >= 1 ? occurrence : null;
+}
+
+export async function encerrarContaFixaConfig(
+  id: number,
+  status: 'concluido' | 'cancelado' = 'cancelado'
+) {
+  if (!Number.isInteger(id) || id < 1) {
+    throw new Error('A recorrência informada é inválida.');
+  }
+
+  const { data, error } = await supabase.rpc('encerrar_conta_fixa', {
+    p_conta_fixa_id: id,
+    p_status: status
+  });
   if (error) throw error;
-  
-  return { success: true };
+
+  return data;
+}
+
+export async function ignorarOcorrenciaContaFixa(id: number, ocorrencia: number) {
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(ocorrencia) || ocorrencia < 1) {
+    throw new Error('A ocorrência recorrente informada é inválida.');
+  }
+
+  const { data, error } = await supabase.rpc('ignorar_ocorrencia_conta_fixa', {
+    p_conta_fixa_id: id,
+    p_ocorrencia: ocorrencia
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function encerrarContaFixaDesde(id: number, ocorrencia: number) {
+  if (!Number.isInteger(id) || id < 1 || !Number.isInteger(ocorrencia) || ocorrencia < 1) {
+    throw new Error('O ponto de encerramento informado é inválido.');
+  }
+
+  const { data, error } = await supabase.rpc('encerrar_conta_fixa_desde', {
+    p_conta_fixa_id: id,
+    p_ocorrencia: ocorrencia,
+    p_status: 'cancelado'
+  });
+  if (error) throw error;
+  return data;
 }
 
 export function calculatePresentValue(vf: number, monthlyRatePercent: number, dueDate: string, refDate: Date): { vp: number, discount: number } {
+  const nominal = normalizarDinheiro(vf);
+  if (!Number.isFinite(monthlyRatePercent) || monthlyRatePercent < 0) {
+    throw new Error('Taxa mensal inválida.');
+  }
   const i = monthlyRatePercent / 100;
   const targetDate = parseISO(dueDate);
   const now = startOfDay(refDate);
@@ -570,13 +806,19 @@ export function calculatePresentValue(vf: number, monthlyRatePercent: number, du
   const days = Math.max(0, differenceInDays(targetDate, now));
   const nMonths = days / 30;
   
-  const vp = vf / Math.pow(1 + i, nMonths);
-  const discount = vf - vp;
+  const vp = normalizarDinheiro(nominal / Math.pow(1 + i, nMonths));
+  const discount = subtrairDinheiro(nominal, vp);
   
   return { vp, discount };
 }
 
 // ==================== BATCH CATEGORY RENAMING ====================
+
+function categoryRpcUnavailable(error: { code?: string }): boolean {
+  // O remoto legado ainda não recebeu esta migration. Só nesse caso usamos
+  // temporariamente as consultas antigas; outros erros não podem ser ocultados.
+  return error.code === 'PGRST202' || error.code === '42883';
+}
 
 export async function renomearCategoriaEmLote(
   categoriaAntiga: string,
@@ -590,15 +832,21 @@ export async function renomearCategoriaEmLote(
 
   const oldCat = categoriaAntiga.trim();
   const newCat = categoriaNova.trim();
+  const { error: rpcError } = await supabase.rpc('renomear_categoria_em_lote', {
+    p_categoria_antiga: oldCat,
+    p_categoria_nova: newCat,
+  });
+  if (!rpcError) return { success: true };
+  if (!categoryRpcUnavailable(rpcError)) throw rpcError;
 
-  // 1. Atualizar em despesas
+  // Compatibilidade temporária: esse caminho não é atômico no remoto legado.
   let qDespesas = supabase
     .from('despesas')
     .update({ categoria: newCat })
     .eq('categoria', oldCat);
   if (familyId) qDespesas = qDespesas.eq('family_id', familyId);
   const { error: err1 } = await qDespesas;
-  if (err1) console.error('Erro ao atualizar categoria em despesas:', err1);
+  if (err1) throw err1;
 
   // 2. Atualizar em contas_fixas
   let qFixas = supabase
@@ -607,7 +855,7 @@ export async function renomearCategoriaEmLote(
     .eq('categoria', oldCat);
   if (familyId) qFixas = qFixas.eq('family_id', familyId);
   const { error: err2 } = await qFixas;
-  if (err2) console.error('Erro ao atualizar categoria em contas_fixas:', err2);
+  if (err2) throw err2;
 
   // 3. Atualizar em cartoes (transações de cartão)
   let qCartoes = supabase
@@ -616,7 +864,7 @@ export async function renomearCategoriaEmLote(
     .eq('categoria', oldCat);
   if (familyId) qCartoes = qCartoes.eq('family_id', familyId);
   const { error: err3 } = await qCartoes;
-  if (err3) console.error('Erro ao atualizar categoria em cartoes:', err3);
+  if (err3) throw err3;
 
   return { success: true };
 }
@@ -633,15 +881,21 @@ export async function atualizarCategoriaPorDescricao(
 
   const descTrim = descricao.trim();
   const newCat = categoriaNova.trim();
+  const { error: rpcError } = await supabase.rpc('atualizar_categoria_por_descricao', {
+    p_descricao: descTrim,
+    p_categoria_nova: newCat,
+  });
+  if (!rpcError) return { success: true };
+  if (!categoryRpcUnavailable(rpcError)) throw rpcError;
 
-  // 1. Atualizar em despesas com essa descrição (case-insensitive)
+  // Compatibilidade temporária: esse caminho não é atômico no remoto legado.
   let qDespesas = supabase
     .from('despesas')
     .update({ categoria: newCat })
     .ilike('descricao', descTrim);
   if (familyId) qDespesas = qDespesas.eq('family_id', familyId);
   const { error: err1 } = await qDespesas;
-  if (err1) console.error('Erro ao atualizar categoria por descricao em despesas:', err1);
+  if (err1) throw err1;
 
   // 2. Atualizar em contas_fixas
   let qFixas = supabase
@@ -650,23 +904,16 @@ export async function atualizarCategoriaPorDescricao(
     .ilike('descricao', descTrim);
   if (familyId) qFixas = qFixas.eq('family_id', familyId);
   const { error: err2 } = await qFixas;
-  if (err2) console.error('Erro ao atualizar categoria por descricao em contas_fixas:', err2);
+  if (err2) throw err2;
 
-  // 3. Atualizar em cartoes (estabelecimento ou descricao)
+  // Cartões usam estabelecimento; a tabela não possui coluna descricao.
   let qCartoes1 = supabase
     .from('cartoes')
     .update({ categoria: newCat })
     .ilike('estabelecimento', descTrim);
   if (familyId) qCartoes1 = qCartoes1.eq('family_id', familyId);
-  await qCartoes1;
-
-  let qCartoes2 = supabase
-    .from('cartoes')
-    .update({ categoria: newCat })
-    .ilike('descricao', descTrim);
-  if (familyId) qCartoes2 = qCartoes2.eq('family_id', familyId);
-  await qCartoes2;
+  const { error: err3 } = await qCartoes1;
+  if (err3) throw err3;
 
   return { success: true };
 }
-

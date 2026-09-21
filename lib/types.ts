@@ -4,6 +4,7 @@ export interface Titular {
   id: number;
   nome: string;
   foto?: string;
+  user_id?: string | null;
 }
 
 export interface Profile {
@@ -51,9 +52,22 @@ export interface CartaoTransacao {
   titular_id: number;
   categoria?: string;
   conta_fixa_id?: number;
+  conta_fixa_parcela?: number;
   emprestimo_id?: number;
+  operation_id?: string;
+  operation_item?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ContaFixaExcecao {
+  id: number;
+  family_id: string;
+  conta_fixa_id: number;
+  ocorrencia: number;
+  acao: 'ignorar';
+  created_by: string;
+  created_at?: string;
 }
 
 export interface Despesa {
@@ -71,6 +85,9 @@ export interface Despesa {
   cartao_vencimento_id?: number;
   emprestimo_id?: number;
   conta_fixa_id?: number;
+  conta_fixa_ocorrencia?: number;
+  operation_id?: string;
+  operation_item?: number;
 }
 
 export interface Receita {
@@ -85,6 +102,9 @@ export interface Receita {
   titular_id: number;
   competencia: string;
   conta_fixa_id?: number;
+  conta_fixa_ocorrencia?: number;
+  operation_id?: string;
+  operation_item?: number;
 }
 
 export interface Nota {
@@ -127,5 +147,9 @@ export interface ContaFixaConfig {
   categoria?: string;
   cartao_id?: number;
   tipo: 'despesa' | 'receita';
+  status?: 'ativo' | 'concluido' | 'cancelado';
+  encerrada_em?: string | null;
+  encerrada_por?: string | null;
+  encerrada_a_partir_da_ocorrencia?: number | null;
   created_at?: string;
 }

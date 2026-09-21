@@ -1,11 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
+import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig, ContaFixaExcecao } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, ajustarDataReceita, calcularCompetenciaReceita, salvarContaFixaConfig, deletarContaFixaConfig, renomearCategoriaEmLote, atualizarCategoriaPorDescricao } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, resolverAgendamentoReceita, salvarContaFixaConfig, encerrarContaFixaConfig, contaFixaPermiteOcorrencia, resolverOcorrenciaContaFixa, ignorarOcorrenciaContaFixa, encerrarContaFixaDesde, renomearCategoriaEmLote, atualizarCategoriaPorDescricao, materializarDespesasVinculadas, materializarOcorrenciaCartao } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
-import { setCompressedCache, getCompressedCache, clearUserCompressedCache } from '@/lib/compressed-cache';
+import { clearFinancialCache, financialCacheKey, getFinancialCache, purgeLegacyFinancialCache, setFinancialCache } from '@/lib/financial-cache';
 import { categorizar } from '@/lib/categories-utils';
+import { carregarTodasPaginas, chaveJanelaFinanceira, criarJanelaCompetencias } from '@/lib/finance-period';
+import { normalizarDinheiro } from '@/lib/money';
+import { projetarFluxoCaixa } from '@/lib/cashflow-projection';
+import { calcularTotaisPorCartao } from '@/lib/card-projection';
+import { calcularDividaAberta, calcularResumoFinanceiro, calcularTotaisPorTitular } from '@/lib/finance-selectors';
+import { reportOperationFailure } from '@/lib/safe-log';
+import { persistCardWithLegacyRetry } from '@/lib/card-schema';
 
 export function useFinance(activeView: string) {
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +22,7 @@ export function useFinance(activeView: string) {
   const [config, setConfig] = useState<ConfigApp>({ titulares: [], cartoes: [] });
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [contasFixas, setContasFixas] = useState<ContaFixaConfig[]>([]);
+  const [contasFixasExcecoes, setContasFixasExcecoes] = useState<ContaFixaExcecao[]>([]);
   const [nota, setNota] = useState<string>('');
   const [lembretes, setLembretes] = useState<{id: number, texto: string, concluido: boolean, data?: string}[]>([]);
   const [avisosConfig, setAvisosConfig] = useState({
@@ -27,6 +35,14 @@ export function useFinance(activeView: string) {
   const [themeColor, setThemeColor] = useState<string>('#4361ee');
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const financialCompetencies = useMemo(
+    () => criarJanelaCompetencias(currentMonth, currentYear),
+    [currentMonth, currentYear]
+  );
+  const financialWindowKey = useMemo(
+    () => chaveJanelaFinanceira(financialCompetencies),
+    [financialCompetencies]
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState<Profile[]>([]);
@@ -34,26 +50,35 @@ export function useFinance(activeView: string) {
   const [userType, setUserType] = useState<'titular' | 'membro'>('membro');
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const isInitialLoad = useRef(true);
+  const loadedFinancialWindow = useRef<string | null>(null);
+  const fetchSequence = useRef(0);
+  const authenticatedUserId = useRef<string | null>(null);
 
-  // Restaura dados do cache comprimido com fflate instantaneamente
-  const restoreFromCache = useCallback((userId: string) => {
-    try {
-      const cached = getCompressedCache<any>(`fin_cache_${userId}`);
-      if (cached) {
-        if (cached.despesas) setDespesas(cached.despesas);
-        if (cached.receitas) setReceitas(cached.receitas);
-        if (cached.cartaoTransacoes) setCartaoTransacoes(cached.cartaoTransacoes);
-        if (cached.config) setConfig(cached.config);
-        if (cached.emprestimos) setEmprestimos(cached.emprestimos);
-        if (cached.contasFixas) setContasFixas(cached.contasFixas);
-        if (cached.nota !== undefined) setNota(cached.nota);
-        if (cached.lembretes) setLembretes(cached.lembretes);
-        if (cached.avisosConfig) setAvisosConfig(cached.avisosConfig);
-        setIsLoading(false);
-        return true;
-      }
-    } catch (e) {
-      console.warn('[Cache] Erro ao descompactar dados iniciais:', e);
+  // Após uma alteração administrativa local, nenhuma leitura anterior pode
+  // repor cadastros antigos; janelas futuras serão consultadas novamente.
+  const invalidateFinancialSnapshots = useCallback(() => {
+    fetchSequence.current++;
+    clearFinancialCache();
+    setIsLoading(false);
+  }, []);
+
+  // Restaura apenas snapshots desta aba; a rede atualiza os dados em seguida.
+  const restoreFromCache = useCallback((userId: string, windowKey: string) => {
+    const cached = getFinancialCache<any>(financialCacheKey(userId, windowKey));
+    if (cached) {
+      if (cached.despesas) setDespesas(cached.despesas);
+      if (cached.receitas) setReceitas(cached.receitas);
+      if (cached.cartaoTransacoes) setCartaoTransacoes(cached.cartaoTransacoes);
+      if (cached.config) setConfig(cached.config);
+      if (cached.emprestimos) setEmprestimos(cached.emprestimos);
+      if (cached.contasFixas) setContasFixas(cached.contasFixas);
+      if (cached.contasFixasExcecoes) setContasFixasExcecoes(cached.contasFixasExcecoes);
+      if (cached.nota !== undefined) setNota(cached.nota);
+      if (cached.lembretes) setLembretes(cached.lembretes);
+      if (cached.avisosConfig) setAvisosConfig(cached.avisosConfig);
+      loadedFinancialWindow.current = windowKey;
+      setIsLoading(false);
+      return true;
     }
     return false;
   }, []);
@@ -61,57 +86,156 @@ export function useFinance(activeView: string) {
   const fetchData = useCallback(async (userId?: string) => {
     const targetId = userId || user?.id;
     if (!targetId) return;
+    const requestId = ++fetchSequence.current;
+    const cacheKey = financialCacheKey(targetId, financialWindowKey);
 
-    if (isInitialLoad.current) {
-      // Se não havia cache carregado, mantém loading como true; se já havia, não bloqueia a tela
-      const cached = getCompressedCache<any>(`fin_cache_${targetId}`);
+    if (isInitialLoad.current || loadedFinancialWindow.current !== financialWindowKey) {
+      // Cada janela possui seu próprio snapshot. Uma navegação histórica nunca
+      // reutiliza silenciosamente o recorte de outro período.
+      const cached = getFinancialCache(cacheKey);
       if (!cached) {
         setIsLoading(true);
       }
     }
-    const now = new Date();
-    const sixMonthsAgo = format(addMonths(now, -6), 'yyyy-MM-01');
 
     try {
-      const results = await Promise.all([
-        supabase.from('despesas').select('*').gte('vencimento', sixMonthsAgo).order('id', { ascending: true }),
-        supabase.from('despesas').select('*').not('emprestimo_id', 'is', null).order('id', { ascending: true }),
-        supabase.from('despesas').select('*').not('conta_fixa_id', 'is', null).order('id', { ascending: true }),
-        supabase.from('receitas').select('*').gte('data_recebimento', sixMonthsAgo).order('id', { ascending: true }),
-        supabase.from('cartoes').select('*').gte('data_compra', sixMonthsAgo).order('id', { ascending: true }),
+      const [
+        periodDespesasData,
+        linkedDespesasData,
+        overdueDespesasData,
+        rawReceitasData,
+        rawCartaoTransacoesData,
+        titularesResult,
+        cartoesConfigResult,
+        notaResult,
+        emprestimosResult,
+        contasFixasResult,
+        contasFixasExcecoesData,
+      ] = await Promise.all([
+        carregarTodasPaginas<Despesa>((inicio, fim) => supabase
+          .from('despesas')
+          .select('*')
+          .in('competencia', financialCompetencies)
+          .order('id', { ascending: true })
+          .range(inicio, fim)),
+        carregarTodasPaginas<Despesa>((inicio, fim) => supabase
+          .from('despesas')
+          .select('*')
+          .or('emprestimo_id.not.is.null,conta_fixa_id.not.is.null')
+          .order('id', { ascending: true })
+          .range(inicio, fim)),
+        carregarTodasPaginas<Despesa>((inicio, fim) => supabase
+          .from('despesas')
+          .select('*')
+          .eq('status', 'Em aberto')
+          .lt('vencimento', format(new Date(), 'yyyy-MM-dd'))
+          .order('id', { ascending: true })
+          .range(inicio, fim)),
+        carregarTodasPaginas<Receita>((inicio, fim) => supabase
+          .from('receitas')
+          .select('*')
+          .in('competencia', financialCompetencies)
+          .order('id', { ascending: true })
+          .range(inicio, fim)),
+        carregarTodasPaginas<CartaoTransacao>((inicio, fim) => supabase
+          .from('cartoes')
+          .select('*')
+          .in('competencia', financialCompetencies)
+          .order('id', { ascending: true })
+          .range(inicio, fim)),
         supabase.from('titulares').select('*'),
         supabase.from('cartoes_config').select('*').order('id', { ascending: true }),
         supabase.from('table_notas').select('conteudo').maybeSingle(),
         supabase.from('emprestimos').select('*').order('id', { ascending: true }),
-        supabase.from('contas_fixas').select('*').order('id', { ascending: true })
+        supabase.from('contas_fixas').select('*').order('id', { ascending: true }),
+        // Consulta opcional para manter compatibilidade enquanto o remoto ainda
+        // não recebeu a migration de comandos por ocorrência.
+        carregarTodasPaginas<ContaFixaExcecao>((inicio, fim) => supabase
+          .from('contas_fixas_excecoes')
+          .select('*')
+          .order('id', { ascending: true })
+          .range(inicio, fim)).catch(() => [] as ContaFixaExcecao[])
       ]);
 
-      const errors = results.filter(r => r.error).map(r => r.error?.message);
+      const requiredResults = [
+        titularesResult,
+        cartoesConfigResult,
+        notaResult,
+        emprestimosResult,
+        contasFixasResult,
+      ];
+      const errors = requiredResults.filter(result => result.error).map(result => result.error?.message);
       if (errors.length > 0) {
         throw new Error(errors.join(' | '));
       }
 
+      // Descarta respostas antigas quando o usuário navega rapidamente entre períodos.
+      if (requestId !== fetchSequence.current) return;
+
       // Merge and deduplicate despesas
       const rawDespesas = [
-        ...(results[0].data || []), 
-        ...(results[1].data || []),
-        ...(results[2].data || [])
+        ...periodDespesasData,
+        ...linkedDespesasData,
+        ...overdueDespesasData,
       ];
       const uniqueDespesasMap = new Map();
       rawDespesas.forEach(d => uniqueDespesasMap.set(d.id, d));
-      const despesasData = Array.from(uniqueDespesasMap.values());
+      const mergedDespesasData = Array.from(uniqueDespesasMap.values()) as Despesa[];
 
-      const receitasData = results[3].data;
-      const cartaoTransacoesData = results[4].data;
-      const titularesData = results[5].data;
-      const cartoesConfigData = results[6].data;
-      const notaData = results[7].data as any;
-      const emprestimosData = results[8].data;
-      const contasFixasData = results[9].data;
+      const titularesData = titularesResult.data;
+      const cartoesConfigData = cartoesConfigResult.data;
+      const notaData = notaResult.data as any;
+      const emprestimosData = ((emprestimosResult.data || []) as Emprestimo[]).map(item => ({
+        ...item,
+        valor_total: item.valor_total === undefined ? undefined : normalizarDinheiro(item.valor_total),
+        valor_parcela: normalizarDinheiro(item.valor_parcela),
+      }));
+      const contasFixasData = ((contasFixasResult.data || []) as ContaFixaConfig[]).map(item => ({
+        ...item,
+        valor_mensal: normalizarDinheiro(item.valor_mensal),
+      }));
+      const ignoredOccurrenceKeys = new Set(
+        contasFixasExcecoesData.map(item => `${Number(item.conta_fixa_id)}:${Number(item.ocorrencia)}`)
+      );
+      const contasFixasById = new Map(contasFixasData.map(item => [Number(item.id), item]));
+
+      const despesasData = mergedDespesasData
+        .map(item => ({
+          ...item,
+          valor: normalizarDinheiro(item.valor),
+          ...(item.conta_fixa_id
+            ? { conta_fixa_ocorrencia: Number(item.parcela_atual) }
+            : {}),
+        }))
+        .filter(item => !item.conta_fixa_id || !ignoredOccurrenceKeys.has(
+          `${Number(item.conta_fixa_id)}:${Number(item.conta_fixa_ocorrencia)}`
+        ));
+      const receitasData = rawReceitasData
+        .map(item => {
+          const normalizedItem = { ...item, valor: normalizarDinheiro(item.valor) };
+          if (!normalizedItem.conta_fixa_id) return normalizedItem;
+          const master = contasFixasById.get(Number(normalizedItem.conta_fixa_id));
+          const occurrence = master
+            ? resolverOcorrenciaContaFixa(master.competencia_inicial, normalizedItem.competencia)
+            : null;
+          return occurrence ? { ...normalizedItem, conta_fixa_ocorrencia: occurrence } : normalizedItem;
+        })
+        .filter(item => !item.conta_fixa_id || !item.conta_fixa_ocorrencia || !ignoredOccurrenceKeys.has(
+          `${Number(item.conta_fixa_id)}:${Number(item.conta_fixa_ocorrencia)}`
+        ));
+      const cartaoTransacoesData = rawCartaoTransacoesData
+        .map(item => ({ ...item, valor: normalizarDinheiro(item.valor) }))
+        .filter(item =>
+          !item.conta_fixa_id
+          || !item.conta_fixa_parcela
+          || !ignoredOccurrenceKeys.has(`${Number(item.conta_fixa_id)}:${Number(item.conta_fixa_parcela)}`)
+        );
 
       const formattedDespesas = (despesasData || []).map(d => ({
         ...d,
-        isSummary: d.descricao.startsWith('Fatura ')
+        // Fallback somente de leitura enquanto o remoto ainda não recebeu o
+        // backfill estrutural de faturas da migration 60000.
+        isSummary: Boolean(d.cartao_vencimento_id) || d.descricao.startsWith('Fatura ')
       }));
 
       let parsedNotaStr = '';
@@ -123,6 +247,7 @@ export function useFinance(activeView: string) {
       }
       if (receitasData) setReceitas(receitasData);
       if (cartaoTransacoesData) setCartaoTransacoes(cartaoTransacoesData);
+      setContasFixasExcecoes(contasFixasExcecoesData);
       if (notaData) {
         const raw = notaData?.conteudo || '';
         try {
@@ -154,50 +279,10 @@ export function useFinance(activeView: string) {
       }
       if (emprestimosData) setEmprestimos(emprestimosData);
 
-      // Filtrar e expurgar contas_fixas parceladas que já foram concluídas E tiveram a ÚLTIMA parcela efetivamente paga
-      const activeContasFixas: ContaFixaConfig[] = [];
-      const finishedContaFixaIds: number[] = [];
-
-      (contasFixasData || []).forEach((cf: any) => {
-        const total = Number(cf.total_parcelas || 0);
-        if (total > 0) {
-          let lastPaid = false;
-          if (cf.tipo === 'receita') {
-            lastPaid = (receitasData || []).some((r: any) => 
-              Number(r.conta_fixa_id) === Number(cf.id) && 
-              Number(r.parcela_atual) >= total && 
-              r.status === 'Recebido'
-            );
-          } else if (cf.cartao_id) {
-            lastPaid = (cartaoTransacoesData || []).some((ct: any) => 
-              Number(ct.cartao_id) === Number(cf.cartao_id) && 
-              ct.estabelecimento === cf.descricao && 
-              Number(ct.parcela_atual) >= total
-            );
-          } else {
-            lastPaid = (despesasData || []).some((d: any) => 
-              Number(d.conta_fixa_id) === Number(cf.id) && 
-              Number(d.parcela_atual) >= total && 
-              d.status === 'Pago'
-            );
-          }
-
-          if (lastPaid) {
-            finishedContaFixaIds.push(cf.id);
-            return; // Concluída e paga! Não inclui nas ativas
-          }
-        }
-        activeContasFixas.push(cf);
-      });
-
-      // Exclui automaticamente do servidor as contas fixas parceladas que já finalizaram e foram pagas
-      if (finishedContaFixaIds.length > 0) {
-        Promise.all(finishedContaFixaIds.map(id => deletarContaFixaConfig(id))).catch(err => {
-          console.error('Erro ao expurgar contas fixas finalizadas no servidor:', err);
-        });
-      }
-
-      setContasFixas(activeContasFixas);
+      // O carregamento é estritamente de leitura: mestres concluídos permanecem
+      // disponíveis para auditoria e deixam de projetar após total_parcelas.
+      const contasFixasPreservadas = (contasFixasData || []) as ContaFixaConfig[];
+      setContasFixas(contasFixasPreservadas);
 
       const normalizedCartoes: CartaoConfig[] = (cartoesConfigData || []).map((c: any) => {
         const rawFinal = c.final ?? c['FINAL'] ?? c['Final'] ?? c.final_cartao ?? c.ultimos_digitos ?? c.numero_final;
@@ -207,6 +292,9 @@ export function useFinance(activeView: string) {
         return {
           ...c,
           id: Number(c.id),
+          limite: c.limite === undefined || c.limite === null
+            ? undefined
+            : normalizarDinheiro(c.limite),
           color: rawColor ? String(rawColor).trim() : undefined,
           icone: rawIcone ? String(rawIcone).trim() : undefined,
           final: (rawFinal !== undefined && rawFinal !== null && String(rawFinal).trim() !== '') ? String(rawFinal).trim() : undefined
@@ -219,36 +307,38 @@ export function useFinance(activeView: string) {
       };
       setConfig(configData);
 
-      // Salva snapshot comprimido em alta velocidade com fflate
-      try {
-        setCompressedCache(`fin_cache_${targetId}`, {
+      // Mantém somente as últimas janelas em memória nesta aba.
+      setFinancialCache(cacheKey, {
           despesas: formattedDespesas,
           receitas: receitasData || [],
           cartaoTransacoes: cartaoTransacoesData || [],
           config: configData,
           emprestimos: emprestimosData || [],
-          contasFixas: activeContasFixas,
+          contasFixas: contasFixasPreservadas,
+          contasFixasExcecoes: contasFixasExcecoesData,
           nota: parsedNotaStr,
           lembretes: parsedLembretesList,
           avisosConfig: parsedAvisosList
-        });
-      } catch (cacheErr) {
-        console.warn('[Cache] Erro ao gravar snapshot comprimido:', cacheErr);
-      }
+      });
+      loadedFinancialWindow.current = financialWindowKey;
 
     } catch (error: any) {
-      console.error('Error fetching data from Supabase:', error);
+      reportOperationFailure('finance_load', error);
       const msg = typeof error === 'object' ? (error.message || JSON.stringify(error)) : String(error);
       alert(`Erro ao carregar dados: ${msg}`);
     } finally {
-      setIsLoading(false);
-      isInitialLoad.current = false;
+      if (requestId === fetchSequence.current) {
+        setIsLoading(false);
+        isInitialLoad.current = false;
+      }
     }
-  }, [user?.id]);
+  }, [financialCompetencies, financialWindowKey, user?.id]);
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return;
+    const profileUserId = user.id;
     const { data: myProfile, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    if (authenticatedUserId.current !== profileUserId) return;
     
     if (myProfile) {
       setUserProfile(myProfile);
@@ -293,6 +383,7 @@ export function useFinance(activeView: string) {
         .select('*')
         .eq('family_id', myProfile.family_id)
         .order('nome', { ascending: true });
+      if (authenticatedUserId.current !== profileUserId) return;
       if (members) setFamilyMembers(members);
     } else {
       // Se não houver perfil mas o usuário estiver logado, cria um registro padrão
@@ -303,6 +394,7 @@ export function useFinance(activeView: string) {
         tipo: 'titular'
       }).select().single();
 
+      if (authenticatedUserId.current !== profileUserId) return;
       if (createdProfile) {
         setUserProfile(createdProfile);
         setFamilyId(createdProfile.family_id);
@@ -313,21 +405,36 @@ export function useFinance(activeView: string) {
   }, [user?.id]);
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user?.id) return;
+    if (!user?.id) throw new Error('Sessão indisponível para atualizar o perfil.');
     const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
-    if (!error) {
-      // Sync with titulares if name matches
-      const currentName = updates.nome || userName;
-      if (updates.foto && currentName) {
-        await supabase.from('titulares')
-          .update({ foto: updates.foto })
-          .eq('nome', currentName)
-          .eq('user_id', user.id);
-      }
-      await fetchProfile();
-      await fetchData(); // Refresh titulares in config
+    if (error) throw error;
+
+    // A sincronização da foto é complementar: o perfil principal já foi salvo.
+    const currentName = updates.nome || userName;
+    let photoSynced = false;
+    if (updates.foto && currentName) {
+      const { error: syncError } = await supabase.from('titulares')
+        .update({ foto: updates.foto })
+        .eq('nome', currentName)
+        .eq('user_id', user.id);
+      if (syncError) reportOperationFailure('profile_photo_sync', syncError);
+      else photoSynced = true;
     }
-    return { error };
+
+    await fetchProfile();
+    if (updates.family_id !== undefined && updates.family_id !== familyId) {
+      await fetchData();
+      return;
+    }
+    if (photoSynced) {
+      invalidateFinancialSnapshots();
+      setConfig(prev => ({
+        ...prev,
+        titulares: prev.titulares.map(t => t.nome === currentName && t.user_id === user.id
+          ? { ...t, foto: updates.foto }
+          : t)
+      }));
+    }
   };
 
   const inviteMember = async (email: string) => {
@@ -346,28 +453,58 @@ export function useFinance(activeView: string) {
     return { success: true };
   };
 
-  // Carregamento de dados disparado por mudanças no usuário (com restauração de cache imediata)
+  // Dados financeiros acompanham a janela selecionada; metadados do perfil
+  // continuam vinculados apenas à sessão.
   useEffect(() => {
     if (user?.id) {
-      restoreFromCache(user.id);
+      restoreFromCache(user.id, financialWindowKey);
       fetchData(user.id);
-      fetchProfile();
     }
-  }, [user?.id, fetchData, fetchProfile, restoreFromCache]);
+  }, [user?.id, fetchData, financialWindowKey, restoreFromCache]);
+
+  useEffect(() => {
+    if (user?.id) fetchProfile();
+  }, [user?.id, fetchProfile]);
 
   // Auth listener - roda apenas uma vez para configurar o ouvinte
   useEffect(() => {
+    purgeLegacyFinancialCache();
+    const discardSessionData = () => {
+      clearFinancialCache();
+      loadedFinancialWindow.current = null;
+      fetchSequence.current++;
+      isInitialLoad.current = true;
+      setDespesas([]);
+      setReceitas([]);
+      setCartaoTransacoes([]);
+      setConfig({ titulares: [], cartoes: [] });
+      setEmprestimos([]);
+      setContasFixas([]);
+      setContasFixasExcecoes([]);
+      setNota('');
+      setLembretes([]);
+      setAvisosConfig({ vencidas: true, hoje: true, radar: false });
+      setFamilyId(null);
+      setFamilyMembers([]);
+      setUserName(null);
+      setUserType('membro');
+      setUserProfile(null);
+      setThemeMode('light');
+      setThemeColor('#4361ee');
+    };
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser?.id) {
-          restoreFromCache(currentUser.id);
+        if (authenticatedUserId.current && authenticatedUserId.current !== currentUser?.id) {
+          discardSessionData();
+          setIsLoading(Boolean(currentUser));
         }
+        authenticatedUserId.current = currentUser?.id ?? null;
+        setUser(currentUser);
         if (!currentUser) setIsLoading(false);
       })
       .catch(async (error) => {
-        console.error('Error getting session:', error);
+        reportOperationFailure('session_read', error);
         if (error.message?.includes('refresh_token_not_found')) {
           await supabase.auth.signOut();
         }
@@ -376,23 +513,20 @@ export function useFinance(activeView: string) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
+      if (event === 'SIGNED_OUT' || (authenticatedUserId.current && authenticatedUserId.current !== currentUser?.id)) {
+        discardSessionData();
+        setIsLoading(event !== 'SIGNED_OUT');
+      }
+      authenticatedUserId.current = currentUser?.id ?? null;
       setUser(currentUser);
       
       if (event === 'SIGNED_OUT') {
-        if (user?.id) clearUserCompressedCache(user.id);
-        setDespesas([]);
-        setReceitas([]);
-        setCartaoTransacoes([]);
-        setConfig({ titulares: [], cartoes: [] });
-        setNota('');
-        setFamilyId(null);
         setIsLoading(false);
-        isInitialLoad.current = true;
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [restoreFromCache, user?.id]);
+  }, []);
 
   // On mount: apply a neutral default until fetchProfile loads the user's preference
   useEffect(() => {
@@ -423,7 +557,7 @@ export function useFinance(activeView: string) {
       });
       await supabase.from('table_notas').upsert({ conteudo: payload });
     } catch (error) {
-      console.error('Erro ao sincronizar configurações:', error);
+      reportOperationFailure('settings_sync', error);
     }
   };
 
@@ -520,13 +654,13 @@ export function useFinance(activeView: string) {
 
   // CRUD Operations with Supabase sync
   const addDespesa = async (d: Omit<Despesa, 'id'>) => {
-    if (!user) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousDespesas = despesas;
     const previousCartaoTransacoes = cartaoTransacoes;
 
     try {
       const totalParcelas = Number(d.parcela_total || 1);
-      const valorParcela = Number(d.valor || 0);
+      const valorParcela = normalizarDinheiro(d.valor);
       const dataStr = d.vencimento || format(new Date(), 'yyyy-MM-dd');
       const dataInicial = parseISO(dataStr);
       const diaOriginal = getDate(dataInicial);
@@ -617,14 +751,15 @@ export function useFinance(activeView: string) {
       }
       await fetchData();
     } catch (error) {
-      console.error('Error adding despesa (rolling back optimistic update):', error);
+      reportOperationFailure('expense_create', error);
       setDespesas(previousDespesas);
       setCartaoTransacoes(previousCartaoTransacoes);
+      throw error;
     }
   };
 
   const addContaFixa = async (c: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousContas = contasFixas;
     try {
       const tempContaFixa: ContaFixaConfig = {
@@ -632,7 +767,7 @@ export function useFinance(activeView: string) {
         user_id: user.id,
         family_id: familyId,
         descricao: c.descricao,
-        valor_mensal: Number(c.valor_mensal || 0),
+        valor_mensal: normalizarDinheiro(c.valor_mensal),
         total_parcelas: c.total_parcelas,
         parcela_atual: c.parcela_atual || 1,
         data_inicio: c.data_inicio,
@@ -648,40 +783,74 @@ export function useFinance(activeView: string) {
       await salvarContaFixaConfig(c, user.id, familyId);
       await fetchData();
     } catch (error) {
-      console.error('Error adding conta fixa (rolling back optimistic update):', error);
+      reportOperationFailure('recurrence_create', error);
       setContasFixas(previousContas);
+      throw error;
     }
   };
 
   const updateContaFixa = async (id: number, updates: Partial<ContaFixaConfig>) => {
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousContas = contasFixas;
+    const normalizedUpdates = updates.valor_mensal === undefined
+      ? updates
+      : { ...updates, valor_mensal: normalizarDinheiro(updates.valor_mensal) };
     try {
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
-      setContasFixas(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-      await salvarContaFixaConfig({ id, ...updates }, user?.id!, familyId!);
+      setContasFixas(prev => prev.map(c => c.id === id ? { ...c, ...normalizedUpdates } : c));
+      await salvarContaFixaConfig({ id, ...normalizedUpdates }, user.id, familyId);
       await fetchData();
     } catch (error) {
-      console.error('Error updating conta fixa (rolling back optimistic update):', error);
+      reportOperationFailure('recurrence_update', error);
       setContasFixas(previousContas);
+      throw error;
     }
   };
 
-  const deleteContaFixa = async (id: number) => {
+  const endContaFixa = async (id: number) => {
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousContas = contasFixas;
     try {
-      // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
-      setContasFixas(prev => prev.filter(c => c.id !== id));
-      await deletarContaFixaConfig(id);
+      setContasFixas(prev => prev.map(c => c.id === id
+        ? { ...c, status: 'cancelado', encerrada_em: new Date().toISOString(), encerrada_por: user.id }
+        : c));
+      await encerrarContaFixaConfig(id, 'cancelado');
       await fetchData();
     } catch (error) {
-      console.error('Error deleting conta fixa (rolling back optimistic update):', error);
+      reportOperationFailure('recurrence_end', error);
       setContasFixas(previousContas);
+      throw error;
+    }
+  };
+
+  const endContaFixaFromOccurrence = async (id: number, occurrence: number) => {
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
+    const previousContas = contasFixas;
+    try {
+      setContasFixas(prev => prev.map(c => c.id === id
+        ? {
+            ...c,
+            status: 'cancelado',
+            encerrada_em: new Date().toISOString(),
+            encerrada_por: user.id,
+            encerrada_a_partir_da_ocorrencia: occurrence
+          }
+        : c));
+      await encerrarContaFixaDesde(id, occurrence);
+      await fetchData();
+    } catch (error) {
+      reportOperationFailure('recurrence_end_from_occurrence', error);
+      setContasFixas(previousContas);
+      throw error;
     }
   };
 
   const updateDespesa = async (id: number, updates: Partial<Despesa>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousDespesas = despesas;
+    const normalizedUpdates = updates.valor === undefined
+      ? updates
+      : { ...updates, valor: normalizarDinheiro(updates.valor) };
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
@@ -695,19 +864,19 @@ export function useFinance(activeView: string) {
         // Ao pagar/atualizar um item virtual, insere-o imediatamente no estado local
         setDespesas(prev => [
           ...prev.filter(d => !(item.conta_fixa_id && Number(d.conta_fixa_id) === Number(item.conta_fixa_id) && Number(d.parcela_atual) === Number(item.parcela_atual))),
-          { ...item, ...updates, isSummary: false, id: id } as Despesa
+          { ...item, ...normalizedUpdates, isSummary: false, id: id } as Despesa
         ]);
-      } else if (item.emprestimo_id && updates.status === 'Em aberto') {
+      } else if (item.emprestimo_id && normalizedUpdates.status === 'Em aberto') {
         // Ao reabrir empréstimo físico, remove do banco/estado físico para voltar a ser projetado virtualmente
         setDespesas(prev => prev.filter(d => d.id !== id));
       } else {
         // Item físico existente: altera status instantaneamente
-        setDespesas(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+        setDespesas(prev => prev.map(d => d.id === id ? { ...d, ...normalizedUpdates } : d));
       }
 
       // REGRAS ESPECIAIS PARA EMPRÉSTIMOS NO BANCO
       if (item.emprestimo_id) {
-        if (!isVirtual && updates.status === 'Em aberto') {
+        if (!isVirtual && normalizedUpdates.status === 'Em aberto') {
           const { error } = await supabase.from('despesas').delete().eq('id', id);
           if (error) throw error;
           await fetchData();
@@ -716,48 +885,54 @@ export function useFinance(activeView: string) {
       }
 
       if (isVirtual) {
-        const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
+        const { id: _, ...dadosParaSalvar } = { ...item, ...normalizedUpdates };
         await salvarDespesa(dadosParaSalvar, user.id, familyId);
       } else {
-        await salvarDespesa({ ...updates, id }, user.id, familyId);
-      }
-
-      // Verificação de quitação da última parcela de conta fixa parcelada
-      const finalContaFixaId = item.conta_fixa_id || (updates as any).conta_fixa_id;
-      if (finalContaFixaId) {
-        const totalParcelas = Number(updates.parcela_total !== undefined ? updates.parcela_total : item.parcela_total || 0);
-        const parcelaAtual = Number(updates.parcela_atual !== undefined ? updates.parcela_atual : item.parcela_atual || 0);
-        const finalStatus = updates.status !== undefined ? updates.status : item.status;
-
-        // Somente exclui a conta fixa quando a última parcela for efetivamente marcada como Pago
-        if (totalParcelas > 0 && parcelaAtual >= totalParcelas && finalStatus === 'Pago') {
-          setContasFixas(prev => prev.filter(c => c.id !== finalContaFixaId));
-          await deletarContaFixaConfig(finalContaFixaId);
-        }
+        await salvarDespesa({ ...normalizedUpdates, id }, user.id, familyId);
       }
 
       await fetchData();
     } catch (error: any) {
-      console.error('Error updating despesa (rolling back optimistic update):', error);
+      reportOperationFailure('expense_update', error);
       setDespesas(previousDespesas);
+      throw error;
     }
   };
 
   const deleteDespesa = async (id: number) => {
-    if (!user) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousDespesas = despesas;
     const previousContas = contasFixas;
     const previousEmprestimos = emprestimos;
+    const previousExceptions = contasFixasExcecoes;
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
         ? consolidatedDespesas.find(d => d.id === id) 
         : despesas.find(d => d.id === id);
 
+      if (!item) throw new Error('O lançamento informado não foi encontrado.');
+
+      if (item.conta_fixa_id) {
+        const occurrence = Number(item.conta_fixa_ocorrencia || item.parcela_atual);
+        setDespesas(prev => prev.filter(d => d.id !== id));
+        setContasFixasExcecoes(prev => [...prev, {
+          id: -Date.now(),
+          family_id: familyId,
+          conta_fixa_id: Number(item.conta_fixa_id),
+          ocorrencia: occurrence,
+          acao: 'ignorar',
+          created_by: user.id
+        }]);
+        await ignorarOcorrenciaContaFixa(Number(item.conta_fixa_id), occurrence);
+        await fetchData();
+        return;
+      }
+
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setDespesas(prev => prev.filter(d => d.id !== id));
 
-      if (isVirtual && item) {
+      if (isVirtual) {
         // Se for um item virtual avulso da lista de despesas, NÃO exclui a conta fixa mestre!
         // A exclusão da conta fixa mestre deve ocorrer exclusivamente pela aba/modal de Contas Fixas
       } else {
@@ -768,55 +943,92 @@ export function useFinance(activeView: string) {
       }
       await fetchData();
     } catch (error) {
-      console.error('Error deleting despesa (rolling back optimistic update):', error);
+      reportOperationFailure('expense_delete', error);
       setDespesas(previousDespesas);
       setContasFixas(previousContas);
       setEmprestimos(previousEmprestimos);
+      setContasFixasExcecoes(previousExceptions);
+      throw error;
     }
   };
 
   const deleteCartaoTransacao = async (id: number) => {
-    if (!user) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousTransacoes = cartaoTransacoes;
-    const previousContas = contasFixas;
+    const previousExceptions = contasFixasExcecoes;
     try {
       const isVirtual = id < 0;
-      const item = isVirtual 
-        ? allProjectedCartaoTransacoes.find(c => c.id === id) 
+      const item = isVirtual
+        ? allProjectedCartaoTransacoes.find(c => c.id === id)
         : cartaoTransacoes.find(c => c.id === id);
+
+      if (!item) throw new Error('A compra informada não foi encontrada.');
+
+      if (item.conta_fixa_id && item.conta_fixa_parcela) {
+        setCartaoTransacoes(prev => prev.filter(c => c.id !== id));
+        setContasFixasExcecoes(prev => [...prev, {
+          id: -Date.now(),
+          family_id: familyId,
+          conta_fixa_id: Number(item.conta_fixa_id),
+          ocorrencia: Number(item.conta_fixa_parcela),
+          acao: 'ignorar',
+          created_by: user.id
+        }]);
+        await ignorarOcorrenciaContaFixa(Number(item.conta_fixa_id), Number(item.conta_fixa_parcela));
+        await fetchData();
+        return;
+      }
+
+      if (isVirtual) {
+        throw new Error('A ocorrência projetada não possui uma recorrência válida.');
+      }
 
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setCartaoTransacoes(prev => prev.filter(c => c.id !== id));
 
-      if (isVirtual && (item as any)?.conta_fixa_id) {
-        setContasFixas(prev => prev.filter(c => c.id !== (item as any).conta_fixa_id));
-        await deletarContaFixaConfig((item as any).conta_fixa_id);
-      } else {
-        const { data: itemDb } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
-        const { error } = await supabase.from('cartoes').delete().eq('id', id);
-        if (error) throw error;
-        if (itemDb) await consolidarFaturas(itemDb.competencia, user.id);
-      }
+      const { data: itemDb } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
+      const { error } = await supabase.from('cartoes').delete().eq('id', id);
+      if (error) throw error;
+      if (itemDb) await consolidarFaturas(itemDb.competencia, user.id);
       await fetchData();
     } catch (error) {
-      console.error('Error deleting cartao transacao (rolling back optimistic update):', error);
+      reportOperationFailure('card_transaction_delete', error);
       setCartaoTransacoes(previousTransacoes);
-      setContasFixas(previousContas);
+      setContasFixasExcecoes(previousExceptions);
+      throw error;
     }
   };
 
   const updateCartaoTransacao = async (id: number, updates: Partial<CartaoTransacao>) => {
-    if (!user) return;
+    if (!user) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousTransacoes = cartaoTransacoes;
+    const normalizedUpdates = updates.valor === undefined
+      ? updates
+      : { ...updates, valor: normalizarDinheiro(updates.valor) };
     try {
+      const isVirtual = id < 0;
+      const projectedItem = isVirtual
+        ? allProjectedCartaoTransacoes.find(c => c.id === id)
+        : undefined;
+
+      if (isVirtual) {
+        if (!projectedItem?.conta_fixa_id) {
+          throw new Error('A ocorrência projetada não possui uma recorrência válida.');
+        }
+
+        await materializarOcorrenciaCartao({ ...projectedItem, ...normalizedUpdates });
+        await consolidarFaturas(normalizedUpdates.competencia || projectedItem.competencia, user.id);
+        await fetchData();
+        return;
+      }
+
       // Atualização otimista imediata
-      setCartaoTransacoes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+      setCartaoTransacoes(prev => prev.map(c => c.id === id ? { ...c, ...normalizedUpdates } : c));
 
       // 1. Obter competência atual para recalcular faturas se necessário
       const { data: item } = await supabase.from('cartoes').select('competencia').eq('id', id).single();
       
-      const payload: any = { ...updates };
-      if (payload.valor !== undefined) payload.valor = Number(payload.valor);
+      const payload: any = { ...normalizedUpdates };
 
       const { error } = await supabase.from('cartoes').update(payload).eq('id', id);
       if (error) throw error;
@@ -825,23 +1037,24 @@ export function useFinance(activeView: string) {
       if (item?.competencia) await consolidarFaturas(item.competencia, user.id);
       
       // 3. Se a competência mudou, consolidar a nova também
-      if (updates.competencia && updates.competencia !== item?.competencia) {
-        await consolidarFaturas(updates.competencia, user.id);
+      if (normalizedUpdates.competencia && normalizedUpdates.competencia !== item?.competencia) {
+        await consolidarFaturas(normalizedUpdates.competencia, user.id);
       }
       
       await fetchData();
     } catch (error) {
-      console.error('Error updating cartao transacao:', error);
+      reportOperationFailure('card_transaction_update', error);
       setCartaoTransacoes(previousTransacoes);
+      throw error;
     }
   };
 
   const addReceita = async (r: Omit<Receita, 'id'>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousReceitas = receitas;
     try {
       const totalParcelas = Number(r.parcela_total || 1);
-      const valorParcela = Number(r.valor || 0);
+      const valorParcela = normalizarDinheiro(r.valor);
       const dataStr = r.data_recebimento || format(new Date(), 'yyyy-MM-dd');
       const dataInicial = parseISO(dataStr);
       const diaOriginal = getDate(dataInicial);
@@ -856,8 +1069,9 @@ export function useFinance(activeView: string) {
           diaOriginal,
           false
         );
-        const comp = calcularCompetenciaReceita(dataVenc);
-        dataVenc = ajustarDataReceita(dataVenc);
+        const agendamento = resolverAgendamentoReceita(dataVenc);
+        const comp = agendamento.competencia;
+        dataVenc = agendamento.dataRecebimento;
 
         newReceitaItems.push({
           id: -Date.now() - i,
@@ -880,14 +1094,18 @@ export function useFinance(activeView: string) {
       await salvarReceita(r, user.id, familyId);
       await fetchData();
     } catch (error) {
-      console.error('Error adding receita (rolling back optimistic update):', error);
+      reportOperationFailure('income_create', error);
       setReceitas(previousReceitas);
+      throw error;
     }
   };
 
   const updateReceita = async (id: number, updates: Partial<Receita>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousReceitas = receitas;
+    const normalizedUpdates = updates.valor === undefined
+      ? updates
+      : { ...updates, valor: normalizarDinheiro(updates.valor) };
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
@@ -900,68 +1118,80 @@ export function useFinance(activeView: string) {
       if (isVirtual) {
         setReceitas(prev => [
           ...prev.filter(r => !(item.conta_fixa_id && Number(r.conta_fixa_id) === Number(item.conta_fixa_id) && (r.competencia === item.competencia || Number(r.parcela_atual) === Number(item.parcela_atual)))),
-          { ...item, ...updates, id: id } as Receita
+          { ...item, ...normalizedUpdates, id: id } as Receita
         ]);
       } else {
-        setReceitas(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+        setReceitas(prev => prev.map(r => r.id === id ? { ...r, ...normalizedUpdates } : r));
       }
 
       if (isVirtual) {
-        const { id: _, ...dadosParaSalvar } = { ...item, ...updates };
+        const { id: _, ...dadosParaSalvar } = { ...item, ...normalizedUpdates };
         await salvarReceita(dadosParaSalvar, user.id, familyId);
       } else {
-        await salvarReceita({ ...updates, id }, user.id, familyId);
+        await salvarReceita({ ...normalizedUpdates, id }, user.id, familyId);
       }
       
-      // Verificação de quitação da última parcela de conta fixa parcelada (receita)
-      const finalContaFixaId = item.conta_fixa_id || (updates as any).conta_fixa_id;
-      if (finalContaFixaId) {
-        const totalParcelas = Number(updates.parcela_total !== undefined ? updates.parcela_total : item.parcela_total || 0);
-        const parcelaAtual = Number(updates.parcela_atual !== undefined ? updates.parcela_atual : item.parcela_atual || 0);
-        const finalStatus = updates.status !== undefined ? updates.status : item.status;
-
-        if (totalParcelas > 0 && parcelaAtual >= totalParcelas && finalStatus === 'Recebido') {
-          setContasFixas(prev => prev.filter(c => c.id !== finalContaFixaId));
-          await deletarContaFixaConfig(finalContaFixaId);
-        }
-      }
-
       await fetchData();
     } catch (error) {
-      console.error('Error updating receita (rolling back optimistic update):', error);
+      reportOperationFailure('income_update', error);
       setReceitas(previousReceitas);
+      throw error;
     }
   };
 
   const deleteReceita = async (id: number) => {
-    if (!user) return;
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousReceitas = receitas;
     const previousContas = contasFixas;
+    const previousExceptions = contasFixasExcecoes;
     try {
       const isVirtual = id < 0;
       const item = isVirtual 
         ? consolidatedReceitas.find(r => r.id === id) 
         : receitas.find(r => r.id === id);
 
+      if (!item) throw new Error('A receita informada não foi encontrada.');
+
+      if (item.conta_fixa_id) {
+        const master = contasFixas.find(c => Number(c.id) === Number(item.conta_fixa_id));
+        const occurrence = Number(
+          item.conta_fixa_ocorrencia
+          || (master ? resolverOcorrenciaContaFixa(master.competencia_inicial, item.competencia) : null)
+          || item.parcela_atual
+        );
+        setReceitas(prev => prev.filter(r => r.id !== id));
+        setContasFixasExcecoes(prev => [...prev, {
+          id: -Date.now(),
+          family_id: familyId,
+          conta_fixa_id: Number(item.conta_fixa_id),
+          ocorrencia: occurrence,
+          acao: 'ignorar',
+          created_by: user.id
+        }]);
+        await ignorarOcorrenciaContaFixa(Number(item.conta_fixa_id), occurrence);
+        await fetchData();
+        return;
+      }
+
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
       setReceitas(prev => prev.filter(r => r.id !== id));
 
-      if (isVirtual && item?.conta_fixa_id) {
-        // Não exclui a conta fixa mestre ao remover visualização avulsa
-      } else {
+      if (!isVirtual) {
         const { error } = await supabase.from('receitas').delete().eq('id', id);
         if (error) throw error;
       }
       await fetchData();
     } catch (error) {
-      console.error('Error deleting receita (rolling back optimistic update):', error);
+      reportOperationFailure('income_delete', error);
       setReceitas(previousReceitas);
       setContasFixas(previousContas);
+      setContasFixasExcecoes(previousExceptions);
+      throw error;
     }
   };
 
   const addTitular = async (t: Omit<Titular, 'id'>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão indisponível para cadastrar o titular.');
     const { data, error } = await supabase.from('titulares').insert([{
       nome: t.nome,
       foto: t.foto,
@@ -970,13 +1200,12 @@ export function useFinance(activeView: string) {
     }]).select();
     
     if (error) {
-      console.error('Error adding titular:', error);
-      return;
+      reportOperationFailure('holder_create', error);
+      throw error;
     }
-    
-    if (data) {
-      setConfig(prev => ({ ...prev, titulares: [...prev.titulares, data[0]] }));
-    }
+
+    if (!data?.[0]) throw new Error('O titular não foi retornado após a gravação.');
+    setConfig(prev => ({ ...prev, titulares: [...prev.titulares, data[0]] }));
   };
 
   const deleteTitular = async (id: number) => {
@@ -986,82 +1215,53 @@ export function useFinance(activeView: string) {
       setConfig(prev => ({ ...prev, titulares: prev.titulares.filter(t => t.id !== id) }));
       const { error } = await supabase.from('titulares').delete().eq('id', id);
       if (error) throw error;
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting titular (rolling back optimistic update):', error);
+      invalidateFinancialSnapshots();
+      setConfig(prev => ({ ...prev, titulares: prev.titulares.filter(t => t.id !== id) }));
+    } catch (error: any) {
+      reportOperationFailure('holder_delete', error);
       setConfig(previousConfig);
+      if (error?.code === '23503') {
+        throw new Error('Este titular possui cartões ou lançamentos vinculados e precisa ser mantido para preservar o histórico.');
+      }
+      throw new Error('Não foi possível excluir o titular. Tente novamente.');
     }
   };
 
   const updateTitular = async (id: number, updated: Partial<Titular>) => {
-    if (!user) return;
+    if (!user) throw new Error('Sessão indisponível para atualizar o titular.');
     const { error } = await supabase.from('titulares').update(updated).eq('id', id);
-    if (!error) {
-       // Sync with profile if name matches
-       const titular = config.titulares.find(t => t.id === id);
-       const tName = updated.nome || titular?.nome;
-       if (updated.foto && tName === userName && user?.id) {
-         await supabase.from('profiles')
-           .update({ foto: updated.foto })
-           .eq('id', user.id);
-         await fetchProfile();
-       }
-
-      setConfig(prev => ({
-        ...prev,
-        titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
-      }));
-    } else {
-      console.error('Error updating titular:', error);
+    if (error) {
+      reportOperationFailure('holder_update', error);
+      throw error;
     }
+
+    // A sincronização do perfil é complementar à atualização do titular.
+    const titular = config.titulares.find(t => t.id === id);
+    const tName = updated.nome || titular?.nome;
+    if (updated.foto && tName === userName && user?.id) {
+      const { error: syncError } = await supabase.from('profiles')
+        .update({ foto: updated.foto })
+        .eq('id', user.id);
+      if (syncError) reportOperationFailure('holder_photo_sync', syncError);
+      else await fetchProfile();
+    }
+
+    setConfig(prev => ({
+      ...prev,
+      titulares: prev.titulares.map(t => t.id === id ? { ...t, ...updated } : t)
+    }));
   };
 
   const sendCartaoInsert = async (payload: any) => {
-    // 1. Tentar inserir tudo junto
-    let res = await supabase.from('cartoes_config').insert([payload]).select();
-    if (!res.error) return res;
-
-    console.warn('[Cartao Insert] Falha na inserção completa, executando inserção granular:', res.error);
-
-    // 2. Inserir com basePayload garantido
-    const basePayload: any = {
-      user_id: payload.user_id,
-      family_id: payload.family_id,
-      nome_cartao: payload.nome_cartao,
-      titular_id: payload.titular_id,
-      dia_vencimento: payload.dia_vencimento,
-      dia_fechamento: payload.dia_fechamento
-    };
-
-    let baseRes = await supabase.from('cartoes_config').insert([basePayload]).select();
-    if (baseRes.error || !baseRes.data || !baseRes.data[0]) {
-      return baseRes;
-    }
-
-    const newId = baseRes.data[0].id;
-    const optionalFields = [
-      { key: 'color', value: payload.color, aliases: ['cor'] },
-      { key: 'final', value: payload.final, aliases: ['final_cartao', 'ultimos_digitos'] },
-      { key: 'icone', value: payload.icone, aliases: ['ícone', 'icon'] }
-    ];
-
-    for (const field of optionalFields) {
-      if (field.value !== undefined && field.value !== null) {
-        let fRes = await supabase.from('cartoes_config').update({ [field.key]: field.value }).eq('id', newId);
-        if (fRes.error && field.aliases) {
-          for (const alias of field.aliases) {
-            let aRes = await supabase.from('cartoes_config').update({ [alias]: field.value }).eq('id', newId);
-            if (!aRes.error) break;
-          }
-        }
-      }
-    }
-
-    return baseRes;
+    return persistCardWithLegacyRetry(
+      payload,
+      cardPayload => supabase.from('cartoes_config').insert([cardPayload]).select(),
+      error => reportOperationFailure('card_insert_legacy_retry', error),
+    );
   };
 
   const addCartao = async (c: Omit<CartaoConfig, 'id'>) => {
-    if (!user || !familyId) return;
+    if (!user || !familyId) throw new Error('Sessão indisponível para cadastrar o cartão.');
 
     const payload: any = {
       user_id: user.id,
@@ -1083,9 +1283,9 @@ export function useFinance(activeView: string) {
     const { data, error } = await sendCartaoInsert(payload);
 
     if (error) {
-      console.error('Error adding cartao:', error.message || error);
+      reportOperationFailure('card_create', error);
       setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(item => item.id !== tempId) }));
-      return;
+      throw error;
     }
 
     if (data && data[0]) {
@@ -1093,62 +1293,29 @@ export function useFinance(activeView: string) {
         ...data[0],
         color: data[0].color || data[0].cor || payload.color,
         icone: data[0].icone || data[0]['ícone'] || data[0].icon || payload.icone,
-        final: data[0].final || data[0].final_cartao || payload.final
+        final: data[0].final || data[0]['Final'] || payload.final
       };
       setConfig(prev => ({
         ...prev,
         cartoes: prev.cartoes.map(item => item.id === tempId ? savedCard : item)
       }));
+    } else {
+      setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(item => item.id !== tempId) }));
+      throw new Error('O cartão não foi retornado após a gravação.');
     }
   };
 
   const sendCartaoUpdate = async (id: number, payload: any) => {
     const cardId = Number(id);
-
-    // 1. Tentar atualizar tudo junto primeiro
-    let res = await supabase.from('cartoes_config').update(payload).eq('id', cardId);
-    if (!res.error) return res;
-
-    console.warn('[Cartao Update] Falha na atualização completa, executando atualização granular:', res.error);
-
-    // 2. Atualizar campos base com certeza
-    const basePayload: any = {
-      nome_cartao: payload.nome_cartao,
-      titular_id: payload.titular_id,
-      dia_vencimento: payload.dia_vencimento,
-      dia_fechamento: payload.dia_fechamento
-    };
-    Object.keys(basePayload).forEach(key => basePayload[key] === undefined && delete basePayload[key]);
-
-    let baseRes = await supabase.from('cartoes_config').update(basePayload).eq('id', cardId);
-    if (baseRes.error) {
-      console.error('[Cartao Update] Erro ao salvar campos base:', baseRes.error);
-      return baseRes;
-    }
-
-    // 3. Atualizar cada campo opcional individualmente com tolerância a aliases
-    const optionalFields = [
-      { key: 'final', value: payload.final !== undefined ? (payload.final ? String(payload.final).trim() : null) : undefined, aliases: ['final_cartao', 'ultimos_digitos', 'numero_final', 'FINAL', 'Final'] },
-      { key: 'color', value: payload.color, aliases: ['cor', 'COLOR', 'COR', 'Color'] },
-      { key: 'icone', value: payload.icone, aliases: ['ícone', 'icon', 'ICONE', 'ÍCONE', 'Icon'] }
-    ];
-
-    for (const field of optionalFields) {
-      if (field.value !== undefined) {
-        let fRes = await supabase.from('cartoes_config').update({ [field.key]: field.value }).eq('id', cardId);
-        if (fRes.error && field.aliases) {
-          for (const alias of field.aliases) {
-            let aRes = await supabase.from('cartoes_config').update({ [alias]: field.value }).eq('id', cardId);
-            if (!aRes.error) break;
-          }
-        }
-      }
-    }
-
-    return { error: null };
+    return persistCardWithLegacyRetry(
+      payload,
+      cardPayload => supabase.from('cartoes_config').update(cardPayload).eq('id', cardId),
+      error => reportOperationFailure('card_update_legacy_retry', error),
+    );
   };
 
   const updateCartao = async (id: number, updated: Partial<CartaoConfig>) => {
+    const previousConfig = config;
     const cardId = Number(id);
     const finalVal = updated.final !== undefined ? (updated.final ? String(updated.final).trim() : null) : undefined;
     const colorVal = updated.color !== undefined ? (updated.color || '#00AE9A') : undefined;
@@ -1179,7 +1346,9 @@ export function useFinance(activeView: string) {
 
     const { error } = await sendCartaoUpdate(cardId, payload);
     if (error) {
-      console.error('Error updating cartao in Supabase:', error.message || error);
+      reportOperationFailure('card_update', error);
+      setConfig(previousConfig);
+      throw error;
     }
   };
 
@@ -1190,22 +1359,20 @@ export function useFinance(activeView: string) {
       setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.id !== id) }));
       const { error } = await supabase.from('cartoes_config').delete().eq('id', id);
       if (error) throw error;
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting cartao (rolling back optimistic update):', error);
+      invalidateFinancialSnapshots();
+      setConfig(prev => ({ ...prev, cartoes: prev.cartoes.filter(c => c.id !== id) }));
+    } catch (error: any) {
+      reportOperationFailure('card_delete', error);
       setConfig(previousConfig);
+      if (error?.code === '23503') {
+        throw new Error('Este cartão possui configurações ou lançamentos vinculados e precisa ser mantido para preservar o histórico.');
+      }
+      throw new Error('Não foi possível excluir o cartão. Tente novamente.');
     }
   };
 
   const addEmprestimo = async (dados: Partial<Emprestimo>) => {
-    if (!user?.id) {
-      alert('Usuário não autenticado.');
-      return;
-    }
-    if (!familyId) {
-      alert('ID da família não encontrado. Tente recarregar a página.');
-      return;
-    }
+    if (!user?.id || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousEmprestimos = emprestimos;
     try {
       const tempEmprestimo: Emprestimo = {
@@ -1213,9 +1380,9 @@ export function useFinance(activeView: string) {
         user_id: user.id,
         family_id: familyId,
         descricao: dados.descricao || '',
-        valor_total: Number(dados.valor_total || 0),
+        valor_total: normalizarDinheiro(dados.valor_total),
         total_parcelas: Number(dados.total_parcelas || 1),
-        valor_parcela: Number(dados.valor_parcela || 0),
+        valor_parcela: normalizarDinheiro(dados.valor_parcela),
         taxa_mensal_percentual: Number(dados.taxa_mensal_percentual || 0),
         data_primeiro_vencimento: dados.data_primeiro_vencimento || format(new Date(), 'yyyy-MM-dd'),
         competencia_inicial: dados.competencia_inicial || competencia,
@@ -1228,24 +1395,29 @@ export function useFinance(activeView: string) {
       await salvarEmprestimo(dados, user.id, familyId);
       await fetchData();
     } catch (error: any) {
-      console.error('Error adding emprestimo (rolling back optimistic update):', error);
+      reportOperationFailure('loan_create', error);
       setEmprestimos(previousEmprestimos);
-      alert(`Erro ao salvar empréstimo: ${error.message || JSON.stringify(error)}`);
+      throw error;
     }
   };
 
   const updateEmprestimo = async (dados: Partial<Emprestimo>) => {
-    if (!user?.id || !familyId) return;
+    if (!user?.id || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
     const previousEmprestimos = emprestimos;
+    const dadosNormalizados = {
+      ...dados,
+      ...(dados.valor_total === undefined ? {} : { valor_total: normalizarDinheiro(dados.valor_total) }),
+      ...(dados.valor_parcela === undefined ? {} : { valor_parcela: normalizarDinheiro(dados.valor_parcela) }),
+    };
     try {
       // ⚡ ATUALIZAÇÃO OTIMISTA IMEDIATA NO FRONT-END (0ms)
-      setEmprestimos(prev => prev.map(e => e.id === dados.id ? { ...e, ...dados } : e));
-      await salvarEmprestimo(dados, user.id, familyId);
+      setEmprestimos(prev => prev.map(e => e.id === dadosNormalizados.id ? { ...e, ...dadosNormalizados } : e));
+      await salvarEmprestimo(dadosNormalizados, user.id, familyId);
       await fetchData();
     } catch (error: any) {
-      console.error('Error updating emprestimo (rolling back optimistic update):', error);
+      reportOperationFailure('loan_update', error);
       setEmprestimos(previousEmprestimos);
-      alert(`Erro ao atualizar empréstimo: ${error.message || JSON.stringify(error)}`);
+      throw error;
     }
   };
 
@@ -1257,16 +1429,18 @@ export function useFinance(activeView: string) {
       await deletarEmprestimo(id);
       await fetchData();
     } catch (error) {
-      console.error('Error deleting emprestimo (rolling back optimistic update):', error);
+      reportOperationFailure('loan_delete', error);
       setEmprestimos(previousEmprestimos);
+      throw error;
     }
   };
 
   const quitarParcelas = async (parcelas: Despesa[]) => {
-    if (!user?.id || !familyId) return;
-    
-    for (const p of parcelas) {
-      await salvarDespesa({
+    if (!user?.id || !familyId) {
+      throw new Error('Sua sessão expirou. Entre novamente para confirmar a quitação.');
+    }
+
+    await materializarDespesasVinculadas(parcelas.map((p) => ({
         descricao: p.descricao,
         valor: p.valor,
         status: 'Pago',
@@ -1278,14 +1452,7 @@ export function useFinance(activeView: string) {
         emprestimo_id: p.emprestimo_id || undefined,
         conta_fixa_id: p.conta_fixa_id || undefined,
         categoria: p.emprestimo_id ? 'Empréstimos e Financiamentos' : (p.conta_fixa_id ? (p.categoria || 'Contas Fixas') : 'Outros')
-      }, user.id, familyId);
-
-      // Se a parcela quitada for a última de uma conta fixa, exclui a conta fixa
-      if (p.conta_fixa_id && Number(p.parcela_total) > 0 && Number(p.parcela_atual) >= Number(p.parcela_total)) {
-        setContasFixas(prev => prev.filter(c => c.id !== p.conta_fixa_id));
-        await deletarContaFixaConfig(p.conta_fixa_id);
-      }
-    }
+      })));
 
     await fetchData();
   };
@@ -1305,7 +1472,7 @@ export function useFinance(activeView: string) {
       const { error } = await supabase.from('table_notas').upsert({ conteudo: payload });
       if (!error) setNota(conteudo);
     } catch (error) {
-      console.error('Error updating nota:', error);
+      reportOperationFailure('note_update', error);
     }
   };
 
@@ -1326,8 +1493,9 @@ export function useFinance(activeView: string) {
 
       await fetchData();
     } catch (error) {
-      console.error('Erro ao renomear categoria em lote:', error);
+      reportOperationFailure('category_rename', error);
       await fetchData();
+      throw new Error('Não foi possível concluir a renomeação. Os dados foram atualizados para mostrar o estado salvo.');
     }
   };
 
@@ -1347,10 +1515,19 @@ export function useFinance(activeView: string) {
 
       await fetchData();
     } catch (error) {
-      console.error('Erro ao atualizar categoria por descrição:', error);
+      reportOperationFailure('category_update_by_description', error);
       await fetchData();
+      throw new Error('Não foi possível concluir a reclassificação. Os dados foram atualizados para mostrar o estado salvo.');
     }
   };
+
+  const ignoredOccurrenceKeys = useMemo(() => new Set(
+    contasFixasExcecoes.map(item => `${Number(item.conta_fixa_id)}:${Number(item.ocorrencia)}`)
+  ), [contasFixasExcecoes]);
+
+  const occurrenceIsIgnored = useCallback((contaFixaId: number, occurrence: number) => (
+    ignoredOccurrenceKeys.has(`${Number(contaFixaId)}:${Number(occurrence)}`)
+  ), [ignoredOccurrenceKeys]);
 
 
 
@@ -1366,6 +1543,10 @@ export function useFinance(activeView: string) {
 
   const allProjectedCartaoTransacoes = useMemo(() => {
     const base = cartaoTransacoes;
+    const supportsStructuralRecurrences = base.some(item =>
+      Object.prototype.hasOwnProperty.call(item, 'conta_fixa_id')
+      && Object.prototype.hasOwnProperty.call(item, 'conta_fixa_parcela')
+    );
     
     // Lançamentos virtuais de cartões vindos de contasFixas
     const virtuals: CartaoTransacao[] = [];
@@ -1377,6 +1558,7 @@ export function useFinance(activeView: string) {
       const lastParcelaToProject = cf.total_parcelas || 24;
 
       for (let i = 1; i <= lastParcelaToProject; i++) {
+        if (!contaFixaPermiteOcorrencia(cf, i) || occurrenceIsIgnored(cf.id, i)) continue;
         const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
         
         let comp = '';
@@ -1394,10 +1576,18 @@ export function useFinance(activeView: string) {
         }
 
         // Verifica se já existe um lançamento real para esta "parcela" virtual
-        const existeNoBanco = cartaoTransacoes.find(ct => 
-          ct.cartao_id === cf.cartao_id && 
-          ct.estabelecimento === cf.descricao &&
-          ct.competencia === comp
+        const existeNoBanco = cartaoTransacoes.find(ct =>
+          (
+            Number(ct.conta_fixa_id) === Number(cf.id)
+            && Number(ct.conta_fixa_parcela) === i
+          )
+          || (
+            !supportsStructuralRecurrences
+            && !ct.conta_fixa_id
+            && ct.cartao_id === cf.cartao_id
+            && ct.estabelecimento === cf.descricao
+            && ct.competencia === comp
+          )
         );
 
         if (!existeNoBanco) {
@@ -1413,42 +1603,49 @@ export function useFinance(activeView: string) {
             titular_id: cf.titular_id,
             categoria: cf.categoria,
             user_id: user?.id || '',
+            conta_fixa_id: cf.id,
+            conta_fixa_parcela: i,
           });
         }
       }
     });
 
     return [...base, ...virtuals];
-  }, [cartaoTransacoes, contasFixas, user?.id]);
+  }, [cartaoTransacoes, contasFixas, config.cartoes, user?.id, occurrenceIsIgnored]);
 
   const filteredCartaoTransacoes = useMemo(() => {
     return allProjectedCartaoTransacoes.filter(c => c.competencia === competencia);
   }, [allProjectedCartaoTransacoes, competencia]);
   
   const totalsByCard = useMemo(() => {
-    const totals: Record<number, number> = {};
-    config.cartoes.forEach(c => totals[c.id] = 0);
-    
-    filteredCartaoTransacoes.forEach(d => {
-      totals[d.cartao_id] = (totals[d.cartao_id] || 0) + Number(d.valor);
-    });
-    return totals;
+    return calcularTotaisPorCartao(filteredCartaoTransacoes, config.cartoes);
   }, [filteredCartaoTransacoes, config.cartoes]);
 
   const consolidatedDespesas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     // 1. Despesas base (físicas), ignorando faturas de cartão consolidadas
-    const baseDespesas = filteredDespesas.filter(d => !d.isSummary && !d.descricao.startsWith('Fatura '));
+    const baseDespesas = filteredDespesas.filter(d => !d.isSummary && !d.cartao_vencimento_id);
 
     // 2. Faturas de Cartão (Dinâmicas/Virtuais)
     const dynamicInvoices: Despesa[] = config.cartoes.map(card => {
       const total = totalsByCard[card.id] || 0;
       if (total === 0) return null;
 
-      const existingInDB = filteredDespesas.find(f => 
-        (f.isSummary || f.descricao.startsWith('Fatura ')) && 
-        (f.cartao_vencimento_id === card.id || f.descricao.includes(card.nome_cartao))
+      const existingInDB = filteredDespesas.find(f =>
+        f.cartao_vencimento_id === card.id
+        || (
+          !f.cartao_vencimento_id
+          && f.isSummary
+          && f.descricao === `Fatura ${card.nome_cartao}`
+          && Number(f.titular_id) === Number(card.titular_id)
+        )
+      );
+
+      const invoiceMonth = new Date(currentYear, currentMonth - 1, 1);
+      const invoiceDueDay = Math.min(
+        card.dia_vencimento,
+        getDate(lastDayOfMonth(invoiceMonth))
       );
 
       return {
@@ -1457,7 +1654,10 @@ export function useFinance(activeView: string) {
         valor: existingInDB?.status === 'Pago' ? existingInDB.valor : total,
         status: existingInDB?.status || 'Em aberto',
         titular_id: card.titular_id,
-        vencimento: existingInDB?.vencimento || `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(card.dia_vencimento).padStart(2, '0')}`,
+        vencimento: existingInDB?.vencimento || format(
+          new Date(currentYear, currentMonth - 1, invoiceDueDay),
+          'yyyy-MM-dd'
+        ),
         competencia: competencia,
         isSummary: true,
         parcela_atual: 1,
@@ -1529,6 +1729,7 @@ export function useFinance(activeView: string) {
         (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
 
       for (let i = 1; i <= lastParcelaToProject; i++) {
+        if (!contaFixaPermiteOcorrencia(config, i) || occurrenceIsIgnored(config.id, i)) continue;
         const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
         
         let comp = '';
@@ -1559,6 +1760,7 @@ export function useFinance(activeView: string) {
               parcela_atual: i,
               parcela_total: config.total_parcelas || 0, // 0 indica sem fim definido na UI
               conta_fixa_id: config.id,
+              conta_fixa_ocorrencia: i,
               categoria: config.categoria || 'Contas Fixas'
             } as Despesa);
           }
@@ -1567,7 +1769,7 @@ export function useFinance(activeView: string) {
     });
 
     return [...baseDespesas, ...dynamicInvoices, ...virtualLoanInstallments, ...virtualFixedInstallments].filter(Boolean);
-  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, contasFixas, despesas]);
+  }, [filteredDespesas, totalsByCard, config.cartoes, currentMonth, currentYear, competencia, emprestimos, contasFixas, despesas, occurrenceIsIgnored]);
 
   const alertas = useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -1620,6 +1822,7 @@ export function useFinance(activeView: string) {
       const limit = config.total_parcelas || 24;
 
       for (let i = 1; i <= limit; i++) {
+        if (!contaFixaPermiteOcorrencia(config, i) || occurrenceIsIgnored(config.id, i)) continue;
         const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
         const vencStr = format(dataVenc, 'yyyy-MM-dd');
 
@@ -1662,11 +1865,9 @@ export function useFinance(activeView: string) {
       vencendoHoje: hoje,
       total: vencidas.length + hoje.length
     };
-  }, [despesas, emprestimos, contasFixas, avisosConfig]);
+  }, [despesas, emprestimos, contasFixas, avisosConfig, occurrenceIsIgnored]);
 
   const consolidatedReceitas = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-01');
-
     // 1. Receitas base (físicas)
     const baseReceitas = filteredReceitas;
 
@@ -1681,17 +1882,17 @@ export function useFinance(activeView: string) {
         (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
 
       for (let i = 1; i <= lastParcelaToProject; i++) {
+        if (!contaFixaPermiteOcorrencia(config, i) || occurrenceIsIgnored(config.id, i)) continue;
         let dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal, false);
+        const agendamento = resolverAgendamentoReceita(dataVenc);
         
-        let comp = '';
+        let comp = agendamento.competencia;
         if (config.competencia_inicial) {
           const [m, y] = config.competencia_inicial.split('/').map(Number);
           const baseDate = new Date(y, m - 1, 1);
           comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
-        } else {
-          comp = calcularCompetenciaReceita(dataVenc);
         }
-        dataVenc = ajustarDataReceita(dataVenc);
+        dataVenc = agendamento.dataRecebimento;
 
         const existeNoBanco = receitas.find(r => 
           Number(r.conta_fixa_id) === Number(config.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(i))
@@ -1708,10 +1909,12 @@ export function useFinance(activeView: string) {
               data_recebimento: vencStr,
               competencia: comp,
               conta_fixa_id: config.id,
+              conta_fixa_ocorrencia: i,
               parcela_atual: i,
               parcela_total: config.total_parcelas || 0,
               categoria: config.categoria || 'Recursos',
-              status: (vencStr <= todayStr) ? 'Recebido' : 'Pendente'
+              // A data prevista não comprova recebimento; só o registro materializado pode estar realizado.
+              status: 'Pendente'
             } as Receita);
           }
         }
@@ -1719,34 +1922,18 @@ export function useFinance(activeView: string) {
     });
 
     return [...baseReceitas, ...virtualFixedRevenues].filter(Boolean);
-  }, [filteredReceitas, contasFixas, currentMonth, currentYear, competencia, receitas]);
+  }, [filteredReceitas, contasFixas, currentMonth, currentYear, competencia, receitas, occurrenceIsIgnored]);
 
   const despesasGerais = useMemo(() => {
     return consolidatedDespesas;
   }, [consolidatedDespesas]);
 
   const stats = useMemo(() => {
-    const totalReceitas = consolidatedReceitas.reduce((acc, r) => acc + r.valor, 0);
-    const totalDespesas = consolidatedDespesas.reduce((acc, d) => acc + d.valor, 0);
-    const totalPago = consolidatedDespesas.filter(d => d.status === 'Pago').reduce((acc, d) => acc + d.valor, 0);
-    const totalAberto = consolidatedDespesas.filter(d => d.status === 'Em aberto').reduce((acc, d) => acc + d.valor, 0);
-    
-    // Check for overdue (Vencido)
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const totalVencido = consolidatedDespesas
-      .filter(d => d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr)
-      .reduce((acc, d) => acc + d.valor, 0);
-
-    const margem = totalReceitas - totalDespesas;
-
-    return {
-      totalReceitas,
-      totalDespesas,
-      totalPago,
-      totalAberto,
-      totalVencido,
-      margem
-    };
+    return calcularResumoFinanceiro(
+      consolidatedReceitas,
+      consolidatedDespesas,
+      format(new Date(), 'yyyy-MM-dd')
+    );
   }, [consolidatedReceitas, consolidatedDespesas]);
 
   const changeMonth = (delta: number) => {
@@ -1775,210 +1962,41 @@ export function useFinance(activeView: string) {
 
 
   const totalsByTitular = useMemo(() => {
-    const totals: Record<number, { despesas: number, receitas: number }> = {};
-    config.titulares.forEach(t => totals[t.id] = { despesas: 0, receitas: 0 });
-    
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    
-    consolidatedDespesas.forEach(d => {
-      // Excluir se não for da competência atual OU se estiver vencido (vencimento < hoje e em aberto)
-      const isOverdue = d.status === 'Em aberto' && d.vencimento && d.vencimento !== '-' && d.vencimento < todayStr;
-      if (d.competencia !== competencia || isOverdue) return;
-
-      if (totals[d.titular_id]) {
-        totals[d.titular_id].despesas += d.valor;
-      }
-    });
-
-    filteredReceitas.forEach(r => {
-      if (totals[r.titular_id]) {
-        totals[r.titular_id].receitas += r.valor;
-      }
-    });
-
-    // Incluir receitas virtuais nos totais por titular
-    consolidatedReceitas.filter(r => r.id < 0).forEach(r => {
-      if (totals[r.titular_id]) {
-        totals[r.titular_id].receitas += r.valor;
-      }
-    });
-
-    return totals;
-  }, [consolidatedDespesas, filteredReceitas, config.titulares]);
+    return calcularTotaisPorTitular(
+      config.titulares,
+      consolidatedReceitas,
+      consolidatedDespesas,
+      competencia
+    );
+  }, [consolidatedDespesas, consolidatedReceitas, config.titulares, competencia]);
 
   const radarStats = useMemo(() => {
-    // Calculamos para TODOS os dados carregados (futuros e passados em aberto)
-    const openDespesas = despesas.filter(d => d.status === 'Em aberto');
-    
     return {
-      totalDividaAberto: openDespesas.reduce((acc, d) => acc + d.valor, 0),
-      qtdParcelasRestante: openDespesas.length,
-      // Adicionando uma função para filtrar sob demanda ou retornar os dados brutos
-      getFiltered: (titularId: number | null) => {
-        const filtered = titularId 
-          ? openDespesas.filter(d => d.titular_id === titularId)
-          : openDespesas;
-        return {
-          totalDividaAberto: filtered.reduce((acc, d) => acc + d.valor, 0),
-          qtdParcelasRestante: filtered.length,
-        };
-      }
+      ...calcularDividaAberta(despesas),
+      getFiltered: (titularId: number | null) => calcularDividaAberta(despesas, titularId),
     };
   }, [despesas]);
 
   const projecaoSemestral = useMemo(() => {
-    const calculateTotalsForMonth = (comp: string) => {
-      // 1. RECEITAS
-      const baseRec = receitas
-        .filter(r => r.competencia === comp)
-        .reduce((sum, r) => sum + Number(r.valor || 0), 0);
-
-      let virtualRec = 0;
-      contasFixas.filter(c => c.tipo === 'receita').forEach(cfg => {
-        const dataInicial = parseISO(cfg.data_inicio);
-        const diaOriginal = getDate(dataInicial);
-        const isUltimoDia = isLastDayOfMonth(dataInicial);
-        const limit = cfg.total_parcelas || 36;
-
-        for (let i = 1; i <= limit; i++) {
-          let dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal, false);
-          let cComp = '';
-          if (cfg.competencia_inicial) {
-            const [m, y] = cfg.competencia_inicial.split('/').map(Number);
-            const baseDate = new Date(y, m - 1, 1);
-            cComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
-          } else {
-            cComp = calcularCompetenciaReceita(dataVenc);
-          }
-
-          if (cComp === comp) {
-            const existeNoBanco = receitas.find(r => 
-              Number(r.conta_fixa_id) === Number(cfg.id) && (r.competencia === comp || Number(r.parcela_atual) === Number(i))
-            );
-            if (!existeNoBanco) {
-              virtualRec += Number(cfg.valor_mensal || 0);
-            }
-          }
-        }
-      });
-
-      const totalReceitas = baseRec + virtualRec;
-
-      // 2. DESPESAS
-      // 2.1 Despesas físicas regulares (não faturas)
-      const baseDesp = despesas
-        .filter(d => d.competencia === comp && !d.isSummary && !d.descricao?.startsWith('Fatura '))
-        .reduce((sum, d) => sum + Number(d.valor || 0), 0);
-
-      // 2.2 Faturas de Cartão (físicas + virtuais dinâmicas de allProjectedCartaoTransacoes)
-      let totalFaturas = 0;
-      config.cartoes.forEach(card => {
-        const cardTransactionsTotal = allProjectedCartaoTransacoes
-          .filter(ct => ct.cartao_id === card.id && ct.competencia === comp)
-          .reduce((sum, ct) => sum + Number(ct.valor || 0), 0);
-
-        const existingInDB = despesas.find(f => 
-          f.competencia === comp &&
-          (f.isSummary || f.descricao?.startsWith('Fatura ')) && 
-          (f.cartao_vencimento_id === card.id || f.descricao?.includes(card.nome_cartao))
-        );
-
-        if (existingInDB) {
-          totalFaturas += existingInDB.status === 'Pago' 
-            ? Number(existingInDB.valor || 0) 
-            : (cardTransactionsTotal || Number(existingInDB.valor || 0));
-        } else if (cardTransactionsTotal > 0) {
-          totalFaturas += cardTransactionsTotal;
-        }
-      });
-
-      // 2.3 Parcelas de Empréstimo (Virtuais)
-      let virtualLoans = 0;
-      emprestimos.forEach(loan => {
-        const dataInicial = parseISO(loan.data_primeiro_vencimento);
-        const diaOriginal = getDate(dataInicial);
-        const isUltimoDia = isLastDayOfMonth(dataInicial);
-
-        for (let i = 1; i <= loan.total_parcelas; i++) {
-          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
-          let lComp = '';
-          if (loan.competencia_inicial) {
-            const [m, y] = loan.competencia_inicial.split('/').map(Number);
-            const baseDate = new Date(y, m - 1, 1);
-            lComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
-          } else {
-            lComp = calcularCompetencia(dataVenc);
-          }
-
-          if (lComp === comp) {
-            const existeNoBanco = despesas.find(d => 
-              Number(d.emprestimo_id) === Number(loan.id) && Number(d.parcela_atual) === Number(i)
-            );
-            if (!existeNoBanco) {
-              virtualLoans += Number(loan.valor_parcela || 0);
-            }
-          }
-        }
-      });
-
-      // 2.4 Parcelas de Contas Fixas (Virtuais - não cartão)
-      let virtualFixed = 0;
-      contasFixas.filter(c => (!c.tipo || c.tipo === 'despesa') && !c.cartao_id).forEach(cfg => {
-        const dataInicial = parseISO(cfg.data_inicio);
-        const diaOriginal = getDate(dataInicial);
-        const isUltimoDia = isLastDayOfMonth(dataInicial);
-        const limit = cfg.total_parcelas || 36;
-
-        for (let i = 1; i <= limit; i++) {
-          const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
-          let fComp = '';
-          if (cfg.competencia_inicial) {
-            const [m, y] = cfg.competencia_inicial.split('/').map(Number);
-            const baseDate = new Date(y, m - 1, 1);
-            fComp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
-          } else {
-            fComp = calcularCompetencia(dataVenc);
-          }
-
-          if (fComp === comp) {
-            const existeNoBanco = despesas.find(d => 
-              Number(d.conta_fixa_id) === Number(cfg.id) && Number(d.parcela_atual) === Number(i)
-            );
-            if (!existeNoBanco) {
-              virtualFixed += Number(cfg.valor_mensal || 0);
-            }
-          }
-        }
-      });
-
-      const totalDespesas = baseDesp + totalFaturas + virtualLoans + virtualFixed;
-      return { totalReceitas, totalDespesas };
-    };
-
-    const projecao = [];
-    let tempMonth = currentMonth;
-    let tempYear = currentYear;
-
-    for (let i = 0; i < 12; i++) {
-      const comp = `${String(tempMonth).padStart(2, '0')}/${tempYear}`;
-      const { totalReceitas, totalDespesas } = calculateTotalsForMonth(comp);
-
-      projecao.push({
-        competencia: comp,
-        receitas: totalReceitas,
-        despesas: totalDespesas,
-        faturas: 0,
-        saldo: totalReceitas - totalDespesas
-      });
-
-      tempMonth++;
-      if (tempMonth > 12) {
-        tempMonth = 1;
-        tempYear++;
-      }
-    }
-    return projecao;
-  }, [despesas, receitas, currentMonth, currentYear, allProjectedCartaoTransacoes, contasFixas, emprestimos, config.cartoes]);
+    return projetarFluxoCaixa({
+      mesInicial: currentMonth,
+      anoInicial: currentYear,
+      quantidadeMeses: 12,
+      despesas,
+      receitas,
+      cartoes: config.cartoes,
+      transacoesCartao: allProjectedCartaoTransacoes,
+      emprestimos,
+      contasFixas,
+      contasFixasExcecoes,
+    }).map(item => ({
+      competencia: item.competencia,
+      receitas: item.receitas,
+      despesas: item.totalDespesas,
+      faturas: 0,
+      saldo: item.saldo,
+    }));
+  }, [despesas, receitas, currentMonth, currentYear, allProjectedCartaoTransacoes, contasFixas, contasFixasExcecoes, emprestimos, config.cartoes]);
 
 
 
@@ -2036,9 +2054,12 @@ export function useFinance(activeView: string) {
     updateEmprestimo,
     deleteEmprestimo,
     contasFixas,
+    contasFixasExcecoes,
     addContaFixa,
     updateContaFixa,
-    deleteContaFixa,
+    endContaFixa,
+    endContaFixaFromOccurrence,
+    deleteContaFixa: endContaFixa,
     quitarParcelas,
     setDespesas,
     setReceitas,

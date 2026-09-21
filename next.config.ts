@@ -2,6 +2,9 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Permite executar a instância Supabase local em paralelo sem compartilhar
+  // bundles (e variáveis públicas) com a instância padrão da porta 3000.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   eslint: {
     ignoreDuringBuilds: true,
   },
