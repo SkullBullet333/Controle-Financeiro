@@ -9,11 +9,17 @@ import {
   prepararReceitasVinculadas,
   calculatePresentValue,
   contaFixaPermiteOcorrencia,
+  primeiraParcelaContaFixa,
   resolverOcorrenciaContaFixa,
   resolverAgendamentoReceita,
 } from './finance-service';
 
 describe('ciclo de vida das recorrências', () => {
+  it('preserva o número real da parcela ao iniciar uma série no meio do contrato', () => {
+    expect(primeiraParcelaContaFixa({ parcela_atual: 11 })).toBe(11);
+    expect(primeiraParcelaContaFixa({ parcela_atual: 0 })).toBe(1);
+  });
+
   it('preserva ocorrências anteriores e corta a partir do ponto informado', () => {
     const config = { status: 'cancelado' as const, encerrada_a_partir_da_ocorrencia: 4 };
 

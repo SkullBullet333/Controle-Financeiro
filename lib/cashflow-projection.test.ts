@@ -78,6 +78,18 @@ describe('projetarFluxoCaixa', () => {
     expect(resultado.map(item => item.totalDespesas)).toEqual([100, 0]);
   });
 
+  it('projeta uma série iniciada em parcela intermediária sem reiniciar a numeração', () => {
+    const contasFixas: ContaFixaConfig[] = [{
+      id: 50, user_id: 'u', family_id: 'f', descricao: 'Carta de crédito', valor_mensal: 300,
+      total_parcelas: 82, parcela_atual: 11, data_inicio: '2026-10-10',
+      competencia_inicial: '10/2026', titular_id: 1, tipo: 'despesa',
+    }];
+
+    const resultado = projetarFluxoCaixa({ ...base, mesInicial: 10, anoInicial: 2026, contasFixas });
+
+    expect(resultado.map(item => item.despesas)).toEqual([300, 300]);
+  });
+
   it('usa o valor persistido de uma fatura paga', () => {
     const cartoes: CartaoConfig[] = [{ id: 40, nome_cartao: 'Principal', titular_id: 1, dia_vencimento: 10, dia_fechamento: 7 }];
     const transacoesCartao: CartaoTransacao[] = [{ id: 41, user_id: 'u', cartao_id: 40, data_compra: '2026-01-01', estabelecimento: 'Compra', valor: 70, parcela_atual: 1, parcela_total: 1, competencia: '01/2026', titular_id: 1 }];

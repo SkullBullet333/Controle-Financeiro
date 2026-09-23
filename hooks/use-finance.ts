@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig, ContaFixaExcecao } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, resolverAgendamentoReceita, salvarContaFixaConfig, encerrarContaFixaConfig, contaFixaPermiteOcorrencia, resolverOcorrenciaContaFixa, ignorarOcorrenciaContaFixa, encerrarContaFixaDesde, renomearCategoriaEmLote, atualizarCategoriaPorDescricao, materializarDespesasVinculadas, materializarOcorrenciaCartao } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, resolverAgendamentoReceita, salvarContaFixaConfig, encerrarContaFixaConfig, contaFixaPermiteOcorrencia, primeiraParcelaContaFixa, resolverOcorrenciaContaFixa, ignorarOcorrenciaContaFixa, encerrarContaFixaDesde, renomearCategoriaEmLote, atualizarCategoriaPorDescricao, materializarDespesasVinculadas, materializarOcorrenciaCartao } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 import { clearFinancialCache, financialCacheKey, getFinancialCache, purgeLegacyFinancialCache, setFinancialCache } from '@/lib/financial-cache';
 import { categorizar } from '@/lib/categories-utils';
@@ -1564,17 +1564,18 @@ export function useFinance(activeView: string) {
       const diaOriginal = getDate(dataInicial);
       const isUltimoDia = isLastDayOfMonth(dataInicial);
       
-      const lastParcelaToProject = cf.total_parcelas || 24;
+      const primeiraParcela = primeiraParcelaContaFixa(cf);
+      const lastParcelaToProject = cf.total_parcelas || (primeiraParcela + 23);
 
-      for (let i = 1; i <= lastParcelaToProject; i++) {
+      for (let i = primeiraParcela; i <= lastParcelaToProject; i++) {
         if (!contaFixaPermiteOcorrencia(cf, i) || occurrenceIsIgnored(cf.id, i)) continue;
-        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        const dataVenc = projetarProximoVencimento(dataInicial, i - primeiraParcela, isUltimoDia, diaOriginal);
         
         let comp = '';
         if (cf.competencia_inicial) {
           const [m, y] = cf.competencia_inicial.split('/').map(Number);
           const baseDate = new Date(y, m - 1, 1);
-          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          comp = format(addMonths(baseDate, i - primeiraParcela), 'MM/yyyy');
         } else {
           const card = config.cartoes.find(c => c.id === cf.cartao_id);
           if (card) {
@@ -1734,18 +1735,19 @@ export function useFinance(activeView: string) {
       const isUltimoDia = isLastDayOfMonth(dataInicial);
       
       // Se total_parcelas for null, projetamos até o mês atual + 1 para segurança
+      const primeiraParcela = primeiraParcelaContaFixa(config);
       const lastParcelaToProject = config.total_parcelas || 
-        (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
+        (primeiraParcela + differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 1);
 
-      for (let i = 1; i <= lastParcelaToProject; i++) {
+      for (let i = primeiraParcela; i <= lastParcelaToProject; i++) {
         if (!contaFixaPermiteOcorrencia(config, i) || occurrenceIsIgnored(config.id, i)) continue;
-        const dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal);
+        const dataVenc = projetarProximoVencimento(dataInicial, i - primeiraParcela, isUltimoDia, diaOriginal);
         
         let comp = '';
         if (config.competencia_inicial) {
           const [m, y] = config.competencia_inicial.split('/').map(Number);
           const baseDate = new Date(y, m - 1, 1);
-          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          comp = format(addMonths(baseDate, i - primeiraParcela), 'MM/yyyy');
         } else {
           comp = calcularCompetencia(dataVenc);
         }
@@ -1896,19 +1898,20 @@ export function useFinance(activeView: string) {
       const diaOriginal = getDate(dataInicial);
       const isUltimoDia = isLastDayOfMonth(dataInicial);
       
+      const primeiraParcela = primeiraParcelaContaFixa(config);
       const lastParcelaToProject = config.total_parcelas || 
-        (differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 2);
+        (primeiraParcela + differenceInMonths(parseISO(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`), dataInicial) + 1);
 
-      for (let i = 1; i <= lastParcelaToProject; i++) {
+      for (let i = primeiraParcela; i <= lastParcelaToProject; i++) {
         if (!contaFixaPermiteOcorrencia(config, i) || occurrenceIsIgnored(config.id, i)) continue;
-        let dataVenc = projetarProximoVencimento(dataInicial, i - 1, isUltimoDia, diaOriginal, false);
+        let dataVenc = projetarProximoVencimento(dataInicial, i - primeiraParcela, isUltimoDia, diaOriginal, false);
         const agendamento = resolverAgendamentoReceita(dataVenc);
         
         let comp = agendamento.competencia;
         if (config.competencia_inicial) {
           const [m, y] = config.competencia_inicial.split('/').map(Number);
           const baseDate = new Date(y, m - 1, 1);
-          comp = format(addMonths(baseDate, i - 1), 'MM/yyyy');
+          comp = format(addMonths(baseDate, i - primeiraParcela), 'MM/yyyy');
         }
         dataVenc = agendamento.dataRecebimento;
 

@@ -2,6 +2,7 @@ import { addMonths, format, getDate, isLastDayOfMonth, parseISO } from 'date-fns
 import {
   calcularCompetencia,
   contaFixaPermiteOcorrencia,
+  primeiraParcelaContaFixa,
   projetarProximoVencimento,
   resolverAgendamentoReceita,
 } from './finance-service';
@@ -110,13 +111,14 @@ export function projetarFluxoCaixa({
         const dataInicial = parseISO(config.data_inicio);
         const diaOriginal = getDate(dataInicial);
         const ultimoDiaOriginal = isLastDayOfMonth(dataInicial);
-        const limite = config.total_parcelas || 36;
+        const primeiraParcela = primeiraParcelaContaFixa(config);
+        const limite = config.total_parcelas || (primeiraParcela + 35);
 
-        for (let ocorrencia = 1; ocorrencia <= limite; ocorrencia++) {
+        for (let ocorrencia = primeiraParcela; ocorrencia <= limite; ocorrencia++) {
           if (!contaFixaPermiteOcorrencia(config, ocorrencia) || ocorrenciaIgnorada(config.id, ocorrencia)) continue;
-          const vencimento = projetarProximoVencimento(dataInicial, ocorrencia - 1, ultimoDiaOriginal, diaOriginal, false);
+          const vencimento = projetarProximoVencimento(dataInicial, ocorrencia - primeiraParcela, ultimoDiaOriginal, diaOriginal, false);
           const competenciaOcorrencia = config.competencia_inicial
-            ? competenciaConfigurada(config.competencia_inicial, ocorrencia)
+            ? competenciaConfigurada(config.competencia_inicial, ocorrencia - primeiraParcela + 1)
             : resolverAgendamentoReceita(vencimento).competencia;
 
           if (competenciaOcorrencia !== competencia) continue;
@@ -141,13 +143,14 @@ export function projetarFluxoCaixa({
         const dataInicial = parseISO(config.data_inicio);
         const diaOriginal = getDate(dataInicial);
         const ultimoDiaOriginal = isLastDayOfMonth(dataInicial);
-        const limite = config.total_parcelas || 36;
+        const primeiraParcela = primeiraParcelaContaFixa(config);
+        const limite = config.total_parcelas || (primeiraParcela + 35);
 
-        for (let ocorrencia = 1; ocorrencia <= limite; ocorrencia++) {
+        for (let ocorrencia = primeiraParcela; ocorrencia <= limite; ocorrencia++) {
           if (!contaFixaPermiteOcorrencia(config, ocorrencia) || ocorrenciaIgnorada(config.id, ocorrencia)) continue;
-          const vencimento = projetarProximoVencimento(dataInicial, ocorrencia - 1, ultimoDiaOriginal, diaOriginal);
+          const vencimento = projetarProximoVencimento(dataInicial, ocorrencia - primeiraParcela, ultimoDiaOriginal, diaOriginal);
           const competenciaOcorrencia = config.competencia_inicial
-            ? competenciaConfigurada(config.competencia_inicial, ocorrencia)
+            ? competenciaConfigurada(config.competencia_inicial, ocorrencia - primeiraParcela + 1)
             : calcularCompetencia(vencimento);
 
           if (competenciaOcorrencia !== competencia) continue;

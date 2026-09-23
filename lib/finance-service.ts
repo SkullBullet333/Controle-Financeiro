@@ -723,6 +723,12 @@ export function contaFixaEstaAtiva(config: Pick<ContaFixaConfig, 'status'>): boo
   return (config.status ?? 'ativo') === 'ativo';
 }
 
+/** Retorna a parcela real correspondente à data inicial da série. */
+export function primeiraParcelaContaFixa(config: Pick<ContaFixaConfig, 'parcela_atual'>): number {
+  const parcela = Number(config.parcela_atual);
+  return Number.isInteger(parcela) && parcela > 0 ? parcela : 1;
+}
+
 export function contaFixaPermiteOcorrencia(
   config: Pick<ContaFixaConfig, 'status' | 'encerrada_a_partir_da_ocorrencia'>,
   ocorrencia: number

@@ -514,11 +514,17 @@ export function FinanceForm({
 
     if (!initialData && ((type === 'despesa' && (subType === 'fixa' || subType === 'cartao') && isRecorrente) || (type === 'receita' && isRecorrente))) {
       if (onSubmitContaFixa) {
+        const parcelaInicial = Math.max(1, Number(formData.parcela_atual) || 1);
+        const totalParcelas = parseInt(formData.parcela_total as any) || 12;
+        if (!isIndefinite && parcelaInicial > totalParcelas) {
+          setValidationError('A parcela inicial não pode ser maior que o total de parcelas.');
+          return;
+        }
         await onSubmitContaFixa({
           descricao: formData.descricao,
           valor_mensal: normalizarDinheiro(formData.valor),
-          total_parcelas: isIndefinite ? null : (parseInt(formData.parcela_total as any) || 12),
-          parcela_atual: 1,
+          total_parcelas: isIndefinite ? null : totalParcelas,
+          parcela_atual: parcelaInicial,
           data_inicio: finalDate,
           competencia_inicial: type === 'receita' 
             ? resolverAgendamentoReceita(parseISO(finalDate)).competencia
@@ -849,6 +855,26 @@ export function FinanceForm({
                 </div>
               </div>
             </div>
+            {(isRecorrente && !isIndefinite) || (initialData && paymentType === 'Parcelado') ? (
+              <div className="md:col-span-2">
+                <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider">
+                  {isRecorrente ? 'Iniciar na parcela' : 'Parcela atual'}
+                </label>
+                <div className="flex items-center bg-muted/20 rounded-2xl px-4 py-2 border border-border/50">
+                  <input
+                    type="number"
+                    min="1"
+                    max={Number(formData.parcela_total) || undefined}
+                    value={formData.parcela_atual}
+                    onChange={e => setFormData({ ...formData, parcela_atual: e.target.value === '' ? '' as any : Number(e.target.value) })}
+                    className="w-20 bg-transparent border-none text-center focus:outline-none font-headline font-bold text-foreground"
+                  />
+                  <span className="text-xs text-muted ms-2">
+                    de {Number(formData.parcela_total) || '—'} · a data escolhida representa esta parcela
+                  </span>
+                </div>
+              </div>
+            ) : null}
           </>
         ) : (
             <div className="md:col-span-2 grid grid-cols-2 gap-x-6 gap-y-3 items-start">
