@@ -1530,6 +1530,34 @@ export function useFinance(activeView: string) {
     }
   };
 
+  const updateCardCategoryByEstablishment = async (estabelecimento: string, newCategory: string) => {
+    if (!user || !familyId || !estabelecimento.trim() || !newCategory.trim()) return;
+    const normalizedEstablishment = estabelecimento.trim().toLocaleLowerCase('pt-BR');
+    const normalizedCategory = newCategory.trim();
+    const previousTransactions = cartaoTransacoes;
+
+    try {
+      setCartaoTransacoes(previous => previous.map(transaction => (
+        transaction.estabelecimento?.trim().toLocaleLowerCase('pt-BR') === normalizedEstablishment
+          ? { ...transaction, categoria: normalizedCategory }
+          : transaction
+      )));
+
+      const { error } = await supabase
+        .from('cartoes')
+        .update({ categoria: normalizedCategory })
+        .ilike('estabelecimento', estabelecimento.trim())
+        .eq('family_id', familyId);
+      if (error) throw error;
+
+      await fetchData();
+    } catch (error) {
+      reportOperationFailure('card_category_update_by_establishment', error);
+      setCartaoTransacoes(previousTransactions);
+      throw new Error('Não foi possível atualizar a categoria das compras deste estabelecimento.');
+    }
+  };
+
   const ignoredOccurrenceKeys = useMemo(() => new Set(
     contasFixasExcecoes.map(item => `${Number(item.conta_fixa_id)}:${Number(item.ocorrencia)}`)
   ), [contasFixasExcecoes]);
@@ -2104,6 +2132,7 @@ export function useFinance(activeView: string) {
     avisosConfig,
     updateAvisosConfig,
     renameCategory,
-    updateCategoryByDescription
+    updateCategoryByDescription,
+    updateCardCategoryByEstablishment
   };
 }

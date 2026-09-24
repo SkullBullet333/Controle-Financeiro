@@ -2,10 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Profile, Titular, CartaoConfig, Despesa, ContaFixaConfig } from '@/lib/types';
+import { Profile, Titular, CartaoConfig, CartaoTransacao, Despesa, ContaFixaConfig } from '@/lib/types';
 import { Modal, TitularForm, CartaoForm, StyledDatePicker } from './modals';
 import { CardLogo } from './card-ui';
-import { getCardLogo } from '@/lib/finance-service';
 
 const PRESET_CARDS_STYLE = [
   { name: 'Sicoob Clássico', color: '#00AE9A' },
@@ -28,6 +27,7 @@ interface SettingsViewProps {
   userType: 'titular' | 'membro';
   titulares: Titular[];
   cartoes: CartaoConfig[];
+  cartaoTransacoes?: CartaoTransacao[];
   despesas?: Despesa[];
   contasFixas?: ContaFixaConfig[];
   onAddTitular: (t: Omit<Titular, 'id'>) => Promise<void> | void;
@@ -38,6 +38,7 @@ interface SettingsViewProps {
   onDeleteCartao: (id: number) => void;
   onRenameCategory?: (oldCat: string, newCat: string) => Promise<any> | void;
   onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
+  onUpdateCardCategoryByEstablishment?: (estabelecimento: string, newCat: string) => Promise<any> | void;
   isMobile?: boolean;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -61,6 +62,7 @@ export function SettingsView({
   userType,
   titulares = [],
   cartoes = [],
+  cartaoTransacoes = [],
   despesas = [],
   contasFixas = [],
   onAddTitular,
@@ -71,6 +73,7 @@ export function SettingsView({
   onDeleteCartao,
   onRenameCategory,
   onUpdateCategoryByDescription,
+  onUpdateCardCategoryByEstablishment,
   lembretes = [],
   onAddLembrete,
   onToggleLembrete,
@@ -99,26 +102,36 @@ export function SettingsView({
   const [renamingCategory, setRenamingCategory] = useState<{ oldName: string; newName: string } | null>(null);
   const [isRenamingSaving, setIsRenamingSaving] = useState(false);
   const [categoryOperationError, setCategoryOperationError] = useState<string | null>(null);
+  const [categorySource, setCategorySource] = useState<'despesas' | 'cartoes'>('despesas');
+  const [creatingCardCategoryFor, setCreatingCardCategoryFor] = useState<string | null>(null);
+  const [newCardCategoryName, setNewCardCategoryName] = useState('');
 
   // Category stats calculation
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
 
-    despesas.forEach(d => {
-      const c = d.categoria?.trim();
-      if (c) {
-        counts[c] = (counts[c] || 0) + 1;
-      }
-    });
-
-    contasFixas.forEach(f => {
-      if (f.categoria) {
-        const c = f.categoria.trim();
+    if (categorySource === 'cartoes') {
+      cartaoTransacoes.forEach(transaction => {
+        const category = transaction.categoria?.trim() || 'Outros';
+        counts[category] = (counts[category] || 0) + 1;
+      });
+    } else {
+      despesas.forEach(d => {
+        const c = d.categoria?.trim();
         if (c) {
           counts[c] = (counts[c] || 0) + 1;
         }
-      }
-    });
+      });
+
+      contasFixas.forEach(f => {
+        if (f.categoria) {
+          const c = f.categoria.trim();
+          if (c) {
+            counts[c] = (counts[c] || 0) + 1;
+          }
+        }
+      });
+    }
 
     if (Object.keys(counts).length === 0) {
       const defaults = ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Compras', 'Mercado', 'Outros'];
@@ -128,7 +141,7 @@ export function SettingsView({
     return Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [despesas, contasFixas]);
+  }, [despesas, contasFixas, cartaoTransacoes, categorySource]);
 
   // Grouped descriptions for selected category
   const groupedDescriptions = useMemo(() => {
@@ -172,6 +185,38 @@ export function SettingsView({
       })
       .sort((a, b) => b.count - a.count || a.desc.localeCompare(b.desc));
   }, [selectedCategoryForDetails, despesas, contasFixas, categorySearchTerm]);
+
+  const groupedCardTransactions = useMemo(() => {
+    if (!selectedCategoryForDetails || categorySource !== 'cartoes') return [];
+    const matching = cartaoTransacoes
+      .filter(transaction => {
+        const category = transaction.categoria?.trim() || 'Outros';
+        const matchesCategory = category.toUpperCase() === selectedCategoryForDetails.toUpperCase();
+        const matchesSearch = !categorySearchTerm || (transaction.estabelecimento || '').toLowerCase().includes(categorySearchTerm.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+    const grouped = new Map<string, { estabelecimento: string; count: number; total: number; latestDate: string; categories: Set<string> }>();
+    matching.forEach(transaction => {
+      const establishment = transaction.estabelecimento?.trim() || 'Sem estabelecimento';
+      const key = establishment.toLocaleLowerCase('pt-BR');
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.total += Number(transaction.valor) || 0;
+        if (transaction.data_compra > existing.latestDate) existing.latestDate = transaction.data_compra;
+        existing.categories.add(transaction.categoria?.trim() || 'Outros');
+      } else {
+        grouped.set(key, {
+          estabelecimento: establishment,
+          count: 1,
+          total: Number(transaction.valor) || 0,
+          latestDate: transaction.data_compra,
+          categories: new Set([transaction.categoria?.trim() || 'Outros'])
+        });
+      }
+    });
+    return Array.from(grouped.values()).sort((a, b) => a.estabelecimento.localeCompare(b.estabelecimento));
+  }, [selectedCategoryForDetails, cartaoTransacoes, categorySearchTerm, categorySource]);
 
   const handleSendInvite = (e: React.FormEvent) => {
     e.preventDefault();
@@ -790,65 +835,34 @@ export function SettingsView({
                       return normCard.includes(normPreset) || normPreset.includes(normCard);
                     });
                     const titularNome = (c.titular_id ? titulares.find((t) => t.id === c.titular_id)?.nome : null) || user?.nome || 'Titular';
-                    const finalDigits = c.final || '••••';
                     const cardColor = c.color || matchedPreset?.color || '#00AE9A';
+                    const finalDigits = c.final || '••••';
                     const cardBg = cardColor.startsWith('linear') ? cardColor : `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}cc 100%)`;
-                    const cardIcon = c.icone || getCardLogo(c.nome_cartao);
 
                     return (
                       <div key={c.id} className="flex flex-col gap-2 w-full max-w-[340px]">
-                        {/* Barra de Ações Externa acima do Cartão */}
                         <div className="d-flex align-items-center justify-content-between px-1">
-                          <span className="text-xs font-bold text-foreground truncate">
-                            {c.nome_cartao}
-                          </span>
+                          <span className="text-xs font-bold text-foreground truncate">{c.nome_cartao}</span>
                           {canManageSharedSettings && (
                             <div className="d-flex align-items-center gap-1">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-link p-1 text-muted hover:text-primary transition-colors"
-                              onClick={() => {
-                                setEditingCartao(c);
-                                setIsCartaoModalOpen(true);
-                              }}
-                              title="Editar Cartão"
-                            >
-                              <i className="fa-solid fa-pen-to-square text-xs"></i>
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-link p-1 text-muted hover:text-danger transition-colors"
-                              onClick={() => onDeleteCartao(c.id)}
-                              title="Excluir Cartão"
-                            >
-                              <i className="fa-solid fa-trash text-xs"></i>
-                            </button>
+                              <button type="button" className="btn btn-sm btn-link p-1 text-muted hover:text-primary transition-colors" onClick={() => { setEditingCartao(c); setIsCartaoModalOpen(true); }} title="Editar Cartão">
+                                <i className="fa-solid fa-pen-to-square text-xs"></i>
+                              </button>
+                              <button type="button" className="btn btn-sm btn-link p-1 text-muted hover:text-danger transition-colors" onClick={() => onDeleteCartao(c.id)} title="Excluir Cartão">
+                                <i className="fa-solid fa-trash text-xs"></i>
+                              </button>
                             </div>
                           )}
                         </div>
-
-                        {/* Cartão com o Layout e Cores da Aba Meus Cartões & Faturas */}
                         <div
                           className={`credit-card-ui transition-all duration-300 shadow-md${canManageSharedSettings ? ' cursor-pointer hover:scale-[1.02]' : ''}`}
-                          style={{
-                            background: cardBg
-                          }}
-                          onClick={canManageSharedSettings ? () => {
-                            setEditingCartao(c);
-                            setIsCartaoModalOpen(true);
-                          } : undefined}
+                          style={{ background: cardBg }}
+                          onClick={canManageSharedSettings ? () => { setEditingCartao(c); setIsCartaoModalOpen(true); } : undefined}
                           title={canManageSharedSettings ? `Clique para editar ${c.nome_cartao}` : undefined}
                         >
                           <div className="cc-top">
                             <div className="cc-chip"></div>
-                            <div className="d-flex align-items-center gap-1.5 min-w-0">
-                              {cardIcon ? (
-                                <div className="relative w-5 h-5 rounded overflow-hidden bg-white/20 p-0.5 flex-shrink-0">
-                                  <img src={cardIcon} alt={c.nome_cartao} className="w-full h-full object-contain" />
-                                </div>
-                              ) : null}
-                              <span className="cc-brand truncate">{c.nome_cartao}</span>
-                            </div>
+                            <span className="cc-brand truncate">{c.nome_cartao}</span>
                           </div>
                           <div className="cc-middle">
                             <div className="cc-number">•••• •••• •••• {finalDigits}</div>
@@ -857,9 +871,7 @@ export function SettingsView({
                             <div className="cc-holder truncate">{titularNome}</div>
                             <div className="cc-balance-preview">
                               <div className="cc-balance-label">Fech. / Venc.</div>
-                              <div className="cc-balance-val text-xs">
-                                Dia {c.dia_fechamento} / {c.dia_vencimento}
-                              </div>
+                              <div className="cc-balance-val text-xs">Dia {c.dia_fechamento} / {c.dia_vencimento}</div>
                             </div>
                           </div>
                         </div>
@@ -888,6 +900,23 @@ export function SettingsView({
                   <span className="text-xs text-muted block mt-1">
                     Organize, renomeie categorias em lote ou reclassifique lançamentos por descrição
                   </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-1 p-1 bg-muted/30 border border-border rounded-pill">
+                  <button
+                    type="button"
+                    onClick={() => { setCategorySource('despesas'); setSelectedCategoryForDetails(null); setCategorySearchTerm(''); }}
+                    className={cn('btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold border-0', categorySource === 'despesas' ? 'bg-primary text-white shadow-sm' : 'bg-transparent text-muted')}
+                  >
+                    Despesas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCategorySource('cartoes'); setSelectedCategoryForDetails(null); setCategorySearchTerm(''); }}
+                    className={cn('btn btn-sm rounded-pill px-3 py-1 text-xs fw-bold border-0', categorySource === 'cartoes' ? 'bg-primary text-white shadow-sm' : 'bg-transparent text-muted')}
+                  >
+                    Compras no cartão
+                  </button>
                 </div>
 
                 {selectedCategoryForDetails ? (
@@ -940,7 +969,95 @@ export function SettingsView({
 
                   {/* Lista de Descrições da Categoria em Grid Multicolunas */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
-                    {groupedDescriptions.length === 0 ? (
+                    {categorySource === 'cartoes' ? (
+                      groupedCardTransactions.length === 0 ? (
+                        <div className="col-span-full text-center py-8 text-muted text-xs italic bg-[var(--card-hover)] rounded-2xl border border-border">
+                          Nenhuma compra encontrada nesta categoria.
+                        </div>
+                      ) : groupedCardTransactions.map((group) => (
+                        <div key={group.estabelecimento.toLocaleLowerCase('pt-BR')} className="p-3.5 bg-[var(--card-hover)] hover:bg-[var(--card-elevated)] border border-border rounded-2xl d-flex align-items-center justify-content-between gap-3 transition-colors">
+                          <div className="min-w-0 flex-grow-1">
+                            <div className="font-bold text-xs text-foreground truncate">{group.estabelecimento}</div>
+                            <div className="text-[10px] text-muted mt-0.5">
+                              {group.count} {group.count === 1 ? 'compra' : 'compras'} · R$ {group.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                          <div className="d-flex flex-column gap-1 flex-shrink-0">
+                            <select
+                              value={group.categories.size === 1 ? Array.from(group.categories)[0] : '__mixed__'}
+                              onChange={async (event) => {
+                                if (!onUpdateCardCategoryByEstablishment) return;
+                                setCategoryOperationError(null);
+                                try {
+                                  await onUpdateCardCategoryByEstablishment(group.estabelecimento, event.target.value);
+                                } catch {
+                                  setCategoryOperationError('Não foi possível alterar a categoria das compras deste estabelecimento. Tente novamente.');
+                                }
+                              }}
+                              className="bg-card border border-border text-foreground text-xs font-semibold py-1 px-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                            >
+                              {group.categories.size > 1 && <option value="__mixed__" disabled>Categorias variadas</option>}
+                              {categoryStats.map(category => <option key={category.name} value={category.name} className="bg-card text-foreground">{category.name}</option>)}
+                            </select>
+                            {creatingCardCategoryFor === group.estabelecimento.toLocaleLowerCase('pt-BR') ? (
+                              <div className="d-flex align-items-center gap-1">
+                                <input
+                                  autoFocus
+                                  value={newCardCategoryName}
+                                  onChange={(event) => setNewCardCategoryName(event.target.value)}
+                                  onKeyDown={async (event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      const newCategory = newCardCategoryName.trim();
+                                      if (!newCategory || !onUpdateCardCategoryByEstablishment) return;
+                                      setCategoryOperationError(null);
+                                      try {
+                                        await onUpdateCardCategoryByEstablishment(group.estabelecimento, newCategory);
+                                        setCreatingCardCategoryFor(null);
+                                        setNewCardCategoryName('');
+                                      } catch {
+                                        setCategoryOperationError('Não foi possível salvar a nova categoria. Tente novamente.');
+                                      }
+                                    }
+                                  }}
+                                  placeholder="Nova categoria"
+                                  className="bg-card border border-border text-foreground text-xs py-1 px-2 rounded-lg min-w-0"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={!newCardCategoryName.trim()}
+                                  onClick={async () => {
+                                    if (!onUpdateCardCategoryByEstablishment || !newCardCategoryName.trim()) return;
+                                    setCategoryOperationError(null);
+                                    try {
+                                      await onUpdateCardCategoryByEstablishment(group.estabelecimento, newCardCategoryName.trim());
+                                      setCreatingCardCategoryFor(null);
+                                      setNewCardCategoryName('');
+                                    } catch {
+                                      setCategoryOperationError('Não foi possível salvar a nova categoria. Tente novamente.');
+                                    }
+                                  }}
+                                  className="btn btn-sm btn-primary px-2 py-1 text-[10px]"
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCreatingCardCategoryFor(group.estabelecimento.toLocaleLowerCase('pt-BR'));
+                                  setNewCardCategoryName('');
+                                }}
+                                className="btn btn-sm btn-link p-0 text-[10px] text-primary text-start"
+                              >
+                                + Nova categoria
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : groupedDescriptions.length === 0 ? (
                       <div className="col-span-full text-center py-8 text-muted text-xs italic bg-[var(--card-hover)] rounded-2xl border border-border">
                         Nenhuma descrição encontrada nesta categoria.
                       </div>

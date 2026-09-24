@@ -686,6 +686,7 @@ export function DespesasCategoriaChart({ despesas, isHidden = false }: DespesasC
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'var(--text, #334155)', fontSize: 11, fontWeight: 700 }}
+                tickFormatter={(value) => String(value).toLowerCase() === 'empréstimos e financiamentos' ? 'Empr./Finan.' : value}
                 width={90}
               />
               <RechartsTooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
@@ -789,6 +790,7 @@ export function CreditCardsWidget({
       };
     });
   }, [cartoes, titulares, despesas]);
+  const cardsWithInvoice = cardsList.filter((card) => card.fatura > 0);
 
   return (
     <div className="card-panel">
@@ -809,14 +811,14 @@ export function CreditCardsWidget({
         </button>
       </div>
 
-      <div className="card-slider">
-        {cardsList.length === 0 ? (
+      <div className="card-slider cards-slider-scrollbar">
+        {cardsWithInvoice.length === 0 ? (
           <button type="button" className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center bg-transparent" onClick={onViewAllCards}>
             <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
-            <span className="d-block text-sm font-semibold text-foreground">Nenhum cartão cadastrado</span>
-            <span className="d-block text-xs text-muted mt-1">Cadastre um cartão para acompanhar faturas e limites.</span>
+            <span className="d-block text-sm font-semibold text-foreground">Nenhum cartão com fatura neste período</span>
+            <span className="d-block text-xs text-muted mt-1">Os cartões aparecerão aqui quando tiverem lançamentos acima de zero.</span>
           </button>
-        ) : cardsList.map((c) => (
+        ) : cardsWithInvoice.map((c) => (
           <div
             key={c.id}
             className={cn('credit-card-ui cursor-pointer transition-all duration-300', c.gradientClass)}
@@ -827,14 +829,7 @@ export function CreditCardsWidget({
           >
             <div className="cc-top">
               <div className="cc-chip"></div>
-              <div className="d-flex align-items-center gap-1.5 min-w-0">
-                {c.icone ? (
-                  <div className="relative w-5 h-5 rounded overflow-hidden bg-white/20 p-0.5 flex-shrink-0">
-                    <img src={c.icone} alt={c.brand} className="w-full h-full object-contain" />
-                  </div>
-                ) : null}
-                <span className="cc-brand truncate">{c.brand}</span>
-              </div>
+              <span className="cc-brand truncate">{c.brand}</span>
             </div>
             <div className="cc-middle">
               <div className="cc-number">{c.number}</div>
@@ -883,8 +878,9 @@ export function ExtratoTableWidget({
     const exp = despesas.map((d) => {
       const isCard = d.isSummary || !!d.cartao_vencimento_id || d.descricao.startsWith('Fatura ');
       const isOverdue = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr && d.vencimento !== '-';
-      const titularNome = titulares.find((t) => t.id === d.titular_id)?.nome || 'Família';
-      const cartaoNome = cartoes.find((c) => c.id === d.cartao_vencimento_id)?.nome_cartao;
+      const cartao = cartoes.find((c) => Number(c.id) === Number(d.cartao_vencimento_id));
+      const titularId = cartao?.titular_id ?? d.titular_id;
+      const titularNome = titulares.find((t) => Number(t.id) === Number(titularId))?.nome || 'Família';
       const cat = d.categoria || (isCard ? 'Cartão' : 'Despesa');
       // Sort key: vencimento or competencia date
       const sortDate = d.vencimento && d.vencimento !== '-' ? d.vencimento : (d.competencia ? `${d.competencia.split('/')[1]}-${d.competencia.split('/')[0]}-01` : '0000-00-00');
@@ -894,7 +890,7 @@ export function ExtratoTableWidget({
         raw: d,
         desc: d.descricao,
         cat,
-        titular: cartaoNome ? `Cartão ${cartaoNome}` : titularNome,
+        titular: titularNome,
         vencimento: d.vencimento && d.vencimento !== '-' ? formatDate(d.vencimento) : 'Mensal',
         status: d.status || 'Em aberto',
         isOverdue,

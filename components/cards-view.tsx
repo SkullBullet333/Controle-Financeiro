@@ -276,14 +276,14 @@ export function CartoesView({
           </div>
         </div>
 
-        <div className="card-slider" style={{ marginTop: '-2px' }}>
-          {cardsList.length === 0 ? (
+        <div className="card-slider cards-slider-scrollbar" style={{ marginTop: '8px' }}>
+          {cardsList.filter((card) => card.fatura > 0).length === 0 ? (
             <div className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center">
               <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
-              <div className="text-sm font-semibold text-foreground">Nenhum cartão cadastrado</div>
-              <div className="text-xs text-muted mt-1">Cadastre seu primeiro cartão antes de registrar compras.</div>
+              <div className="text-sm font-semibold text-foreground">Nenhum cartão com fatura neste período</div>
+              <div className="text-xs text-muted mt-1">Os cartões aparecerão aqui quando tiverem lançamentos acima de zero.</div>
             </div>
-          ) : cardsList.map((c) => {
+          ) : cardsList.filter((card) => card.fatura > 0).map((c) => {
             const isSelected = selectedCardId === c.id || (c.realId && selectedCardId === c.realId);
 
             return (
@@ -302,14 +302,7 @@ export function CartoesView({
               >
                 <div className="cc-top">
                   <div className="cc-chip"></div>
-                  <div className="d-flex align-items-center gap-1.5 min-w-0">
-                    {c.icone ? (
-                      <div className="relative w-5 h-5 rounded overflow-hidden bg-white/20 p-0.5 flex-shrink-0">
-                        <img src={c.icone} alt={c.brand} className="w-full h-full object-contain" />
-                      </div>
-                    ) : null}
-                    <span className="cc-brand truncate">{c.brand}</span>
-                  </div>
+                  <span className="cc-brand truncate">{c.brand}</span>
                 </div>
                 <div className="cc-middle">
                   <div className="cc-number">{c.number}</div>
@@ -486,6 +479,7 @@ export function CartoesView({
                 <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
                   <tr>
                     <th style={{ padding: '8px 10px' }}>Compra</th>
+                    <th style={{ padding: '8px 10px' }}>Categoria</th>
                     <th style={{ padding: '8px 10px' }}>Parcela</th>
                     <th style={{ padding: '8px 10px' }}>Data</th>
                     <th style={{ textAlign: 'right', padding: '8px 10px' }}>Valor</th>
@@ -495,7 +489,7 @@ export function CartoesView({
                 <tbody>
                   {cardTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-6 text-muted">
+                      <td colSpan={6} className="text-center py-6 text-muted">
                         Nenhuma compra encontrada para este cartão no período.
                       </td>
                     </tr>
@@ -528,11 +522,11 @@ export function CartoesView({
                                 <div className="font-bold text-xs text-foreground leading-tight">
                                   {t.estabelecimento}
                                 </div>
-                                <div className="text-[10px] text-muted">
-                                  {t.categoria || 'Geral'}
-                                </div>
                               </div>
                             </div>
+                          </td>
+                          <td style={{ padding: '8px 10px' }} className="text-muted text-[11px]">
+                            {t.categoria || 'Geral'}
                           </td>
                           <td style={{ padding: '8px 10px' }}>
                             <span className="badge-tag badge-neutral font-mono font-bold text-[10px] py-0.5 px-2 dark:text-slate-200 dark:bg-white/10">

@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Titular, Status, Despesa, Receita, CartaoConfig, Profile, Emprestimo, ContaFixaConfig } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { calcularCompetencia, calcularCompetenciaCartao, calculatePresentValue, projetarProximoVencimento, getProximoFechamento, resolverAgendamentoReceita } from '@/lib/finance-service';
-import { parseISO, format, getDate, isLastDayOfMonth, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
+import { parseISO, format, getDate, isLastDayOfMonth, addMonths, subMonths, subDays, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
 import { categorizar } from '@/lib/categories-utils';
-import { getCardLogo } from '@/lib/finance-service';
 import { PendingCreationOperation, resolveCreationOperation } from '@/lib/idempotency';
 import { normalizarDinheiro, somarDinheiro, subtrairDinheiro } from '@/lib/money';
 import { reportOperationFailure } from '@/lib/safe-log';
@@ -21,9 +21,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
+  closeOnBackdropClick?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className, closeOnBackdropClick = true }: ModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -33,14 +35,18 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-[1060] flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-xs" 
-          onClick={onClose}
+          onClick={closeOnBackdropClick ? onClose : undefined}
         >
           <motion.div
             initial={{ scale: 0.98, opacity: 0, y: 5 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.98, opacity: 0, y: 5 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full max-w-[640px] bg-card text-foreground rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 relative overflow-y-auto max-h-[92vh] md:max-h-[85vh] border border-border"
+            className={cn(
+              "w-full max-w-[640px] bg-card text-foreground rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 relative overflow-y-auto max-h-[92vh] md:max-h-[85vh] border border-border",
+              title === 'Novo Registro' && 'h-[min(724px,85vh)] flex flex-col overflow-hidden',
+              className
+            )}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <button
@@ -57,11 +63,43 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     </AnimatePresence>
   );
 }
+
+function sanitizeMoneyTyping(raw: string): string {
+  const value = raw.replace(/[^\d.,]/g, '');
+  if (!value || !/\d/.test(value)) return '';
+
+  const commaIndex = value.lastIndexOf(',');
+  const dotIndex = value.lastIndexOf('.');
+  const separatorIndex = Math.max(commaIndex, dotIndex);
+  if (separatorIndex < 0) return value;
+
+  if (value[separatorIndex] === '.' && (commaIndex < 0 || dotIndex < 0) && /^\d{1,3}(\.\d{3})+$/.test(value)) {
+    return value.replace(/\./g, '');
+  }
+
+  const integer = value.slice(0, separatorIndex).replace(/[.,]/g, '');
+  const fraction = value.slice(separatorIndex + 1).replace(/[.,]/g, '').slice(0, 2);
+  return `${integer || '0'},${fraction}`;
+}
+
+function formatMoneyOnBlur(value: string): string {
+  const normalizedInput = value.replace(/[,\.]$/, '');
+  if (!normalizedInput) return '';
+  const amount = normalizarDinheiro(normalizedInput);
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+}
+
+function moneyToEditableValue(value: string): string {
+  if (!value.trim()) return '';
+  return String(normalizarDinheiro(value)).replace('.', ',');
+}
+
 export function UniversalFinanceForm({
   initialType = 'despesa',
   initialData,
   titulares,
   cartoes,
+  categorias = [],
   competencia,
   onClose,
   onSubmitFinance,
@@ -74,6 +112,7 @@ export function UniversalFinanceForm({
   initialData?: any,
   titulares: Titular[],
   cartoes: CartaoConfig[],
+  categorias?: string[],
   competencia: string,
   onClose: () => void,
   onSubmitFinance: (data: Omit<Despesa, 'id'> | Omit<Receita, 'id'>) => Promise<void> | void,
@@ -83,6 +122,7 @@ export function UniversalFinanceForm({
   isDarkMode?: boolean
 }) {
   const [activeType, setActiveType] = useState<'despesa' | 'receita' | 'emprestimo' | 'despesa_cartao'>(initialType);
+  const inactiveChoiceText = isDarkMode ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950';
   const isEditing = !!initialData;
 
   // Se estiver editando, bloqueia o tipo conforme o dado inicial
@@ -117,9 +157,9 @@ export function UniversalFinanceForm({
   };
 
   return (
-    <div className="animate-in fade-in duration-300">
+    <div className="animate-in fade-in duration-300 flex-1 flex flex-col">
       {/* Unified Header */}
-      <header className="mb-4 md:mb-8 pe-10">
+      <header className="mb-3 md:mb-4 pe-10">
         <div className="flex items-center gap-3 md:gap-4">
           <span
             className="material-symbols-outlined transition-all duration-300 text-[40px] md:text-[54px] leading-none"
@@ -146,8 +186,8 @@ export function UniversalFinanceForm({
 
       {/* Tabs Selector */}
       {!isEditing && (
-        <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="bg-muted/20 p-1 rounded-full flex w-full max-w-[560px] h-11 md:h-12 relative border border-border/50 shadow-inner overflow-hidden">
+        <div className="flex flex-col items-center mb-3 md:mb-4">
+          <div className="bg-muted/20 p-1 rounded-full flex w-full h-11 md:h-12 relative border border-border/50 shadow-inner overflow-hidden">
             {/* Sliding Pill Background - 4 options = 25% each */}
             <div
               className="absolute top-1 bottom-1 shadow-md transition-all duration-300 ease-out"
@@ -166,7 +206,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'despesa' ? "text-white" : "text-muted hover:text-foreground"
+                activeType === 'despesa' ? "text-white" : inactiveChoiceText
               )}
               onClick={() => setActiveType('despesa')}
             >
@@ -178,7 +218,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'despesa_cartao' ? "text-white" : "text-muted hover:text-foreground"
+                activeType === 'despesa_cartao' ? "text-white" : inactiveChoiceText
               )}
               onClick={() => setActiveType('despesa_cartao')}
             >
@@ -190,7 +230,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'receita' ? "text-white" : "text-muted hover:text-foreground"
+                activeType === 'receita' ? "text-white" : inactiveChoiceText
               )}
               onClick={() => setActiveType('receita')}
             >
@@ -202,7 +242,7 @@ export function UniversalFinanceForm({
               type="button"
               className={cn(
                 "flex-1 relative z-10 text-[9px] md:text-[10px] font-bold md:font-black tracking-tight transition-all duration-300 flex items-center justify-center",
-                activeType === 'emprestimo' ? "text-white" : "text-muted hover:text-foreground"
+                activeType === 'emprestimo' ? "text-white" : inactiveChoiceText
               )}
               onClick={() => setActiveType('emprestimo')}
             >
@@ -221,6 +261,7 @@ export function UniversalFinanceForm({
           onSubmit={onSubmitEmprestimo}
           hideHeader={true}
           themeColor={typeColors[activeType]}
+          isDarkMode={isDarkMode}
         />
       ) : (
         <FinanceForm
@@ -229,6 +270,7 @@ export function UniversalFinanceForm({
           subType={activeType === 'despesa_cartao' ? 'cartao' : (activeType === 'despesa' ? 'fixa' : initialSubType)}
           titulares={titulares}
           cartoes={cartoes}
+          categorias={categorias}
           competencia={competencia}
           initialData={initialData}
           onClose={onClose}
@@ -236,12 +278,40 @@ export function UniversalFinanceForm({
           onSubmitContaFixa={onSubmitContaFixa}
           hideHeader={true}
           themeColor={typeColors[activeType]}
+          isDarkMode={isDarkMode}
         />
       )}
     </div>
   );
 }
 
+
+function CardSelectIcon({ card, size = 'md' }: { card: CartaoConfig; size?: 'sm' | 'md' }) {
+  const cardName = card.nome_cartao.toLowerCase();
+  const presetColor = cardName.includes('sicoob platinum') ? '#00353E'
+    : cardName.includes('sicoob') ? '#00AE9A'
+      : cardName.includes('mercado pago') ? '#222A37'
+        : cardName.includes('inter') ? '#FF5100'
+          : cardName.includes('nubank') ? '#6834AE'
+            : '#00AE9A';
+  const dimensions = size === 'sm' ? { width: 26, height: 18, fontSize: 9 } : { width: 22, height: 15, fontSize: 8 };
+
+  return (
+    <div
+      className="d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+      title={card.nome_cartao}
+      style={{
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
+        backgroundColor: card.color || presetColor,
+        borderRadius: '3px',
+        color: '#ffffff'
+      }}
+    >
+      <i className="fa-solid fa-credit-card" style={{ fontSize: `${dimensions.fontSize}px` }}></i>
+    </div>
+  );
+}
 
 function CardSelectDropdown({ 
   value, 
@@ -277,7 +347,7 @@ function CardSelectDropdown({
       >
         {selectedCard ? (
           <div className="flex items-center gap-3">
-            <CardLogo name={selectedCard.nome_cartao} size="sm" />
+            <CardSelectIcon card={selectedCard} size="sm" />
             <span className="font-bold text-slate-900">{selectedCard.nome_cartao} <span className="text-slate-400 font-medium ml-1">— fecha em {getProximoFechamento(selectedCard)}</span></span>
           </div>
         ) : (
@@ -288,7 +358,7 @@ function CardSelectDropdown({
 
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-premium border border-slate-100 z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="max-h-[180px] overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+          <div className="max-h-[180px] overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar card-select-scrollbar">
             {cartoes.length === 0 ? (
               <div className="p-4 text-center text-slate-400 text-xs italic">Nenhum cartão configurado</div>
             ) : (
@@ -306,15 +376,12 @@ function CardSelectDropdown({
                   )}
                 >
                   <div className="flex items-center gap-2.5 text-left">
-                    <CardLogo name={c.nome_cartao} size="xs" />
+                    <CardSelectIcon card={c} />
                     <div className="flex flex-col">
                       <span className="text-[13px] font-bold text-slate-900 leading-tight">{c.nome_cartao}</span>
-                      <span className="text-[9px] text-slate-400 font-medium">Fecha: {getProximoFechamento(c)}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">Vence {c.dia_vencimento}</span>
-                  </div>
+                  <span className="text-[9px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md font-bold leading-none whitespace-nowrap">Fecha: {getProximoFechamento(c)}</span>
                 </button>
               ))
             )}
@@ -328,11 +395,13 @@ function CardSelectDropdown({
 function TitularSelectDropdown({ 
   value, 
   onChange, 
-  titulares 
+  titulares,
+  isDarkMode = false
 }: { 
   value: number, 
   onChange: (id: number) => void, 
-  titulares: Titular[]
+  titulares: Titular[],
+  isDarkMode?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedTitular = titulares.find(t => t.id === value);
@@ -355,27 +424,27 @@ function TitularSelectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface flex items-center justify-between min-h-[44px]"
+        className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm text-foreground flex items-center justify-between"
       >
         {selectedTitular ? (
           <div className="flex items-center gap-3">
             {selectedTitular.foto ? (
               <img src={selectedTitular.foto} alt={selectedTitular.nome} className="w-6 h-6 rounded-full object-cover border border-slate-200" />
             ) : (
-              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
+              <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold", isDarkMode ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-600")}>
                 {selectedTitular.nome.charAt(0)}
               </div>
             )}
-            <span className="font-bold text-slate-900">{selectedTitular.nome}</span>
+            <span className={cn("font-bold", isDarkMode ? "text-slate-100" : "text-slate-900")}>{selectedTitular.nome}</span>
           </div>
         ) : (
-          <span className="text-slate-400 font-medium">Selecione um responsável</span>
+          <span className={cn("font-medium", isDarkMode ? "text-slate-300" : "text-slate-600")}>Selecione um responsável</span>
         )}
-        <span className="material-symbols-outlined text-slate-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>expand_more</span>
+        <span className={cn("material-symbols-outlined transition-transform duration-200", isDarkMode ? "text-slate-300" : "text-slate-600")} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>expand_more</span>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-premium border border-slate-100 z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className={cn("absolute top-full left-0 right-0 mt-1 rounded-xl shadow-premium border z-[1100] overflow-hidden animate-in fade-in zoom-in-95 duration-200", isDarkMode ? "bg-slate-900 border-slate-700" : "bg-white border-slate-200")}>
           <div className="max-h-[180px] overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
             {titulares.map(t => (
               <button
@@ -386,21 +455,22 @@ function TitularSelectDropdown({
                   setIsOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center justify-between p-2 rounded-lg transition-all hover:bg-slate-50",
-                  value === t.id ? "bg-slate-50 border border-slate-100" : "border border-transparent"
+                  "w-full flex items-center justify-between p-2 rounded-lg transition-all",
+                  isDarkMode ? "hover:bg-slate-800" : "hover:bg-slate-50",
+                  value === t.id ? (isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-slate-50 border border-slate-200") : "border border-transparent"
                 )}
               >
                 <div className="flex items-center gap-3 text-left">
                   {t.foto ? (
                     <img src={t.foto} alt={t.nome} className="w-7 h-7 rounded-full object-cover border border-slate-100" />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400">
+                    <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold", isDarkMode ? "bg-slate-700 text-slate-200" : "bg-slate-100 text-slate-600")}>
                       {t.nome.charAt(0)}
                     </div>
                   )}
-                  <span className="text-[13px] font-bold text-slate-900">{t.nome}</span>
+                  <span className={cn("text-[13px] font-bold", isDarkMode ? "text-slate-100" : "text-slate-900")}>{t.nome}</span>
                 </div>
-                {value === t.id && <span className="material-symbols-outlined text-navy text-sm">check</span>}
+                {value === t.id && <span className="material-symbols-outlined text-primary text-sm">check</span>}
               </button>
             ))}
           </div>
@@ -417,11 +487,13 @@ export function FinanceForm({
   initialData,
   titulares,
   cartoes,
+  categorias = [],
   competencia,
   onClose,
   onSubmitContaFixa,
   hideHeader,
-  themeColor = '#1e293b'
+  themeColor = '#1e293b',
+  isDarkMode = false
 }: {
   type: 'despesa' | 'receita',
   subType?: 'cartao' | 'boleto' | 'fixa',
@@ -429,11 +501,13 @@ export function FinanceForm({
   initialData?: Despesa | Receita | ContaFixaConfig,
   titulares: Titular[],
   cartoes: CartaoConfig[],
+  categorias?: string[],
   competencia: string,
   onClose: () => void,
   onSubmitContaFixa?: (data: Omit<ContaFixaConfig, 'id' | 'user_id' | 'family_id'>) => Promise<void> | void,
   hideHeader?: boolean,
-  themeColor?: string
+  themeColor?: string,
+  isDarkMode?: boolean
 }) {
   const [formData, setFormData] = useState({
     descricao: initialData?.descricao || (initialData as any)?.estabelecimento || '',
@@ -449,6 +523,7 @@ export function FinanceForm({
 
   const isRevenue = (type as string) === 'receita';
   const isExpense = (type as string) === 'despesa';
+  const inactiveChoiceText = isDarkMode ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950';
 
   const isMasterConfig = !!(initialData as any)?.data_inicio;
   const [isRecorrente, setIsRecorrente] = useState(isMasterConfig);
@@ -457,7 +532,15 @@ export function FinanceForm({
   const [paymentType, setPaymentType] = useState((initialData as any)?.parcela_total > 1 ? 'Parcelado' : 'A vista');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const pendingCreationOperation = useRef<PendingCreationOperation | null>(null);
+  const filteredCategories = useMemo(() => {
+    const query = formData.categoria.trim().toLocaleLowerCase();
+    return [...new Set(categorias)]
+      .filter(category => !query || category.toLocaleLowerCase().includes(query))
+      .slice(0, 5);
+  }, [categorias, formData.categoria]);
 
   useEffect(() => {
     if (validationError) {
@@ -504,6 +587,7 @@ export function FinanceForm({
         }
       }
     } else {
+      data.categoria = formData.categoria || categorizar(formData.descricao);
       data.data_recebimento = finalDate;
       const agendamento = resolverAgendamentoReceita(parseISO(finalDate));
       data.competencia = agendamento.competencia;
@@ -577,25 +661,70 @@ export function FinanceForm({
         </header>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-3 flex-1 flex flex-col min-h-0">
         <div className="relative group">
           <label className="text-[10px] md:label-md font-label text-muted mb-1 block ml-1 uppercase font-bold tracking-wider">Valor do Lançamento</label>
           <div className="flex items-center bg-muted/20 rounded-2xl px-4 py-2 md:py-3 focus-within:ring-2 focus-within:ring-primary/30 transition-all shadow-sm border border-border/50">
             <span className={cn(
-              "text-lg md:text-xl font-headline font-bold transition-all mr-2 md:mr-3 mt-1",
+              "!text-xs md:!text-sm font-headline font-bold transition-all mr-2 md:mr-3",
               formData.valor ? "text-foreground" : "text-muted"
             )}>R$</span>
             <input
               required
               className={cn(
-                "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-1 text-xl md:text-2xl",
+                "bg-transparent border-none focus:outline-none rounded-lg font-headline font-extrabold w-full p-0 transition-all px-1 !text-[28px] md:!text-[32px] leading-none",
                 formData.valor ? "text-foreground" : "text-muted"
               )}
               placeholder="0,00"
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               value={formData.valor}
-              onChange={e => setFormData({ ...formData, valor: e.target.value })}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^\d.,]/g, '');
+                if (!raw) {
+                  setFormData(current => ({ ...current, valor: '' }));
+                  return;
+                }
+
+                const commaIndex = raw.lastIndexOf(',');
+                const dotIndex = raw.lastIndexOf('.');
+                const separatorIndex = Math.max(commaIndex, dotIndex);
+                const separator = separatorIndex >= 0 ? raw[separatorIndex] : '';
+                const allSameSeparator = commaIndex < 0 || dotIndex < 0;
+                if (separator === '.' && allSameSeparator && /^\d{1,3}(\.\d{3})+$/.test(raw)) {
+                  setFormData(current => ({ ...current, valor: raw.replace(/\./g, '') }));
+                  return;
+                }
+
+                const integer = (separatorIndex >= 0 ? raw.slice(0, separatorIndex) : raw).replace(/[.,]/g, '');
+                const fraction = separatorIndex >= 0 ? raw.slice(separatorIndex + 1).replace(/[.,]/g, '').slice(0, 2) : '';
+                setFormData(current => ({
+                  ...current,
+                  valor: separatorIndex >= 0 ? `${integer || '0'},${fraction}` : integer
+                }));
+              }}
+              onFocus={() => {
+                if (!formData.valor) return;
+                try {
+                  setFormData(current => ({ ...current, valor: String(normalizarDinheiro(current.valor)).replace('.', ',') }));
+                } catch {
+                  // Keep the user's current input if it is not a valid amount yet.
+                }
+              }}
+              onBlur={() => {
+                if (!formData.valor.trim()) return;
+                try {
+                  const valueToFormat = formData.valor.replace(/[,\.]$/, '');
+                  if (!valueToFormat) return;
+                  const amount = normalizarDinheiro(valueToFormat);
+                  setFormData(current => ({
+                    ...current,
+                    valor: new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+                  }));
+                } catch {
+                  // Leave invalid input visible so the user can correct it.
+                }
+              }}
             />
           </div>
         </div>
@@ -614,24 +743,88 @@ export function FinanceForm({
           </div>
 
           {(type === 'receita' || subType !== 'cartao') && (
-            <div className="md:col-span-2">
+            <div>
               <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Responsável</label>
               <TitularSelectDropdown
                 value={formData.titular_id}
                 onChange={id => setFormData({ ...formData, titular_id: id })}
                 titulares={titulares}
+                isDarkMode={isDarkMode}
               />
             </div>
           )}
 
           {type === 'despesa' && subType === 'cartao' && (
-            <div className="md:col-span-2">
+            <div>
               <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Cartão / Vencimento</label>
               <CardSelectDropdown
                 value={formData.cartao_vencimento_id}
                 onChange={id => setFormData({ ...formData, cartao_vencimento_id: id })}
                 cartoes={cartoes}
               />
+            </div>
+          )}
+
+          {(type === 'despesa' || type === 'receita') && (
+            <div className="relative">
+              <label className="text-[10px] md:label-md font-label text-on-surface-variant mb-1 block ml-1 uppercase font-bold tracking-wider whitespace-nowrap">Categoria</label>
+              <input
+                type="text"
+                autoComplete="off"
+                value={formData.categoria}
+                onFocus={() => setIsCategoryOpen(true)}
+                onBlur={() => window.setTimeout(() => setIsCategoryOpen(false), 120)}
+                onChange={e => {
+                  setFormData({ ...formData, categoria: e.target.value });
+                  setActiveCategoryIndex(0);
+                  setIsCategoryOpen(true);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'ArrowDown' && filteredCategories.length) {
+                    e.preventDefault();
+                    setIsCategoryOpen(true);
+                    setActiveCategoryIndex(index => (index + 1) % filteredCategories.length);
+                  } else if (e.key === 'ArrowUp' && filteredCategories.length) {
+                    e.preventDefault();
+                    setActiveCategoryIndex(index => (index - 1 + filteredCategories.length) % filteredCategories.length);
+                  } else if (e.key === 'Enter' && isCategoryOpen && filteredCategories[activeCategoryIndex]) {
+                    e.preventDefault();
+                    setFormData(current => ({ ...current, categoria: filteredCategories[activeCategoryIndex] }));
+                    setIsCategoryOpen(false);
+                  } else if (e.key === 'Tab' && isCategoryOpen && filteredCategories[activeCategoryIndex]) {
+                    setFormData(current => ({ ...current, categoria: filteredCategories[activeCategoryIndex] }));
+                    setIsCategoryOpen(false);
+                  } else if (e.key === 'Escape') {
+                    setIsCategoryOpen(false);
+                  }
+                }}
+                className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm text-foreground"
+                placeholder={type === 'receita' ? 'Ex: Salário, Freelance...' : subType === 'cartao' ? 'Ex: Mercado, Assinaturas, Lazer...' : 'Ex: Moradia, Mercado, Transporte...'}
+              />
+              {isCategoryOpen && filteredCategories.length > 0 && (
+                <div className={cn(
+                  'absolute left-0 right-0 top-full mt-1 z-[1200] rounded-xl border p-1 shadow-xl',
+                  isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                )}>
+                  {filteredCategories.map((category, index) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={cn(
+                        'w-full rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                        index === activeCategoryIndex
+                          ? isDarkMode ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-900'
+                          : isDarkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'
+                      )}
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => {
+                        setFormData(current => ({ ...current, categoria: category }));
+                        setIsCategoryOpen(false);
+                      }}
+                    >{category}</button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -665,7 +858,7 @@ export function FinanceForm({
                   type="button"
                   className={cn(
                     "flex-1 relative z-10 text-[9px] md:text-[10px] font-black tracking-tight transition-all duration-300",
-                    !isRecorrente ? "text-white" : "text-slate-400 hover:text-navy/40"
+                    !isRecorrente ? "text-white" : inactiveChoiceText
                   )}
                   onClick={() => setIsRecorrente(false)}
                 > ÚNICO </button>
@@ -674,7 +867,7 @@ export function FinanceForm({
                   type="button"
                   className={cn(
                     "flex-1 relative z-10 text-[9px] md:text-[10px] font-black tracking-tight transition-all duration-300",
-                    isRecorrente ? "text-white" : "text-slate-400 hover:text-navy/40"
+                    isRecorrente ? "text-white" : inactiveChoiceText
                   )}
                   onClick={() => setIsRecorrente(true)}
                 > VIRTUAL </button>
@@ -724,7 +917,7 @@ export function FinanceForm({
                         type="button"
                         className={cn(
                           "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
-                          isIndefinite ? "text-white" : "text-slate-400"
+                          isIndefinite ? "text-white" : inactiveChoiceText
                         )}
                         onClick={() => setIsIndefinite(true)}
                       >
@@ -765,7 +958,7 @@ export function FinanceForm({
                           type="button"
                           className={cn(
                             "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
-                            !isIndefinite ? "text-white" : "text-slate-400"
+                            !isIndefinite ? "text-white" : inactiveChoiceText
                           )}
                           onClick={() => {
                             setIsIndefinite(false);
@@ -796,7 +989,7 @@ export function FinanceForm({
                         type="button"
                         className={cn(
                           "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                          paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                          paymentType === 'A vista' ? "text-white" : inactiveChoiceText
                         )}
                         onClick={() => {
                           setPaymentType('A vista');
@@ -840,7 +1033,7 @@ export function FinanceForm({
                           type="button"
                           className={cn(
                             "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                            paymentType === 'Parcelado' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                            paymentType === 'Parcelado' ? "text-white" : inactiveChoiceText
                           )}
                           onClick={() => {
                             setPaymentType('Parcelado');
@@ -916,7 +1109,7 @@ export function FinanceForm({
                         type="button"
                         className={cn(
                           "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
-                          isIndefinite ? "text-white" : "text-slate-400"
+                          isIndefinite ? "text-white" : inactiveChoiceText
                         )}
                         onClick={() => setIsIndefinite(true)}
                       >
@@ -957,7 +1150,7 @@ export function FinanceForm({
                           type="button"
                           className={cn(
                             "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1 transition-colors duration-200",
-                            !isIndefinite ? "text-white" : "text-slate-400"
+                            !isIndefinite ? "text-white" : inactiveChoiceText
                           )}
                           onClick={() => {
                             setIsIndefinite(false);
@@ -989,7 +1182,7 @@ export function FinanceForm({
                         type="button"
                         className={cn(
                           "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                          paymentType === 'A vista' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                          paymentType === 'A vista' ? "text-white" : inactiveChoiceText
                         )}
                         onClick={() => {
                           setPaymentType('A vista');
@@ -1033,7 +1226,7 @@ export function FinanceForm({
                           type="button"
                           className={cn(
                             "flex-1 relative z-10 text-[9px] md:text-[11px] font-normal tracking-tight whitespace-nowrap leading-none px-1",
-                            paymentType === 'Parcelado' ? "text-white" : "text-slate-400 hover:text-navy/40"
+                            paymentType === 'Parcelado' ? "text-white" : inactiveChoiceText
                           )}
                           onClick={() => {
                             setPaymentType('Parcelado');
@@ -1053,10 +1246,10 @@ export function FinanceForm({
         </div>
 
 
-        <div className="pt-2 md:pt-4 grid grid-cols-2 gap-x-4 md:gap-x-8 items-center">
+        <div className="mt-auto pt-2 md:pt-3 grid grid-cols-2 gap-x-4 md:gap-x-8 items-center">
           <button
             type="button"
-            className="text-xs md:text-sm font-label font-semibold text-on-surface-variant hover:text-on-surface transition-colors text-left px-2"
+            className="h-[44px] md:h-[48px] rounded-full bg-muted/30 text-xs md:text-sm font-label font-semibold text-on-surface-variant hover:bg-muted/50 hover:text-on-surface transition-colors text-center px-3"
             onClick={onClose}
           >
             Cancelar
@@ -1347,21 +1540,13 @@ export function CartaoForm({
     return '';
   };
 
-  const resolveIcone = (data?: CartaoConfig) => {
-    if (data?.icone) return data.icone;
-    if ((data as any)?.['ícone']) return (data as any)['ícone'];
-    if ((data as any)?.icon) return (data as any).icon;
-    return '';
-  };
-
   const [formData, setFormData] = useState({
     nome_cartao: initialData?.nome_cartao || '',
     titular_id: initialData?.titular_id || titulares[0]?.id || 0,
     dia_vencimento: initialData?.dia_vencimento || 10,
     dia_fechamento: initialData?.dia_fechamento || 3,
     final: resolveFinal(initialData),
-    color: resolveColor(initialData),
-    icone: resolveIcone(initialData)
+    color: resolveColor(initialData)
   });
 
   useEffect(() => {
@@ -1371,12 +1556,10 @@ export function CartaoForm({
       dia_vencimento: initialData?.dia_vencimento || 10,
       dia_fechamento: initialData?.dia_fechamento || 3,
       final: resolveFinal(initialData),
-      color: resolveColor(initialData),
-      icone: resolveIcone(initialData)
+      color: resolveColor(initialData)
     });
   }, [initialData, titulares]);
 
-  const [iconError, setIconError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -1394,25 +1577,6 @@ export function CartaoForm({
     { name: 'Emerald Teal', color: '#10b981' },
     { name: 'Neon Purple', color: '#8b5cf6' }
   ];
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 1024 * 1024) {
-      setIconError('O tamanho da imagem não pode ultrapassar 1MB.');
-      return;
-    }
-
-    setIconError(null);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setFormData(prev => ({ ...prev, icone: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleNameChange = (name: string) => {
     setFormData(prev => {
@@ -1554,51 +1718,6 @@ export function CartaoForm({
         </div>
       </div>
 
-      {/* Logotipo / Ícone do Cartão (Upload de até 1MB ou Link) */}
-      <div className="col-12">
-        <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">
-          Ícone / Logotipo do Cartão (Opcional - até 1MB)
-        </label>
-        <div className="d-flex align-items-center gap-3">
-          {formData.icone ? (
-            <div className="position-relative flex-shrink-0" style={{ width: '48px', height: '48px' }}>
-              <div className="w-100 h-100 rounded-2xl bg-muted/40 border border-border p-1 d-flex align-items-center justify-content-center overflow-hidden">
-                <img src={formData.icone} alt="Prévia" className="w-100 h-100 object-contain" />
-              </div>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, icone: '' })}
-                className="position-absolute top-0 end-0 -translate-y-1 translate-x-1 btn btn-danger btn-sm p-0 rounded-circle d-flex align-items-center justify-content-center border-0"
-                style={{ width: '18px', height: '18px', fontSize: '9px' }}
-                title="Remover ícone"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-muted/20 border border-dashed border-border d-flex align-items-center justify-content-center text-muted flex-shrink-0">
-              <i className="fa-solid fa-image text-sm opacity-50"></i>
-            </div>
-          )}
-
-          <div className="flex-grow-1">
-            <div className="d-flex align-items-center gap-2">
-              <label className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 text-xs font-bold cursor-pointer m-0">
-                <i className="fa-solid fa-upload me-1.5"></i>Carregar Imagem
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="d-none"
-                />
-              </label>
-              <span className="text-[10px] text-muted">Máx 1MB</span>
-            </div>
-            {iconError && <div className="text-danger text-[11px] mt-1">{iconError}</div>}
-          </div>
-        </div>
-      </div>
-
       {/* Datas de Vencimento e Fechamento */}
       <div className="col-md-6">
         <label className="text-[10px] md:text-sm fw-bold text-muted text-uppercase mb-1 ml-1 block">Dia Vencimento</label>
@@ -1674,12 +1793,11 @@ export function StyledDatePicker({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
   const [posStyle, setPosStyle] = useState<{
-    top?: string;
-    bottom?: string;
+    top?: number;
     left?: string | number;
-    right?: string | number;
-  }>({ top: 'calc(100% + 6px)', left: 0 });
+  }>({ top: 0, left: 0 });
 
   const parsedDate = useMemo(() => {
     try {
@@ -1711,26 +1829,13 @@ export function StyledDatePicker({
     const popoverHeight = 310;
     const popoverWidth = 270;
 
-    let targetTop: string | undefined = undefined;
-    let targetBottom: string | undefined = undefined;
-    let targetLeft: string | number | undefined = 0;
-    let targetRight: string | number | undefined = 'auto';
+    const openAbove = placement === 'top' || (placement === 'auto' && spaceBelow < popoverHeight && spaceAbove > spaceBelow);
+    const desiredTop = openAbove ? rect.top - popoverHeight - 6 : rect.bottom + 6;
+    const targetTop = Math.max(8, Math.min(desiredTop, window.innerHeight - popoverHeight - 8));
+    const desiredLeft = align === 'right' ? rect.right - popoverWidth : rect.left;
+    const targetLeft = Math.max(8, Math.min(desiredLeft, window.innerWidth - popoverWidth - 8));
 
-    if (placement === 'top' || (placement === 'auto' && spaceBelow < popoverHeight && spaceAbove > spaceBelow)) {
-      targetBottom = 'calc(100% + 6px)';
-    } else {
-      targetTop = 'calc(100% + 6px)';
-    }
-
-    if (align === 'right' || (align === 'auto' && rect.left + popoverWidth > window.innerWidth - 16)) {
-      targetLeft = 'auto';
-      targetRight = 0;
-    } else {
-      targetLeft = 0;
-      targetRight = 'auto';
-    }
-
-    setPosStyle({ top: targetTop, bottom: targetBottom, left: targetLeft, right: targetRight });
+    setPosStyle({ top: targetTop, left: targetLeft });
   };
 
   useEffect(() => {
@@ -1749,7 +1854,11 @@ export function StyledDatePicker({
   // Click outside to close
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node) &&
+        !calendarRef.current?.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -1829,12 +1938,12 @@ export function StyledDatePicker({
     }
   };
 
-  const handleSelectToday = () => {
-    const today = new Date();
-    const str = format(today, 'yyyy-MM-dd');
+  const handleSelectRelativeDay = (daysBefore: number) => {
+    const date = subDays(new Date(), daysBefore);
+    const str = format(date, 'yyyy-MM-dd');
     onChange(str);
-    setViewMonth(today.getMonth());
-    setViewYear(today.getFullYear());
+    setViewMonth(date.getMonth());
+    setViewYear(date.getFullYear());
     setIsOpen(false);
   };
 
@@ -1864,9 +1973,10 @@ export function StyledDatePicker({
       </div>
 
       {/* Floating Popover Calendar (Never alters parent height/size) */}
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal((
         <div 
-          className="position-absolute bg-card border border-border p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+          ref={calendarRef}
+          className="fixed bg-card border border-border p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           style={{
             ...posStyle,
             width: '270px',
@@ -1888,8 +1998,8 @@ export function StyledDatePicker({
             >
               <i className="fa-solid fa-chevron-left text-[10px]"></i>
             </button>
-            <div className="text-xs font-semibold text-foreground tracking-tight">
-              {monthNames[viewMonth]} <span className="text-muted font-medium ms-1">{viewYear}</span>
+            <div className="text-base font-bold text-foreground tracking-tight">
+              {monthNames[viewMonth]} <span className="text-sm text-muted font-semibold ms-1">{viewYear}</span>
             </div>
             <button
               type="button"
@@ -1947,13 +2057,16 @@ export function StyledDatePicker({
 
           {/* Quick Footer Action */}
           <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-t border-border/40">
-            <button
-              type="button"
-              className="btn btn-link p-0 text-[11px] font-medium text-foreground hover:underline text-decoration-none"
-              onClick={handleSelectToday}
-            >
-              <i className="fa-solid fa-bolt me-1 text-[10px] text-muted"></i>Hoje
-            </button>
+            <div className="d-flex align-items-center gap-2">
+              {[1, 2, 3].map(daysBefore => (
+                <button
+                  key={daysBefore}
+                  type="button"
+                  className="btn p-0 px-2 py-1 text-[11px] font-semibold text-foreground bg-muted/30 border border-border/50 rounded-lg hover:bg-muted/60 hover:text-primary text-decoration-none"
+                  onClick={() => handleSelectRelativeDay(daysBefore)}
+                >D-{daysBefore}</button>
+              ))}
+            </div>
             <button
               type="button"
               className="btn btn-link p-0 text-[11px] font-medium text-muted hover:text-danger text-decoration-none"
@@ -1966,7 +2079,7 @@ export function StyledDatePicker({
             </button>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
@@ -2324,10 +2437,96 @@ export function ProfileForm({
   );
 }
 
-import { CardLogo } from './card-ui';
 
 
 // ==================== NOVOS: EMPRÉSTIMOS E QUITAÇÃO ====================
+
+function CompetenciaSelectDropdown({
+  value,
+  options,
+  onChange,
+  isDarkMode
+}: {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  isDarkMode: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!triggerRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (options.length && !options.includes(value)) onChange(options[0]);
+  }, [options.join('|'), value, onChange]);
+
+  const openMenu = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const menuHeight = options.length * 40 + 8;
+    const top = rect.bottom + menuHeight + 8 <= window.innerHeight
+      ? rect.bottom + 6
+      : Math.max(8, rect.top - menuHeight - 6);
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8));
+    setPosition({ top, left, width: rect.width });
+    setIsOpen(true);
+  };
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => isOpen ? setIsOpen(false) : openMenu()}
+        className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm text-foreground cursor-pointer flex items-center justify-between"
+      >
+        <span>{value}</span>
+        <span className={cn('material-symbols-outlined text-[20px]', isDarkMode ? 'text-slate-300' : 'text-slate-600')}>expand_more</span>
+      </button>
+      {isOpen && typeof document !== 'undefined' && createPortal((
+        <div
+          ref={menuRef}
+          role="listbox"
+          className={cn('fixed z-[1500] rounded-xl border p-1 shadow-xl', isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')}
+          style={position}
+        >
+          {options.map(option => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === value}
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className={cn(
+                'w-full rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                option === value
+                  ? isDarkMode ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-900'
+                  : isDarkMode ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50'
+              )}
+            >{option}</button>
+          ))}
+        </div>
+      ), document.body)}
+    </>
+  );
+}
 
 export function EmprestimoForm({
   onSubmit,
@@ -2335,14 +2534,16 @@ export function EmprestimoForm({
   onClose,
   editingItem,
   hideHeader,
-  themeColor = '#1e293b'
+  themeColor = '#1e293b',
+  isDarkMode = false
 }: {
   onSubmit: (data: Partial<Emprestimo>) => Promise<void> | void,
   titulares: Titular[],
   onClose: () => void,
   editingItem?: Emprestimo | null,
   hideHeader?: boolean,
-  themeColor?: string
+  themeColor?: string,
+  isDarkMode?: boolean
 }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -2424,7 +2625,7 @@ export function EmprestimoForm({
         </header>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4 flex-1 flex flex-col">
         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
           {/* Linha 1: Descrição */}
           <div className="col-span-2">
@@ -2446,13 +2647,12 @@ export function EmprestimoForm({
             <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
               Responsável
             </label>
-            <select
-              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm appearance-none text-foreground cursor-pointer"
+            <TitularSelectDropdown
               value={formData.titular_id}
-              onChange={e => setFormData({ ...formData, titular_id: parseInt(e.target.value) })}
-            >
-              {titulares.map(t => <option key={t.id} value={t.id} className="bg-card text-foreground">{t.nome}</option>)}
-            </select>
+              onChange={id => setFormData({ ...formData, titular_id: id })}
+              titulares={titulares}
+              isDarkMode={isDarkMode}
+            />
           </div>
 
           <div className="col-span-2 sm:col-span-1">
@@ -2464,11 +2664,25 @@ export function EmprestimoForm({
               <input
                 required
                 className="bg-transparent border-0 focus:outline-none w-full font-bold text-foreground text-sm p-0"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="0,00"
                 value={formData.valor_parcela}
-                onChange={e => setFormData({ ...formData, valor_parcela: e.target.value })}
+                onChange={e => setFormData(current => ({ ...current, valor_parcela: sanitizeMoneyTyping(e.target.value) }))}
+                onFocus={() => {
+                  try {
+                    setFormData(current => ({ ...current, valor_parcela: moneyToEditableValue(current.valor_parcela) }));
+                  } catch {
+                    // Keep the current input so it can be corrected.
+                  }
+                }}
+                onBlur={() => {
+                  try {
+                    setFormData(current => ({ ...current, valor_parcela: formatMoneyOnBlur(current.valor_parcela) }));
+                  } catch {
+                    // Keep the current input so it can be corrected.
+                  }
+                }}
               />
             </div>
           </div>
@@ -2523,30 +2737,20 @@ export function EmprestimoForm({
             <label className="text-[10px] md:text-xs font-bold text-muted uppercase tracking-wider mb-1 block ml-1 whitespace-nowrap">
               Competência Início
             </label>
-            <select
-              className="w-full bg-muted/20 border border-border/50 rounded-xl px-3.5 h-[44px] focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all font-body text-sm appearance-none text-foreground cursor-pointer"
+            <CompetenciaSelectDropdown
               value={formData.competencia_inicial}
-              onChange={e => setFormData({ ...formData, competencia_inicial: e.target.value })}
-            >
-              {(() => {
+              options={(() => {
                 try {
                   const date = parseISO(formData.data_primeiro_vencimento);
-                  if (isNaN(date.getTime())) return <option value={formData.competencia_inicial} className="bg-card text-foreground">{formData.competencia_inicial}</option>;
-
-                  const c1 = format(date, 'MM/yyyy');
-                  const c2 = format(addMonths(date, 1), 'MM/yyyy');
-
-                  return (
-                    <>
-                      <option value={c1} className="bg-card text-foreground">{c1}</option>
-                      <option value={c2} className="bg-card text-foreground">{c2}</option>
-                    </>
-                  );
+                  if (isNaN(date.getTime())) return [formData.competencia_inicial];
+                  return [format(date, 'MM/yyyy'), format(addMonths(date, 1), 'MM/yyyy')];
                 } catch {
-                  return <option value={formData.competencia_inicial} className="bg-card text-foreground">{formData.competencia_inicial}</option>;
+                  return [formData.competencia_inicial];
                 }
               })()}
-            </select>
+              onChange={value => setFormData(current => ({ ...current, competencia_inicial: value }))}
+              isDarkMode={isDarkMode}
+            />
           </div>
         </div>
 
@@ -2556,17 +2760,22 @@ export function EmprestimoForm({
           </p>
         )}
 
-        <div className="pt-3 grid grid-cols-2 gap-x-6 items-center">
-          <button type="button" disabled={isProcessing} className="text-sm font-semibold text-muted hover:text-foreground transition-colors text-left disabled:opacity-50" onClick={onClose}>
+        <div className="mt-auto pt-2 md:pt-3 grid grid-cols-2 gap-x-4 md:gap-x-8 items-center">
+          <button type="button" disabled={isProcessing} className="h-[44px] md:h-[48px] rounded-full bg-muted/30 text-xs md:text-sm font-label font-semibold text-on-surface-variant hover:bg-muted/50 hover:text-on-surface transition-colors text-center px-3 disabled:opacity-50" onClick={onClose}>
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isProcessing}
             style={{ borderRadius: '9999px', backgroundColor: themeColor }}
-            className="text-white h-[46px] font-bold text-sm shadow-md transition-all w-full hover:shadow-lg hover:scale-[1.01] active:scale-95 opacity-95 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-white h-[44px] md:h-[48px] font-label font-semibold text-xs md:text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full flex items-center justify-center gap-2 opacity-90 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isProcessing ? 'Salvando...' : (editingItem ? 'Salvar Alterações' : 'Cadastrar Empréstimo')}
+            {isProcessing ? (
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+            ) : (
+              <span className="material-symbols-outlined text-base md:text-lg">check_circle</span>
+            )}
+            {isProcessing ? 'Aguarde...' : (editingItem ? 'Salvar' : 'Registrar')}
           </button>
         </div>
       </form>
@@ -3419,6 +3628,13 @@ export function ExpenseSettingsModal({
   const countRecParceladas = contasFixas.filter(c => c.tipo === 'receita' && (c.total_parcelas || 0) > 0).length;
 
   const activeThemeColor = themeColor || 'var(--primary, #00AE9A)';
+  const panelBorderClass = isDarkMode ? 'border-white/[0.06]' : 'border-slate-200';
+  const panelHeaderClass = isDarkMode ? 'border-white/[0.06] bg-white/[0.015]' : 'border-slate-200 bg-slate-50';
+  const panelCardClass = isDarkMode
+    ? 'bg-white/[0.025] hover:bg-white/[0.05] border border-white/[0.04]'
+    : 'bg-white hover:bg-slate-50 border border-slate-200';
+  const actionSurfaceClass = isDarkMode ? 'bg-white/5 hover:bg-white/10' : 'bg-slate-100 hover:bg-slate-200';
+  const neutralBadgeBackground = isDarkMode ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9';
 
   const sections = [
     {
@@ -3449,16 +3665,19 @@ export function ExpenseSettingsModal({
     // ── MODO DE EDIÇÃO IN-LINE (NO MESMO POP-UP) ──
     if (inlineEdit) {
       const isLoan = inlineEdit.type === 'emprestimo';
+      const editFieldSurfaceClass = isDarkMode
+        ? 'bg-white/[0.04] border border-white/[0.08]'
+        : 'bg-white border border-slate-300';
 
       return (
         <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
           {/* Header do Editor */}
-          <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between gap-3">
+          <header className={cn("flex-shrink-0 px-6 py-4 border-b d-flex align-items-center justify-content-between gap-3", panelHeaderClass)}>
             <div className="d-flex align-items-center gap-3">
               <button
                 type="button"
                 onClick={() => setInlineEdit(null)}
-                className="btn btn-sm btn-icon rounded-full border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 cursor-pointer"
+                className={cn("btn btn-sm btn-icon rounded-full border-0 text-muted hover:text-foreground transition-all p-2 cursor-pointer", actionSurfaceClass)}
                 title="Voltar para a lista"
                 style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
               >
@@ -3476,7 +3695,7 @@ export function ExpenseSettingsModal({
           </header>
 
           {/* Formulário de Edição */}
-          <div className="flex-grow-1 overflow-y-auto p-6 custom-scrollbar">
+          <div className="flex-grow-1 overflow-y-auto p-6 custom-scrollbar settings-editor-scrollbar">
             <div className="max-w-lg mx-auto space-y-4">
               {/* Descrição */}
               <div>
@@ -3485,7 +3704,7 @@ export function ExpenseSettingsModal({
                   type="text"
                   value={editDescricao}
                   onChange={(e) => setEditDescricao(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                  className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                   style={{ borderRadius: '14px' }}
                   placeholder="Ex: Empréstimo Caixa, Aluguel, Netflix..."
                 />
@@ -3500,7 +3719,7 @@ export function ExpenseSettingsModal({
                     step="0.01"
                     value={editValor}
                     onChange={(e) => setEditValor(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                    className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                     style={{ borderRadius: '14px' }}
                     placeholder="0,00"
                   />
@@ -3528,7 +3747,7 @@ export function ExpenseSettingsModal({
                         min="1"
                         value={editTotalParcelas}
                         onChange={(e) => setEditTotalParcelas(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                        className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                         style={{ borderRadius: '14px' }}
                       />
                     </div>
@@ -3539,7 +3758,7 @@ export function ExpenseSettingsModal({
                         min="1"
                         value={editParcelaAtual}
                         onChange={(e) => setEditParcelaAtual(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                        className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                         style={{ borderRadius: '14px' }}
                       />
                     </div>
@@ -3552,7 +3771,7 @@ export function ExpenseSettingsModal({
                       step="0.01"
                       value={editTaxa}
                       onChange={(e) => setEditTaxa(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                      className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                       style={{ borderRadius: '14px' }}
                       placeholder="Ex: 1.99"
                     />
@@ -3566,7 +3785,7 @@ export function ExpenseSettingsModal({
                       type="text"
                       value={editCategoria}
                       onChange={(e) => setEditCategoria(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                      className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                       style={{ borderRadius: '14px' }}
                       placeholder="Ex: Moradia, Assinaturas, Lazer..."
                     />
@@ -3581,7 +3800,7 @@ export function ExpenseSettingsModal({
                           min="1"
                           value={editTotalParcelas}
                           onChange={(e) => setEditTotalParcelas(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                          className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                           style={{ borderRadius: '14px' }}
                         />
                       </div>
@@ -3592,7 +3811,7 @@ export function ExpenseSettingsModal({
                           min="1"
                           value={editParcelaAtual}
                           onChange={(e) => setEditParcelaAtual(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white/[0.04] text-foreground text-sm font-normal focus:outline-none transition-all border-0"
+                          className={cn("w-full px-4 py-2.5 text-foreground text-sm font-normal focus:outline-none transition-all", editFieldSurfaceClass)}
                           style={{ borderRadius: '14px' }}
                         />
                       </div>
@@ -3604,11 +3823,11 @@ export function ExpenseSettingsModal({
           </div>
 
           {/* Botões do Rodapé de Edição */}
-          <footer className="flex-shrink-0 p-4 px-6 border-t border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-end gap-2.5">
+          <footer className={cn("flex-shrink-0 p-4 px-6 border-t d-flex align-items-center justify-content-end gap-2.5", panelHeaderClass)}>
             <button
               type="button"
               onClick={() => setInlineEdit(null)}
-              className="px-4 py-2 border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground text-xs font-normal transition-all cursor-pointer"
+              className={cn("px-4 py-2 border-0 text-muted hover:text-foreground text-xs font-normal transition-all cursor-pointer", actionSurfaceClass)}
               style={{ borderRadius: '12px' }}
             >
               Cancelar
@@ -3642,7 +3861,7 @@ export function ExpenseSettingsModal({
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
             {/* Header da Seção */}
-            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <header className={cn("flex-shrink-0 px-6 py-4 border-b d-flex align-items-center justify-content-between flex-wrap gap-3", panelHeaderClass)}>
               <div className="d-flex align-items-center gap-3">
                 <div 
                   className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
@@ -3661,7 +3880,7 @@ export function ExpenseSettingsModal({
               </div>
               <span 
                 className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
               >
                 {emprestimos.length} {emprestimos.length === 1 ? 'contrato' : 'contratos'}
               </span>
@@ -3670,7 +3889,7 @@ export function ExpenseSettingsModal({
             {/* Lista de Empréstimos */}
             <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
               {emprestimos.length === 0 ? (
-                <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
+                <div className={cn("text-center py-16 px-6 rounded-3xl d-flex flex-column align-items-center justify-content-center", isDarkMode ? "bg-white/[0.015]" : "bg-slate-50 border border-slate-200")}>
                   <div 
                     className="w-12 h-12 d-flex align-items-center justify-content-center mb-3"
                     style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
@@ -3686,7 +3905,7 @@ export function ExpenseSettingsModal({
                 emprestimos.map((loan) => (
                   <div 
                     key={loan.id} 
-                    className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                    className={cn("py-3 px-4.5 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5", panelCardClass)}
                     style={{ borderRadius: '16px' }}
                   >
                     <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
@@ -3704,7 +3923,7 @@ export function ExpenseSettingsModal({
                           </span>
                           <span 
                             className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
-                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                            style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                           >
                             {loan.total_parcelas} parcelas
                           </span>
@@ -3724,7 +3943,7 @@ export function ExpenseSettingsModal({
                       <button 
                         type="button"
                         onClick={() => handleStartEdit('emprestimo', loan)} 
-                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer"
+                        className={cn("btn btn-sm btn-icon border-0 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer", actionSurfaceClass)}
                         title="Editar Contrato"
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
@@ -3733,7 +3952,7 @@ export function ExpenseSettingsModal({
                       <button 
                         type="button"
                         onClick={() => onDeleteEmprestimo(loan.id)} 
-                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer"
+                        className={cn("btn btn-sm btn-icon border-0 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer", isDarkMode ? "bg-white/5" : "bg-slate-100")}
                         title="Excluir Contrato"
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
@@ -3779,7 +3998,7 @@ export function ExpenseSettingsModal({
         return (
           <div className="d-flex flex-column h-100 animate-in fade-in duration-200">
             {/* Header da Seção */}
-            <header className="flex-shrink-0 px-6 py-4 border-b border-white/[0.03] bg-white/[0.01] d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <header className={cn("flex-shrink-0 px-6 py-4 border-b d-flex align-items-center justify-content-between flex-wrap gap-3", panelHeaderClass)}>
               <div className="d-flex align-items-center gap-3">
                 <div 
                   className="w-10 h-10 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
@@ -3796,7 +4015,7 @@ export function ExpenseSettingsModal({
               </div>
               <span 
                 className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
               >
                 {filtered.length} {filtered.length === 1 ? 'item ativo' : 'itens ativos'}
               </span>
@@ -3805,7 +4024,7 @@ export function ExpenseSettingsModal({
             {/* Lista de Itens */}
             <div className="flex-grow-1 overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-2">
               {filtered.length === 0 ? (
-                <div className="text-center py-16 px-6 rounded-3xl bg-white/[0.01] d-flex flex-column align-items-center justify-content-center">
+                <div className={cn("text-center py-16 px-6 rounded-3xl d-flex flex-column align-items-center justify-content-center", isDarkMode ? "bg-white/[0.015]" : "bg-slate-50 border border-slate-200")}>
                   <div 
                     className="w-12 h-12 d-flex align-items-center justify-content-center mb-3" 
                     style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '16px' }}
@@ -3821,7 +4040,7 @@ export function ExpenseSettingsModal({
                 filtered.map((config) => (
                   <div 
                     key={config.id} 
-                    className="py-3 px-4.5 bg-white/[0.02] hover:bg-white/[0.05] border-0 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5"
+                    className={cn("py-3 px-4.5 d-flex align-items-center justify-content-between transition-all shadow-xs gap-3.5", panelCardClass)}
                     style={{ borderRadius: '16px' }}
                   >
                     <div className="d-flex align-items-center gap-3.5 flex-grow-1 min-w-0">
@@ -3840,7 +4059,7 @@ export function ExpenseSettingsModal({
                           {!isRecorrenteTab && config.total_parcelas && (
                             <span 
                               className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
-                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                              style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                             >
                               {config.total_parcelas} parcelas
                             </span>
@@ -3848,7 +4067,7 @@ export function ExpenseSettingsModal({
                           {config.categoria && (
                             <span 
                               className="badge-tag text-[10px] py-0.5 px-2.5 font-normal border-0 text-muted"
-                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '9999px' }}
+                              style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                             >
                               {config.categoria}
                             </span>
@@ -3870,7 +4089,7 @@ export function ExpenseSettingsModal({
                         type="button"
                         onClick={() => handleStartEdit('conta_fixa', config)} 
                         disabled={(config.status ?? 'ativo') !== 'ativo'}
-                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer"
+                        className={cn("btn btn-sm btn-icon border-0 text-muted hover:text-foreground transition-all p-2 shadow-xs cursor-pointer", actionSurfaceClass)}
                         title={(config.status ?? 'ativo') === 'ativo' ? 'Editar configuração' : 'Série encerrada'}
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
@@ -3880,7 +4099,7 @@ export function ExpenseSettingsModal({
                         type="button"
                         onClick={() => (onEndContaFixa ?? onDeleteContaFixa)?.(config.id)}
                         disabled={(config.status ?? 'ativo') !== 'ativo'}
-                        className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer"
+                        className={cn("btn btn-sm btn-icon border-0 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer", isDarkMode ? "bg-white/5" : "bg-slate-100")}
                         title={(config.status ?? 'ativo') === 'ativo' ? 'Encerrar série' : 'Série encerrada'}
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
@@ -3917,7 +4136,7 @@ export function ExpenseSettingsModal({
         >
           <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-0">
             {/* Header Mobile com título e botão de fechar */}
-            <div className="px-4 py-3.5 border-b border-white/[0.03] d-flex align-items-center justify-content-between bg-card-elevated/40 flex-shrink-0">
+            <div className={cn("px-4 py-3.5 border-b d-flex align-items-center justify-content-between flex-shrink-0", panelHeaderClass)}>
               <div className="d-flex align-items-center gap-2.5">
                 <div 
                   className="w-8 h-8 d-flex align-items-center justify-content-center shadow-xs"
@@ -3930,7 +4149,7 @@ export function ExpenseSettingsModal({
               <button 
                 type="button"
                 onClick={onClose}
-                className="btn btn-sm btn-icon border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground p-1.5 cursor-pointer"
+                className={cn("btn btn-sm btn-icon border-0 text-muted hover:text-foreground p-1.5 cursor-pointer", actionSurfaceClass)}
                 style={{ width: '30px', height: '30px', borderRadius: '9999px' }}
               >
                 <i className="fa-solid fa-xmark text-sm"></i>
@@ -3938,7 +4157,7 @@ export function ExpenseSettingsModal({
             </div>
 
             {/* Horizontal Scrollable Tabs em formato Pill sem bordas nos não-selecionados */}
-            <aside className="border-b border-white/[0.03] d-flex flex-row overflow-x-auto p-3 gap-2 custom-scrollbar bg-card flex-shrink-0">
+            <aside className={cn("border-b d-flex flex-row overflow-x-auto p-3 gap-2 custom-scrollbar bg-card flex-shrink-0", panelBorderClass)}>
               {sections.map((section) =>
                 section.tabs.map((tab) => {
                   const isActive = activeTab === tab.id && !inlineEdit;
@@ -3954,7 +4173,7 @@ export function ExpenseSettingsModal({
                         "px-4 py-2 transition-all d-flex align-items-center gap-2 flex-shrink-0 text-xs whitespace-nowrap cursor-pointer font-normal border-0",
                         isActive 
                           ? "text-white font-medium shadow-sm" 
-                          : "bg-transparent text-muted hover:text-foreground hover:bg-white/5"
+                          : cn("bg-transparent hover:text-foreground", isDarkMode ? "text-slate-300 hover:bg-white/5" : "text-slate-700 hover:bg-slate-100")
                       )}
                       style={{
                         borderRadius: '14px',
@@ -3968,7 +4187,7 @@ export function ExpenseSettingsModal({
                       <span>{tab.label}</span>
                       <span 
                         className={cn("badge-tag px-2 py-0.5 rounded-full text-[9px] font-normal border-0", isActive ? "text-white" : "text-muted")}
-                        style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px' }}
+                        style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                       >
                         {tab.count}
                       </span>
@@ -3983,7 +4202,7 @@ export function ExpenseSettingsModal({
               <div className="flex-fill overflow-hidden position-relative">
                 {renderContent()}
               </div>
-              <div className="p-4 bg-card-elevated/40 border-t border-white/[0.03] flex-shrink-0">
+              <div className={cn("p-4 border-t flex-shrink-0", panelHeaderClass)}>
                 <button
                   type="button"
                   onClick={onClose}
@@ -4012,7 +4231,7 @@ export function ExpenseSettingsModal({
       >
         <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1020px' }}>
           <div 
-            className="modal-content overflow-hidden bg-card border border-white/[0.04]"
+            className={cn("modal-content overflow-hidden bg-card border", panelBorderClass)}
             style={{ 
               height: '680px',
               borderRadius: '24px',
@@ -4022,11 +4241,11 @@ export function ExpenseSettingsModal({
             <div className="d-flex h-100">
               {/* Sidebar de Categorias */}
               <aside 
-                className="border-r border-white/[0.03] d-flex flex-column overflow-y-auto py-5 px-3.5 gap-2.5 custom-scrollbar flex-shrink-0"
-                style={{ width: '255px', background: 'var(--card-elevated, #131620)' }}
+                className={cn("border-r d-flex flex-column overflow-y-auto py-5 px-3.5 gap-2.5 custom-scrollbar flex-shrink-0", panelBorderClass)}
+                style={{ width: '255px', background: isDarkMode ? 'var(--card-elevated, #131620)' : 'var(--bg-surface, #f1f5f9)' }}
               >
                 {/* Brand / Title Header */}
-                <div className="px-2 pb-4 mb-2 border-b border-white/[0.03]">
+                <div className={cn("px-2 pb-4 mb-2 border-b", panelBorderClass)}>
                   <div className="d-flex align-items-center gap-3">
                     <div 
                       className="w-10 h-10 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0 border-0"
@@ -4063,7 +4282,7 @@ export function ExpenseSettingsModal({
                                 "px-3.5 py-2.5 transition-all d-flex align-items-center justify-content-between text-start cursor-pointer font-normal border-0",
                                 isActive 
                                   ? "text-white font-medium shadow-sm" 
-                                  : "bg-transparent text-muted hover:bg-white/5 hover:text-foreground"
+                                  : cn("bg-transparent hover:text-foreground", isDarkMode ? "text-slate-300 hover:bg-white/5" : "text-slate-700 hover:bg-slate-200/70")
                               )}
                               style={{ 
                                 fontSize: '11.5px',
@@ -4080,7 +4299,7 @@ export function ExpenseSettingsModal({
                               </div>
                               <span 
                                 className={cn("badge-tag px-2 py-0.5 text-[9.5px] font-normal border-0", isActive ? "text-white" : "text-muted")}
-                                style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: '9999px' }}
+                                style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                               >
                                 {tab.count}
                               </span>
@@ -4093,7 +4312,7 @@ export function ExpenseSettingsModal({
                 </div>
 
                 {/* Bottom Footer Info */}
-                <div className="mt-auto pt-3 border-t border-white/[0.03] text-center">
+                <div className={cn("mt-auto pt-3 border-t text-center", panelBorderClass)}>
                   <span className="text-[10px] text-muted font-normal block opacity-50">Ajustes Automáticos & Radar</span>
                 </div>
               </aside>
@@ -4105,7 +4324,7 @@ export function ExpenseSettingsModal({
                 {/* Botão de Fechar no Topo Direito */}
                 <button 
                   type="button" 
-                  className="position-absolute top-0 end-0 m-3.5 z-50 d-flex align-items-center justify-content-center border-0 bg-white/5 hover:bg-white/10 text-muted hover:text-foreground transition-all shadow-xs cursor-pointer"
+                  className={cn("position-absolute top-0 end-0 m-3.5 z-50 d-flex align-items-center justify-content-center border-0 text-muted hover:text-foreground transition-all shadow-xs cursor-pointer", actionSurfaceClass)}
                   style={{ width: '34px', height: '34px', borderRadius: '9999px' }}
                   onClick={onClose}
                   title="Fechar Ajustes"

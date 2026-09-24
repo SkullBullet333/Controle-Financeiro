@@ -296,7 +296,8 @@ export default function Home() {
     avisosConfig,
     updateAvisosConfig,
     renameCategory,
-    updateCategoryByDescription
+    updateCategoryByDescription,
+    updateCardCategoryByEstablishment
   } = useFinance(activeView);
 
   const openFinancialDeletion = (
@@ -685,6 +686,7 @@ export default function Home() {
             userType={userType}
             titulares={config.titulares}
             cartoes={config.cartoes}
+            cartaoTransacoes={cartaoTransacoes}
             despesas={despesas}
             contasFixas={contasFixas}
             onAddTitular={addTitular}
@@ -704,6 +706,9 @@ export default function Home() {
             }}
             onUpdateCategoryByDescription={async (descricao, newCat) => {
               await updateCategoryByDescription(descricao, newCat);
+            }}
+            onUpdateCardCategoryByEstablishment={async (estabelecimento, newCategory) => {
+              await updateCardCategoryByEstablishment(estabelecimento, newCategory);
             }}
             isMobile={true}
             themeColor={themeColor}
@@ -840,6 +845,8 @@ export default function Home() {
                   ? (modalType === 'despesa' ? 'Editar Gasto' : modalType === 'receita' ? 'Editar Ganho' : modalType === 'titular' ? 'Editar Titular' : modalType === 'cartao' ? 'Editar Cartão' : modalType === 'emprestimo' ? 'Editar Empréstimo' : 'Editar')
                   : (modalType === 'profile' ? 'Editar Meu Perfil' : (modalType === 'despesa' || modalType === 'receita' || modalType === 'emprestimo') ? 'Novo Registro' : modalType === 'titular' ? 'Novo Titular' : modalType === 'cartao' ? 'Novo Cartão' : modalType === 'payoff' ? 'Simulação de Quitação' : 'Novo Registro')
               }
+              className={modalType === 'emprestimo' ? 'min-h-[min(680px,85vh)]' : undefined}
+              closeOnBackdropClick={!['despesa', 'receita', 'emprestimo', 'despesa_cartao'].includes(modalType)}
             >
               {modalType === 'profile' ? (
                 <ProfileForm 
@@ -855,6 +862,12 @@ export default function Home() {
                   subType={activeView === 'cartoes' ? 'cartao' : 'fixa'}
                   titulares={config.titulares}
                   cartoes={config.cartoes}
+                  categorias={[...new Set([
+                    ...despesas.map(item => item.categoria),
+                    ...receitas.map(item => item.categoria),
+                    ...contasFixas.map(item => item.categoria),
+                    ...cartaoTransacoes.map(item => item.categoria),
+                  ].map(category => category?.trim()).filter((category): category is string => Boolean(category)))]}
                   competencia={competencia}
                   initialData={editingItem}
                   isDarkMode={isDarkMode}

@@ -68,8 +68,9 @@ export function DespesasReceitasView({
     const exp = despesas.map((d) => {
       const isCard = d.isSummary || !!d.cartao_vencimento_id || d.descricao?.startsWith('Fatura ');
       const isOverdue = d.status !== 'Pago' && d.vencimento && d.vencimento < todayStr && d.vencimento !== '-';
-      const titularNome = titulares.find((t) => t.id === d.titular_id)?.nome || 'Família';
-      const cartaoNome = cartoes.find((c) => c.id === d.cartao_vencimento_id)?.nome_cartao;
+      const cartao = cartoes.find((c) => Number(c.id) === Number(d.cartao_vencimento_id));
+      const titularId = cartao?.titular_id ?? d.titular_id;
+      const titularNome = titulares.find((t) => Number(t.id) === Number(titularId))?.nome || 'Família';
       const cat = d.categoria || (isCard ? 'Cartão' : 'Despesas');
       const sortDate = d.vencimento && d.vencimento !== '-' ? d.vencimento : (d.competencia ? `${d.competencia.split('/')[1]}-${d.competencia.split('/')[0]}-01` : '0000-00-00');
 
@@ -78,8 +79,8 @@ export function DespesasReceitasView({
         raw: d,
         desc: d.descricao,
         cat,
-        titularId: d.titular_id,
-        titular: cartaoNome ? `Cartão ${cartaoNome}` : titularNome,
+        titularId,
+        titular: titularNome,
         vencimento: d.vencimento && d.vencimento !== '-' ? formatDate(d.vencimento) : 'Mensal',
         rawVencimento: d.vencimento,
         status: d.status || 'Em aberto',

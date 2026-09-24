@@ -173,6 +173,60 @@ body:not(.dark-mode):not(.black-mode) .glass-panel {
   color: var(--navy);
 }
 
+.card-select-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.28) transparent;
+}
+
+.card-select-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.card-select-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-select-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 9999px;
+}
+
+.card-select-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+
+.settings-editor-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+.settings-editor-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.settings-editor-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-editor-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 9999px;
+}
+
+.settings-editor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+
+body.dark-mode .settings-editor-scrollbar,
+body.black-mode .settings-editor-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+body.dark-mode .settings-editor-scrollbar::-webkit-scrollbar-thumb,
+body.black-mode .settings-editor-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.24);
+}
+
 /* Remove default focus rings that look like black underlines */
 input:focus,
 select:focus,
@@ -2658,6 +2712,43 @@ body.black-mode .card-panel {
   padding: 16px 12px 22px 12px !important;
   margin: -8px -12px -8px -12px !important;
   scroll-snap-type: x mandatory;
+}
+
+.cards-slider-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.28) transparent;
+}
+
+.cards-slider-scrollbar::-webkit-scrollbar {
+  height: 5px;
+}
+
+.cards-slider-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cards-slider-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 999px;
+}
+
+.cards-slider-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.48);
+}
+
+body.dark-mode .cards-slider-scrollbar,
+body.black-mode .cards-slider-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+body.dark-mode .cards-slider-scrollbar::-webkit-scrollbar-thumb,
+body.black-mode .cards-slider-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+body.dark-mode .cards-slider-scrollbar::-webkit-scrollbar-thumb:hover,
+body.black-mode .cards-slider-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
 }
 
 .credit-card-ui {
