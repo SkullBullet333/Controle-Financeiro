@@ -566,7 +566,7 @@ export function RadarFinanceiroView({
                 verticalAlign="bottom"
                 height={36}
                 wrapperStyle={{ transform: 'translateY(8px)' }}
-                onClick={(entry: { dataKey?: string }) => {
+                onClick={(entry: { dataKey?: string | number | ((...args: any[]) => any) }) => {
                   if (entry.dataKey === 'receitas') selectProjectionSeries('receitas');
                   if (entry.dataKey === 'totalDespesas') selectProjectionSeries('despesas');
                   if (entry.dataKey === 'saldo') selectProjectionSeries('saldo');
