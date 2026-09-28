@@ -1901,7 +1901,8 @@ body.black-mode .table-primary-subtle {
   }
 
   .mobile-nav-item.active {
-    color: var(--sicoob-green);
+    color: #FFFFFF;
+    opacity: 1;
   }
 
   .mobile-nav-fab-container {
@@ -3166,5 +3167,31 @@ body.black-mode .badge-neutral {
     height: 270px !important;
     min-height: 270px !important;
     max-height: 270px !important;
+  }
+}
+@media (max-width: 767.98px) {
+  .date-picker-icon-only-mobile {
+    width: auto !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .date-picker-compact .date-picker-compact-trigger {
+    height: 34px;
+    min-height: 34px;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .date-picker-compact .date-picker-compact-value {
+    max-width: 76px;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .date-picker-compact .date-picker-compact-button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
   }
 }

@@ -26,6 +26,20 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children, className, closeOnBackdropClick = true }: ModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -346,10 +360,7 @@ function CardSelectDropdown({
         className="w-full bg-transparent border-none ring-1 ring-outline-variant/30 rounded-lg px-4 py-2 md:py-2.5 focus:ring-2 focus:ring-slate-200 focus:outline-none transition-all font-body text-sm text-on-surface flex items-center justify-between min-h-[44px]"
       >
         {selectedCard ? (
-          <div className="flex items-center gap-3">
-            <CardSelectIcon card={selectedCard} size="sm" />
-            <span className="font-bold text-slate-900">{selectedCard.nome_cartao} <span className="text-slate-400 font-medium ml-1">— fecha em {getProximoFechamento(selectedCard)}</span></span>
-          </div>
+          <span className="font-bold text-slate-900">{selectedCard.nome_cartao}</span>
         ) : (
           <span className="text-slate-400 font-medium">Selecione um cartão</span>
         )}
@@ -1781,6 +1792,9 @@ export function StyledDatePicker({
   onChange,
   placeholder = "Selecione a data",
   className,
+  iconOnlyMobile = false,
+  compact = false,
+  accentColor,
   placement = 'auto',
   align = 'auto'
 }: {
@@ -1788,6 +1802,9 @@ export function StyledDatePicker({
   onChange: (dateStr: string) => void;
   placeholder?: string;
   className?: string;
+  iconOnlyMobile?: boolean;
+  compact?: boolean;
+  accentColor?: string;
   placement?: 'top' | 'bottom' | 'auto';
   align?: 'left' | 'right' | 'auto';
 }) {
@@ -1948,15 +1965,17 @@ export function StyledDatePicker({
   };
 
   return (
-    <div className={cn("position-relative", className ? "w-100" : "")} ref={containerRef} style={{ display: className ? 'block' : 'inline-block' }}>
+    <div className={cn("position-relative", className ? "w-100" : "", iconOnlyMobile && "date-picker-icon-only-mobile", compact && "date-picker-compact")} ref={containerRef} style={{ display: className ? 'block' : 'inline-block' }}>
       {/* Trigger: Input limpo com botão dedicado no ícone de calendário */}
       <div
         className={cn(
           "d-flex align-items-center justify-content-between gap-2 px-3 py-2 bg-muted/20 border border-border/50 rounded-xl transition-all h-[44px]",
+          iconOnlyMobile && "d-none d-md-flex",
+          compact && "date-picker-compact-trigger",
           className
         )}
       >
-        <span className="text-sm font-normal text-foreground select-none truncate">
+        <span className={cn("text-sm font-normal text-foreground select-none truncate", compact && "date-picker-compact-value")}>
           {value ? formatDate(value) : <span className="text-muted">{placeholder}</span>}
         </span>
         <button
@@ -1965,12 +1984,38 @@ export function StyledDatePicker({
             e.stopPropagation();
             setIsOpen(!isOpen);
           }}
-          className="btn btn-sm btn-icon p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-white/10 transition-all border-0 flex-shrink-0 cursor-pointer"
+          className={cn("btn btn-sm btn-icon p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-white/10 transition-all border-0 flex-shrink-0 cursor-pointer", compact && "date-picker-compact-button")}
           title="Abrir calendário"
         >
-          <i className={cn("fa-solid fa-calendar-days text-sm transition-colors", isOpen ? "text-foreground" : "text-muted")}></i>
+          <i className="fa-solid fa-calendar-days text-sm transition-colors" style={{ color: accentColor || 'var(--primary)' }}></i>
         </button>
       </div>
+      {iconOnlyMobile && (
+        <button
+          type="button"
+          className="d-md-none p-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(!isOpen);
+          }}
+          title="Abrir calendário"
+          aria-label="Abrir calendário"
+          style={{
+            width: '32px',
+            height: '32px',
+            padding: 0,
+            border: 'none',
+            outline: 'none',
+            boxShadow: 'none',
+            borderRadius: 0,
+            background: 'transparent',
+            color: accentColor || 'var(--primary)',
+            cursor: 'pointer'
+          }}
+        >
+          <i className="fa-solid fa-calendar-days text-sm"></i>
+        </button>
+      )}
 
       {/* Floating Popover Calendar (Never alters parent height/size) */}
       {isOpen && typeof document !== 'undefined' && createPortal((
@@ -2787,19 +2832,21 @@ export function PayoffModal({
   loan,
   item,
   installments,
+  themeColor,
   onClose,
   onConfirmPayoff
 }: {
   loan?: Emprestimo,
   item?: Despesa,
   installments: Despesa[],
+  themeColor?: string,
   onClose: () => void,
   onConfirmPayoff: (parcelas: Despesa[]) => Promise<void>
 }) {
   const [refDate, setRefDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [simulationMode, setSimulationMode] = useState<'budget' | 'manual'>('budget');
-  const [budgetAmount, setBudgetAmount] = useState<string>('1000');
+  const [inputMode, setInputMode] = useState<'value' | 'count'>('value');
+  const [selectionInput, setSelectionInput] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Projeção das parcelas futuras para a simulação de quitação
@@ -2869,17 +2916,32 @@ export function PayoffModal({
     });
   }, [futureInstallments, loan, refDate]);
 
-  // Simulação automática de trás pra frente no modo "budget"
+  // Sem filtro, todas as parcelas começam selecionadas. Com filtro, a seleção é calculada de trás para frente.
   useEffect(() => {
-    if (simulationMode === 'budget') {
-      const budgetNum = parseFloat(budgetAmount) || 0;
+    if (selectionInput.trim() === '') {
+      setSelectedIds(simulation.map(i => i.id));
+      return;
+    }
+
+    const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
+    if (inputMode === 'count') {
+      let enteredNumber = 0;
+      try {
+        enteredNumber = normalizarDinheiro(selectionInput);
+      } catch {}
+      const count = Math.max(0, Math.floor(enteredNumber));
+      setSelectedIds(reversed.slice(0, count).map(i => i.id));
+    } else {
+      let budgetNum = 0;
+      try {
+        budgetNum = normalizarDinheiro(selectionInput);
+      } catch {}
+      budgetNum = Math.max(0, budgetNum);
       if (budgetNum <= 0 || simulation.length === 0) {
         setSelectedIds([]);
         return;
       }
 
-      // Ordena de trás para frente (maior parcela_atual primeiro)
-      const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
       let runningBudget = budgetNum;
       const matchedIds: number[] = [];
 
@@ -2893,33 +2955,12 @@ export function PayoffModal({
       }
       setSelectedIds(matchedIds);
     }
-  }, [simulationMode, budgetAmount, simulation]);
-
-  // Inicialização padrão para modo manual se vazio
-  useEffect(() => {
-    if (simulationMode === 'manual' && simulation.length > 0 && selectedIds.length === 0) {
-      setSelectedIds(simulation.map(i => i.id));
-    }
-  }, [simulationMode, simulation]);
+  }, [inputMode, selectionInput, simulation]);
 
   const selectedParcelas = simulation.filter(i => selectedIds.includes(i.id));
-  const sortedSelectedParcelas = useMemo(() => {
-    return [...selectedParcelas].sort((a, b) => a.parcela_atual - b.parcela_atual);
-  }, [selectedParcelas]);
-
   const totalNominal = somarDinheiro(selectedParcelas.map(i => i.valor));
   const totalVP = somarDinheiro(selectedParcelas.map(i => i.vp));
   const totalDiscount = Math.max(0, subtrairDinheiro(totalNominal, totalVP));
-  const discountPercent = totalNominal > 0 ? (totalDiscount / totalNominal) * 100 : 0;
-  const totalNominalAll = somarDinheiro(simulation.map(i => i.valor));
-  const cheapestVP = simulation.length > 0 ? Math.min(...simulation.map(i => i.vp)) : 0;
-  const budgetNum = parseFloat(budgetAmount) || 0;
-  const leftoverBudget = Math.max(0, subtrairDinheiro(budgetNum, totalVP));
-
-  const selectLastN = (n: number) => {
-    const reversed = [...simulation].sort((a, b) => b.parcela_atual - a.parcela_atual);
-    setSelectedIds(reversed.slice(0, n).map(i => i.id));
-  };
 
   const handleConfirm = async () => {
     if (selectedParcelas.length === 0) return;
@@ -2970,449 +3011,92 @@ export function PayoffModal({
             onChange={setRefDate}
             placement="bottom"
             align="right"
+            iconOnlyMobile
+            compact
+            accentColor={themeColor}
           />
         </div>
       </div>
 
-      {/* Abas Estilo Pasta / Catálogo com canto superior direito bem arredondado */}
-      <div className="d-flex align-items-end gap-2 px-1 border-b border-border pt-1.5">
-        <button
-          type="button"
-          className={cn(
-            "px-4 py-2 text-xs md:text-sm font-black transition-all border-t-2 border-x d-flex align-items-center gap-2 position-relative cursor-pointer select-none",
-            simulationMode === 'budget'
-              ? "bg-card border-t-primary border-x-border text-primary -mb-[1px] pb-2.5 z-10 shadow-sm"
-              : "bg-surface-container-low/80 border-t-transparent border-x-transparent text-muted hover:text-foreground hover:bg-surface-container-high"
-          )}
-          style={{
-            borderTopLeftRadius: '8px',
-            borderTopRightRadius: '18px',
-            borderBottomLeftRadius: '0px',
-            borderBottomRightRadius: '0px'
-          }}
-          onClick={() => setSimulationMode('budget')}
-        >
-          <i className={cn("fa-solid text-xs", simulationMode === 'budget' ? "fa-folder-open text-primary" : "fa-folder text-muted")}></i>
-          <span>Valor</span>
-        </button>
-
-        <button
-          type="button"
-          className={cn(
-            "px-4 py-2 text-xs md:text-sm font-black transition-all border-t-2 border-x d-flex align-items-center gap-2 position-relative cursor-pointer select-none",
-            simulationMode === 'manual'
-              ? "bg-card border-t-primary border-x-border text-primary -mb-[1px] pb-2.5 z-10 shadow-sm"
-              : "bg-surface-container-low/80 border-t-transparent border-x-transparent text-muted hover:text-foreground hover:bg-surface-container-high"
-          )}
-          style={{
-            borderTopLeftRadius: '8px',
-            borderTopRightRadius: '18px',
-            borderBottomLeftRadius: '0px',
-            borderBottomRightRadius: '0px'
-          }}
-          onClick={() => setSimulationMode('manual')}
-        >
-          <i className={cn("fa-solid text-xs", simulationMode === 'manual' ? "fa-book-open text-primary" : "fa-book text-muted")}></i>
-          <span>Parcelas</span>
-        </button>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* ABA 1: SIMULAR POR VALOR DISPONÍVEL (Traz apenas as parcelas que abate)    */}
-      {/* ========================================================================= */}
-      {simulationMode === 'budget' && (
-        <div className="space-y-2.5 animate-in fade-in duration-150">
-          {/* Caixa Integrada Padronizada */}
-          <div className="bg-card border border-border rounded-2xl p-3 md:p-3.5 space-y-2.5">
-            {/* Linha 1: Input com padding fixo + Atalhos */}
-            <div className="d-flex align-items-center gap-2 min-h-[38px]">
-              <div className="position-relative flex-grow-1">
-                <span className="position-absolute start-3 top-1/2 -translate-y-1/2 font-black text-xs sm:text-sm text-primary pointer-events-none select-none">
-                  R$
-                </span>
-                <input
-                  type="number"
-                  step="50"
-                  min="0"
-                  placeholder="Digite o valor disponível"
-                  className="form-control rounded-xl py-2 pe-2 font-black text-sm md:text-base bg-surface-container-lowest border-border text-foreground"
-                  style={{ paddingLeft: '40px' }}
-                  value={budgetAmount}
-                  onChange={(e) => setBudgetAmount(e.target.value)}
-                />
-              </div>
-              <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
-                {[500, 1000, 2000].map(val => (
-                  <button
-                    key={`chip-${val}`}
-                    type="button"
-                    className={cn(
-                      "badge-tag cursor-pointer border transition-all",
-                      Number(budgetAmount) === val ? "badge-paid border-primary" : "badge-neutral border-border hover:border-primary/50"
-                    )}
-                    style={{ padding: '5px 8px', fontSize: '10px', fontWeight: 700 }}
-                    onClick={() => setBudgetAmount(String(val))}
-                  >
-                    {val >= 1000 ? `${val / 1000}k` : val}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-lg py-1 px-2.5 text-[10px] md:text-xs font-bold"
-                  onClick={() => setBudgetAmount(String(normalizarDinheiro(totalNominalAll)))}
-                  title="Preencher com o total da dívida"
-                >
-                  Tudo
-                </button>
-              </div>
-            </div>
-
-            {/* Linha 2: 2 Mini Cards de Resumo */}
-            <div className="grid grid-cols-2 gap-2 md:gap-3">
-              <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
-                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Parcelas Abatidas</div>
-                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>
-                  {formatCurrency(totalNominal)}
-                </div>
-                <div className="text-[10px] md:text-xs font-bold text-muted truncate">
-                  {selectedParcelas.length} de {simulation.length} itens
-                </div>
-              </div>
-
-              <div 
-                className="rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.15), rgba(0, 53, 62, 0.3))',
-                  border: '1px solid rgba(0, 174, 154, 0.3)'
+      {/* Simulador unificado: filtro por valor ou quantidade e seleção manual das parcelas */}
+      <div className="space-y-2.5">
+        <div className="bg-card border border-border rounded-2xl p-3 md:p-3.5 space-y-3">
+          <div className="d-flex align-items-center gap-2">
+            <div className="position-relative flex-grow-1">
+              {inputMode === 'value' && <span className="position-absolute start-3 top-1/2 -translate-y-1/2 font-black text-xs sm:text-sm text-primary pointer-events-none select-none">R$</span>}
+              <input
+                type={inputMode === 'value' ? 'text' : 'number'}
+                inputMode={inputMode === 'value' ? 'decimal' : 'numeric'}
+                min="0"
+                step={inputMode === 'value' ? undefined : '1'}
+                placeholder={inputMode === 'value' ? 'Digite o valor disponível' : 'Digite a quantidade de parcelas'}
+                aria-label={inputMode === 'value' ? 'Valor disponível' : 'Quantidade de parcelas'}
+                className="form-control rounded-xl py-2 pe-2 font-black text-sm md:text-base bg-surface-container-lowest border-border text-foreground"
+                style={{ paddingLeft: inputMode === 'value' ? '40px' : '14px' }}
+                value={selectionInput}
+                onChange={(e) => setSelectionInput(inputMode === 'value' ? sanitizeMoneyTyping(e.target.value) : e.target.value)}
+                onBlur={() => {
+                  if (inputMode !== 'value' || !selectionInput.trim()) return;
+                  try {
+                    const completeValue = selectionInput.replace(/[,.]$/, '');
+                    setSelectionInput(normalizarDinheiro(completeValue).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }));
+                  } catch {}
                 }}
-              >
-                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Valor a Pagar (VP)</div>
-                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate">
-                  {formatCurrency(totalVP)}
-                </div>
-                <div className="text-[10px] md:text-xs font-bold text-success truncate">
-                  {totalDiscount > 0 ? `Economia: - ${formatCurrency(totalDiscount)}` : 'Sem juros'}
-                </div>
-              </div>
+              />
             </div>
-          </div>
-
-          {/* Header Padronizado */}
-          <div className="d-flex align-items-center justify-content-between px-1 h-[24px]">
-            <span className="text-xs font-bold text-foreground d-flex align-items-center gap-1.5">
-              <i className="fa-solid fa-layer-group text-primary"></i>
-              <span>Parcelas que você abate:</span>
-            </span>
-          </div>
-
-          {/* Mobile View: Altura Fixa Padronizada */}
-          <div className="d-md-none space-y-1.5 h-[180px] overflow-y-auto custom-scrollbar p-0.5">
-            {selectedParcelas.length === 0 ? (
-              <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 text-muted italic text-xs bg-card border border-border rounded-xl">
-                <i className="fa-solid fa-coins fs-4 text-muted opacity-40 mb-1.5 d-block"></i>
-                {budgetNum > 0 
-                  ? `O valor de ${formatCurrency(budgetNum)} não é suficiente para abater a última parcela (${formatCurrency(cheapestVP)}).` 
-                  : "Digite um valor acima para simular as parcelas abatidas de trás pra frente."
-                }
-              </div>
-            ) : (
-              sortedSelectedParcelas.map(i => (
-                <div
-                  key={`mob-budget-${i.id}`}
-                  className="bg-card border border-primary/40 rounded-xl p-2 d-flex align-items-center justify-content-between gap-2 shadow-sm bg-primary/5"
-                >
-                  <div className="d-flex align-items-center gap-2 min-w-0">
-                    <div className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle flex-shrink-0" style={{ width: '20px', height: '20px' }}>
-                      <i className="fa-solid fa-check text-[9px]"></i>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="d-flex align-items-center gap-1.5">
-                        <span className="badge-tag badge-paid text-[9px] py-0.5 px-1.5 font-bold">
-                          {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
-                        </span>
-                        <span className="text-[10px] font-semibold text-muted">
-                          {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
-                        </span>
-                      </div>
-                      <div className="text-[9px] text-muted">
-                        Nominal: <span className="font-semibold text-foreground">{formatCurrency(i.valor)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-end flex-shrink-0">
-                    <div className="font-black text-xs text-foreground">
-                      {formatCurrency(i.vp)}
-                    </div>
-                    {i.discount > 0 ? (
-                      <div className="text-[9px] font-bold text-success">
-                        - {formatCurrency(i.discount)}
-                      </div>
-                    ) : (
-                      <div className="text-[9px] text-muted">sem desc.</div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table View: Altura Fixa Padronizada */}
-          <div className="border border-border rounded-xl overflow-hidden shadow-sm d-none d-md-block h-[280px]">
-            <div className="custom-scrollbar h-100 overflow-y-auto">
-              <table className="styled-table mb-0 w-100">
-                <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
-                  <tr>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Parcela</th>
-                    <th style={{ width: '100px', textAlign: 'center' }}>Vencimento</th>
-                    <th style={{ textAlign: 'right' }}>Valor Nominal</th>
-                    <th style={{ textAlign: 'right' }}>Valor Presente (VP)</th>
-                    <th style={{ textAlign: 'right' }}>Economia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedParcelas.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-6 text-muted italic text-xs">
-                        Nenhuma parcela selecionada com o saldo atual.
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedSelectedParcelas.map(i => (
-                      <tr key={`desk-budget-${i.id}`}>
-                        <td style={{ textAlign: 'center' }}>
-                          <span className="badge-tag badge-paid font-mono font-bold text-xs px-2.5 py-1 dark:text-emerald-300 dark:bg-emerald-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>
-                            {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
-                          {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-muted)' }}>
-                          {formatCurrency(i.valor)}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text)' }}>
-                          {formatCurrency(i.vp)}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
-                          {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* ABA 2: SELEÇÃO MANUAL / CATÁLOGO (Permite escolher todas/quaisquer)        */}
-      {/* ========================================================================= */}
-      {simulationMode === 'manual' && (
-        <div className="space-y-2.5 animate-in fade-in duration-150">
-          {/* Caixa Integrada Padronizada */}
-          <div className="bg-card border border-border rounded-2xl p-3 md:p-3.5 space-y-2.5">
-            {/* Linha 1: Atalhos de seleção com mesma altura */}
-            <div className="d-flex align-items-center justify-content-between min-h-[38px] flex-wrap gap-1">
-              <span className="text-[11px] font-bold text-muted ps-1">Atalhos de trás pra frente:</span>
-              <div className="d-flex align-items-center gap-1.5 ms-auto">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
-                  onClick={() => selectLastN(3)}
-                >
-                  Últimas 3
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
-                  onClick={() => selectLastN(6)}
-                >
-                  Últimas 6
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-[10px] font-bold"
-                  onClick={() => selectLastN(12)}
-                >
-                  Últimas 12
-                </button>
-              </div>
-            </div>
-
-            {/* Linha 2: Resumo Financeiro da Seleção */}
-            <div className="grid grid-cols-2 gap-2 pt-1 border-top border-border/40">
-              <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
-                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
-                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>
-                  {formatCurrency(totalNominal)}
-                </div>
-                <div className="text-[10px] md:text-xs font-bold text-muted">{selectedParcelas.length} de {simulation.length} itens</div>
-              </div>
-
-              <div 
-                className="rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.15), rgba(0, 53, 62, 0.3))',
-                  border: '1px solid rgba(0, 174, 154, 0.3)'
-                }}
-              >
-                <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Valor a Pagar (VP)</div>
-                <div className="text-sm md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalVP)}>
-                  {formatCurrency(totalVP)}
-                </div>
-                <div className="text-[10px] md:text-xs font-bold text-success truncate">
-                  {totalDiscount > 0 ? `Economia: - ${formatCurrency(totalDiscount)}` : 'Sem desconto'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Header Padronizado */}
-          <div className="d-flex align-items-center justify-content-between px-1 h-[24px]">
-            <span className="text-xs font-bold text-muted">Parcelas Futuras:</span>
-            <button
-              type="button"
-              className="btn btn-sm btn-link p-0 text-xs font-bold text-primary text-decoration-none"
-              onClick={() => {
-                if (selectedIds.length === simulation.length) {
-                  setSelectedIds([]);
-                } else {
-                  setSelectedIds(simulation.map(i => i.id));
-                }
-              }}
-            >
-              {selectedIds.length === simulation.length ? 'Desmarcar Todas' : 'Selecionar Todas'}
+            <button type="button" className="btn rounded-xl px-3 py-2 text-xs md:text-sm font-bold flex-shrink-0" style={{ backgroundColor: themeColor || 'var(--primary)', borderColor: themeColor || 'var(--primary)', color: '#fff' }} onClick={() => {
+              if (inputMode === 'value' && selectionInput.trim()) {
+                try {
+                  setSelectionInput(String(Math.floor(normalizarDinheiro(selectionInput))));
+                } catch {}
+              }
+              setInputMode(mode => mode === 'value' ? 'count' : 'value');
+            }} title={inputMode === 'value' ? 'Alternar para quantidade de parcelas' : 'Alternar para valor disponível'}>
+              {inputMode === 'value' ? 'Valor' : 'Parcelas'} <i className="fa-solid fa-arrows-rotate ms-2"></i>
             </button>
           </div>
-
-          {/* Mobile View: Altura Fixa Padronizada */}
-          <div className="d-md-none space-y-1.5 h-[180px] overflow-y-auto custom-scrollbar p-0.5">
-            {simulation.length === 0 ? (
-              <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 text-muted italic text-xs">
-                Nenhuma parcela futura encontrada.
-              </div>
-            ) : (
-              simulation.map(i => {
-                const isSelected = selectedIds.includes(i.id);
-                return (
-                  <div
-                    key={`mob-manual-${i.id}`}
-                    className={cn(
-                      "bg-card border rounded-xl p-2 d-flex align-items-center justify-content-between gap-2 transition-all cursor-pointer shadow-sm",
-                      isSelected ? "border-primary bg-primary/5" : "border-border opacity-70"
-                    )}
-                    onClick={() => {
-                      setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                    }}
-                  >
-                    <div className="d-flex align-items-center gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        className="form-check-input cursor-pointer flex-shrink-0 m-0"
-                        checked={isSelected}
-                        onChange={() => {}}
-                      />
-                      <div className="min-w-0">
-                        <div className="d-flex align-items-center gap-1.5">
-                          <span className="badge-tag badge-pending text-[9px] py-0.5 px-1.5 font-bold">
-                            {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
-                          </span>
-                          <span className="text-[10px] font-semibold text-muted">
-                            {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
-                          </span>
-                        </div>
-                        <div className="text-[9px] text-muted">
-                          Nominal: <span className="font-semibold text-foreground">{formatCurrency(i.valor)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-end flex-shrink-0">
-                      <div className="font-black text-xs text-foreground">
-                        {formatCurrency(i.vp)}
-                      </div>
-                      {i.discount > 0 ? (
-                        <div className="text-[9px] font-bold text-success">
-                          - {formatCurrency(i.discount)}
-                        </div>
-                      ) : (
-                        <div className="text-[9px] text-muted">sem desc.</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Desktop Table View: Altura Fixa Padronizada */}
-          <div className="border border-border rounded-xl overflow-hidden shadow-sm d-none d-md-block h-[280px]">
-            <div className="custom-scrollbar h-100 overflow-y-auto">
-              <table className="styled-table mb-0 w-100">
-                <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}>
-                  <tr>
-                    <th style={{ textAlign: 'center', width: '40px' }}></th>
-                    <th style={{ textAlign: 'center' }}>Parcela</th>
-                    <th style={{ textAlign: 'center' }}>Vencimento</th>
-                    <th style={{ textAlign: 'right' }}>Valor Presente (VP)</th>
-                    <th style={{ textAlign: 'right' }}>Economia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {simulation.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-6 text-muted italic text-xs">
-                        Nenhuma parcela futura encontrada.
-                      </td>
-                    </tr>
-                  ) : (
-                    simulation.map(i => {
-                      const isSelected = selectedIds.includes(i.id);
-                      return (
-                        <tr
-                          key={`desk-manual-${i.id}`}
-                          className={cn("cursor-pointer transition-colors", isSelected && "bg-primary/5")}
-                          onClick={() => {
-                            setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                          }}
-                        >
-                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              className="form-check-input cursor-pointer"
-                              checked={isSelected}
-                              onChange={() => {
-                                setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
-                              }}
-                            />
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="badge-tag badge-pending font-mono font-bold text-xs px-2.5 py-1 dark:text-amber-300 dark:bg-amber-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>
-                              {String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">
-                            {i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text-foreground, #fff)' }}>
-                            {formatCurrency(i.vp)}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>
-                            {i.discount > 0 ? `- ${formatCurrency(i.discount)}` : '-'}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+          <div className="text-[10px] text-muted">{selectionInput.trim() === '' ? 'Nenhum filtro aplicado: todas as parcelas estão selecionadas.' : inputMode === 'value' ? 'O valor seleciona parcelas de trás para frente. Você também pode ajustar a seleção manualmente.' : 'A quantidade seleciona parcelas de trás para frente. Você também pode ajustar a seleção manualmente.'}</div>
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
+            <div className="bg-card border border-border rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]">
+              <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Selecionado</div>
+              <div className="text-base md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalNominal)}>{formatCurrency(totalNominal)}</div>
+              <div className="text-[10px] md:text-xs font-bold text-muted">{selectedParcelas.length} de {simulation.length} parcelas</div>
+            </div>
+            <div className="rounded-xl p-2.5 md:p-3 text-center shadow-sm d-flex flex-column justify-content-between min-h-[75px] md:min-h-[85px]" style={{ background: 'linear-gradient(135deg, rgba(0, 174, 154, 0.15), rgba(0, 53, 62, 0.3))', border: '1px solid rgba(0, 174, 154, 0.3)' }}>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-wider">Valor a Pagar (VP)</div>
+              <div className="text-base md:text-lg font-black text-foreground my-0.5 truncate" title={formatCurrency(totalVP)}>{formatCurrency(totalVP)}</div>
+              <div className="text-[10px] md:text-xs font-bold text-success truncate">{totalDiscount > 0 ? 'Economia: - ' + formatCurrency(totalDiscount) : 'Sem desconto'}</div>
             </div>
           </div>
         </div>
-      )}
+        <div className="d-flex align-items-center justify-content-between px-1 h-[24px]">
+          <span className="text-xs font-bold text-foreground d-flex align-items-center gap-1.5"><i className="fa-solid fa-layer-group text-primary"></i><span>Parcelas futuras:</span></span>
+          <button type="button" className="btn btn-sm btn-link p-0 text-xs font-bold text-primary text-decoration-none" onClick={() => setSelectedIds(selectedIds.length === simulation.length ? [] : simulation.map(i => i.id))}>{selectedIds.length === simulation.length ? 'Desmarcar todas' : 'Selecionar todas'}</button>
+        </div>
+        <div className="d-md-none space-y-1.5 h-[220px] overflow-y-auto custom-scrollbar p-0.5">
+          {simulation.length === 0 ? <div className="h-100 d-flex align-items-center justify-content-center text-center p-3 text-muted italic text-xs">Nenhuma parcela futura encontrada.</div> : simulation.map(i => {
+            const isSelected = selectedIds.includes(i.id);
+            const toggleInstallment = () => setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+            return <div key={'mob-installment-' + i.id} className={cn('bg-card border rounded-xl p-2 d-flex align-items-center justify-content-between gap-2 transition-all cursor-pointer shadow-sm', isSelected ? 'bg-primary/5' : 'border-border opacity-70')} style={{ borderColor: isSelected ? (themeColor || 'var(--primary)') : 'var(--border)' }} onClick={toggleInstallment}>
+              <div className="d-flex align-items-center gap-2 min-w-0"><input type="checkbox" className="form-check-input cursor-pointer flex-shrink-0 m-0" checked={isSelected} readOnly style={{ accentColor: themeColor || 'var(--primary)' }} /><div className="min-w-0"><div className="d-flex align-items-center gap-1.5"><span className="badge-tag badge-pending text-[9px] py-0.5 px-1.5 font-bold">{String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}</span><span className="text-[10px] font-semibold text-muted">{i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}</span></div><div className="text-[9px] text-muted">Nominal: <span className="font-semibold text-foreground">{formatCurrency(i.valor)}</span></div></div></div>
+              <div className="text-end flex-shrink-0"><div className="font-black text-xs text-foreground">{formatCurrency(i.vp)}</div>{i.discount > 0 ? <div className="text-[9px] font-bold text-success">- {formatCurrency(i.discount)}</div> : <div className="text-[9px] text-muted">sem desc.</div>}</div>
+            </div>;
+          })}
+        </div>
+        <div className="border border-border rounded-xl overflow-hidden shadow-sm d-none d-md-block h-[280px]"><div className="custom-scrollbar h-100 overflow-y-auto"><table className="styled-table mb-0 w-100">
+          <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--card, #0f1016)' }}><tr><th style={{ textAlign: 'center', width: '40px' }}></th><th style={{ textAlign: 'center', width: '80px' }}>Parcela</th><th style={{ textAlign: 'center', width: '100px' }}>Vencimento</th><th style={{ textAlign: 'right' }}>V. Nominal</th><th style={{ textAlign: 'right' }}>V. Presente</th><th style={{ textAlign: 'right' }}>Economia</th></tr></thead>
+          <tbody>{simulation.length === 0 ? <tr><td colSpan={6} className="text-center py-6 text-muted italic text-xs">Nenhuma parcela futura encontrada.</td></tr> : simulation.map(i => {
+            const isSelected = selectedIds.includes(i.id);
+            const toggleInstallment = () => setSelectedIds(prev => prev.includes(i.id) ? prev.filter(id => id !== i.id) : [...prev, i.id]);
+            return <tr key={'desk-installment-' + i.id} className={cn('cursor-pointer transition-colors', isSelected && 'bg-primary/5')} onClick={toggleInstallment}>
+              <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}><input type="checkbox" className="form-check-input cursor-pointer" checked={isSelected} onChange={toggleInstallment} /></td><td style={{ textAlign: 'center' }}><span className="badge-tag badge-pending font-mono font-bold text-xs px-2.5 py-1 dark:text-amber-300 dark:bg-amber-500/20 shadow-sm" style={{ letterSpacing: '0.02em' }}>{String(i.parcela_atual).padStart(2, '0')}/{String(i.parcela_total).padStart(2, '0')}</span></td><td style={{ textAlign: 'center' }} className="text-xs text-muted whitespace-nowrap">{i.vencimento && i.vencimento !== '-' ? formatDate(i.vencimento) : '-'}</td><td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-muted)' }}>{formatCurrency(i.valor)}</td><td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text-foreground, #fff)' }}>{formatCurrency(i.vp)}</td><td style={{ textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{i.discount > 0 ? '- ' + formatCurrency(i.discount) : '-'}</td>
+            </tr>;
+          })}</tbody>
+        </table></div></div>
+      </div>
 
       {/* Action Footer Buttons */}
       <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-t border-border mt-2">

@@ -27,7 +27,8 @@ import {
   Legend,
   CartesianGrid,
   Line,
-  ComposedChart
+  ComposedChart,
+  LabelList
 } from 'recharts';
 import { parseISO, format, getDate, isLastDayOfMonth, differenceInMonths, addMonths } from 'date-fns';
 
@@ -65,6 +66,10 @@ export function RadarFinanceiroView({
   isHidden = false
 }: RadarFinanceiroViewProps) {
   const [isMobile, setIsMobile] = React.useState(false);
+  const [selectedProjectionSeries, setSelectedProjectionSeries] = React.useState<'receitas' | 'despesas' | 'saldo' | null>(null);
+  const selectProjectionSeries = (series: 'receitas' | 'despesas' | 'saldo') => {
+    setSelectedProjectionSeries(current => current === series ? null : series);
+  };
 
   React.useEffect(() => {
     const checkMobile = () => {
@@ -203,9 +208,9 @@ export function RadarFinanceiroView({
     return { totalDivida, totalVP, totalDiscount, qtdParcelas, discountPercent };
   }, [loanContractsSummary]);
 
-  // Projeção de Fluxo de Caixa (12 Meses no PC / 8 Meses no Celular)
+  // Projeção de Fluxo de Caixa (12 Meses no PC / 6 Meses no Celular)
   const cashflowProjection = useMemo(() => {
-    const monthsLimit = isMobile ? 8 : 12;
+    const monthsLimit = isMobile ? 6 : 12;
     return projetarFluxoCaixa({
       mesInicial: currentMonth,
       anoInicial: currentYear,
@@ -473,14 +478,14 @@ export function RadarFinanceiroView({
               <span>Projeção de Fluxo de Caixa</span>
             </h3>
             <span className="panel-subtitle">
-              {isMobile ? 'Próximos 8 meses' : 'Próximos 12 meses'} • Receitas vs. despesas projetadas
+              {isMobile ? 'Próximos 6 meses' : 'Próximos 12 meses'} • Receitas vs. despesas projetadas
             </span>
           </div>
         </div>
 
-        <div style={{ height: '270px', minHeight: '270px', maxHeight: '270px', width: '100%', minWidth: 0, position: 'relative' }}>
-          <ResponsiveContainer width="100%" height={270}>
-            <ComposedChart data={projectionChartData} margin={{ top: 15, right: 15, bottom: 20, left: 6 }}>
+        <div style={{ height: '310px', minHeight: '310px', maxHeight: '310px', width: '100%', minWidth: 0, position: 'relative' }}>
+          <ResponsiveContainer width="100%" height={310}>
+            <ComposedChart data={projectionChartData} margin={{ top: 24, right: 15, bottom: 20, left: 6 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle, rgba(148, 163, 184, 0.15))" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -558,13 +563,88 @@ export function RadarFinanceiroView({
                 }}
               />
               <Legend
-                verticalAlign="top"
+                verticalAlign="bottom"
                 height={36}
-                formatter={(value) => <span style={{ color: 'var(--text)', fontSize: '0.8rem', fontWeight: 600 }}>{value}</span>}
+                wrapperStyle={{ transform: 'translateY(8px)' }}
+                onClick={(entry: { dataKey?: string }) => {
+                  if (entry.dataKey === 'receitas') selectProjectionSeries('receitas');
+                  if (entry.dataKey === 'totalDespesas') selectProjectionSeries('despesas');
+                  if (entry.dataKey === 'saldo') selectProjectionSeries('saldo');
+                }}
+                formatter={(value) => <span style={{ color: 'var(--text)', fontSize: isMobile ? '0.6rem' : '0.8rem', fontWeight: 600 }}>{value}</span>}
               />
-              <Bar dataKey="receitas" name="Receitas Previstas" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="totalDespesas" name="Despesas Previstas" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              <Line type="monotone" dataKey="saldo" name="Saldo previsto" stroke="var(--primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--primary)' }} />
+              <Bar
+                dataKey="receitas"
+                name="Receitas Previstas"
+                fill="#10b981"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={34}
+                barSize={selectedProjectionSeries === 'receitas' ? (isMobile ? 44 : 84) : undefined}
+                hide={selectedProjectionSeries !== null && selectedProjectionSeries !== 'receitas'}
+                onClick={() => selectProjectionSeries('receitas')}
+              >
+                {selectedProjectionSeries === 'receitas' && (
+                  <LabelList dataKey="receitas" position="top" offset={14} content={({ x, y, value }) => (
+                    <text
+                      x={Number(x) + (isMobile ? 22 : 42)}
+                      y={Number(y) - 10}
+                      textAnchor="middle"
+                      fill={Number(value) >= 0 ? '#000000' : '#ef4444'}
+                      style={{ fontSize: isMobile ? '0.6rem' : '0.8rem', fontWeight: 600, fontFamily: 'inherit' }}
+                    >
+                      {formatCurrency(Number(value))}
+                    </text>
+                  )} />
+                )}
+              </Bar>
+              <Bar
+                dataKey="totalDespesas"
+                name="Despesas Previstas"
+                fill="#ef4444"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={34}
+                barSize={selectedProjectionSeries === 'despesas' ? (isMobile ? 44 : 84) : undefined}
+                hide={selectedProjectionSeries !== null && selectedProjectionSeries !== 'despesas'}
+                onClick={() => selectProjectionSeries('despesas')}
+              >
+                {selectedProjectionSeries === 'despesas' && (
+                  <LabelList dataKey="totalDespesas" position="top" offset={14} content={({ x, y, value }) => (
+                    <text
+                      x={Number(x) + (isMobile ? 22 : 42)}
+                      y={Number(y) - 10}
+                      textAnchor="middle"
+                      fill={Number(value) >= 0 ? '#000000' : '#ef4444'}
+                      style={{ fontSize: isMobile ? '0.6rem' : '0.8rem', fontWeight: 600, fontFamily: 'inherit' }}
+                    >
+                      {formatCurrency(Number(value))}
+                    </text>
+                  )} />
+                )}
+              </Bar>
+              <Line
+                type="monotone"
+                dataKey="saldo"
+                name="Saldo previsto"
+                stroke="var(--primary)"
+                strokeWidth={3}
+                dot={{ r: 4, fill: 'var(--primary)' }}
+                hide={selectedProjectionSeries !== null && selectedProjectionSeries !== 'saldo'}
+                onClick={() => selectProjectionSeries('saldo')}
+              >
+                {selectedProjectionSeries === 'saldo' && (
+                  <LabelList dataKey="saldo" position="top" offset={14} content={({ x, y, value }) => (
+                    <text
+                      x={x}
+                      y={Number(y) - 10}
+                      textAnchor="middle"
+                      fill={Number(value) >= 0 ? '#000000' : '#ef4444'}
+                      style={{ fontSize: isMobile ? '0.6rem' : '0.8rem', fontWeight: 600, fontFamily: 'inherit' }}
+                    >
+                      {formatCurrency(Number(value))}
+                    </text>
+                  )} />
+                )}
+              </Line>
             </ComposedChart>
           </ResponsiveContainer>
         </div>

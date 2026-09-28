@@ -35,6 +35,7 @@ interface DespesasReceitasViewProps {
   onDelete: (id: number, type: 'despesa' | 'receita') => void;
   onToggleStatus: (id: number, type: 'despesa' | 'receita', currentVal: string) => void;
   onPayoff?: (itemId: number) => void;
+  onOpenPeriodModal?: () => void;
   isHidden?: boolean;
 }
 
@@ -51,6 +52,7 @@ export function DespesasReceitasView({
   onDelete,
   onToggleStatus,
   onPayoff,
+  onOpenPeriodModal,
   isHidden = false
 }: DespesasReceitasViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -351,6 +353,11 @@ export function DespesasReceitasView({
               </span>
             )}
           </button>
+          {onOpenPeriodModal && (
+            <button type="button" onClick={onOpenPeriodModal} className="btn btn-sm d-flex align-items-center justify-content-center rounded-xl border border-border bg-card-hover text-primary shadow-sm flex-shrink-0" style={{ width: '36px', height: '36px' }} title="Selecionar período" aria-label="Selecionar período">
+              <i className="fa-regular fa-calendar-days"></i>
+            </button>
+          )}
         </div>
 
         {/* Tipo rápido no Mobile (Receitas / Despesas) */}

@@ -41,6 +41,7 @@ interface CartoesViewProps {
   competencia?: string;
   currentMonth?: number;
   currentYear?: number;
+  onOpenPeriodModal?: () => void;
   onAdd: () => void;
   onEdit: (item: CartaoTransacao) => void;
   onDelete: (id: number) => void;
@@ -87,6 +88,7 @@ export function CartoesView({
   competencia,
   currentMonth,
   currentYear,
+  onOpenPeriodModal,
   onAdd,
   onEdit,
   onDelete,
@@ -261,6 +263,11 @@ export function CartoesView({
                 onClick={() => setSelectedCardId(null)}
               >
                 Exibir Todos
+              </button>
+            )}
+            {onOpenPeriodModal && (
+              <button type="button" onClick={onOpenPeriodModal} className="btn btn-sm d-md-none d-flex align-items-center justify-content-center rounded-xl border border-border bg-card-hover text-primary shadow-sm p-0 ms-2" style={{ width: '30px', height: '30px' }} title="Selecionar período" aria-label="Selecionar período">
+                <Calendar className="w-4 h-4" />
               </button>
             )}
 
@@ -444,7 +451,10 @@ export function CartoesView({
                       </div>
 
                       <div className="text-end flex-shrink-0">
-                        <span className="font-bold text-xs text-foreground">
+                        <span
+                          className="font-bold text-xs text-foreground"
+                          title={isHidden ? undefined : `Valor total da compra: ${formatCurrency(multiplicarDinheiro(t.valor, t.parcela_total || 1))}`}
+                        >
                           {isHidden ? '••••••' : formatCurrency(t.valor)}
                         </span>
 
@@ -537,7 +547,9 @@ export function CartoesView({
                             {t.data_compra ? formatDate(t.data_compra) : '-'}
                           </td>
                           <td style={{ textAlign: 'right', padding: '8px 10px' }} className="font-bold text-foreground">
-                            {isHidden ? '••••••' : formatCurrency(t.valor)}
+                            <span title={isHidden ? undefined : `Valor total da compra: ${formatCurrency(multiplicarDinheiro(t.valor, t.parcela_total || 1))}`}>
+                              {isHidden ? '••••••' : formatCurrency(t.valor)}
+                            </span>
                           </td>
                           <td style={{ textAlign: 'center', padding: '8px 10px' }}>
                             <div className="d-flex align-items-center justify-content-center gap-1">

@@ -526,6 +526,7 @@ export default function Home() {
             cartoes={config.cartoes}
             contasFixas={contasFixas}
             emprestimos={emprestimos}
+            onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
             isHidden={isGlobalHidden}
             onOpenExpenseSettings={() => setIsExpenseSettingsOpen(true)}
             onAdd={(defaultType = 'despesa') => {
@@ -590,6 +591,7 @@ export default function Home() {
             competencia={competencia}
             currentMonth={currentMonth}
             currentYear={currentYear}
+            onOpenPeriodModal={() => setIsMonthYearModalOpen(true)}
             isHidden={isGlobalHidden}
             onOpenPayoffModal={() => {
               setModalType('payoff');
@@ -953,6 +955,7 @@ export default function Home() {
                 <PayoffModal 
                   loan={selectedLoan!}
                   item={selectedFixed!}
+                  themeColor={themeColor}
                   installments={despesas.filter(d => 
                     (selectedLoan && Number(d.emprestimo_id) === Number(selectedLoan.id)) || 
                     (selectedFixed && Number(d.conta_fixa_id) === Number(selectedFixed.conta_fixa_id))
