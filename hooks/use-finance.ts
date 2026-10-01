@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Despesa, Receita, ConfigApp, Status, Titular, CartaoConfig, CartaoTransacao, Profile, Emprestimo, ContaFixaConfig, ContaFixaExcecao } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
-import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, resolverAgendamentoReceita, salvarContaFixaConfig, encerrarContaFixaConfig, contaFixaPermiteOcorrencia, primeiraParcelaContaFixa, resolverOcorrenciaContaFixa, ignorarOcorrenciaContaFixa, encerrarContaFixaDesde, renomearCategoriaEmLote, atualizarCategoriaPorDescricao, materializarDespesasVinculadas, materializarOcorrenciaCartao } from '@/lib/finance-service';
+import { salvarDespesa, salvarReceita, consolidarFaturas, lancarParcelas, salvarEmprestimo, deletarEmprestimo, calculatePresentValue, projetarProximoVencimento, calcularCompetencia, calcularCompetenciaCartao, resolverAgendamentoReceita, salvarContaFixaConfig, encerrarContaFixaConfig, excluirContaFixaConfig, contaFixaPermiteOcorrencia, primeiraParcelaContaFixa, resolverOcorrenciaContaFixa, ignorarOcorrenciaContaFixa, encerrarContaFixaDesde, renomearCategoriaEmLote, atualizarCategoriaPorDescricao, materializarDespesasVinculadas, materializarOcorrenciaCartao } from '@/lib/finance-service';
 import { format, addMonths, addDays, parseISO, isLastDayOfMonth, lastDayOfMonth, startOfMonth, startOfDay, getDate, differenceInMonths, isBefore } from 'date-fns';
 import { clearFinancialCache, financialCacheKey, getFinancialCache, purgeLegacyFinancialCache, setFinancialCache } from '@/lib/financial-cache';
 import { categorizar } from '@/lib/categories-utils';
@@ -827,6 +827,20 @@ export function useFinance(activeView: string) {
       await fetchData();
     } catch (error) {
       reportOperationFailure('recurrence_end', error);
+      setContasFixas(previousContas);
+      throw error;
+    }
+  };
+
+  const deleteContaFixa = async (id: number) => {
+    if (!user || !familyId) throw new Error('Sessão financeira indisponível. Recarregue a página.');
+    const previousContas = contasFixas;
+    try {
+      setContasFixas(prev => prev.filter(c => c.id !== id));
+      await excluirContaFixaConfig(id);
+      await fetchData();
+    } catch (error) {
+      reportOperationFailure('recurrence_delete', error);
       setContasFixas(previousContas);
       throw error;
     }
@@ -2111,7 +2125,7 @@ export function useFinance(activeView: string) {
     updateContaFixa,
     endContaFixa,
     endContaFixaFromOccurrence,
-    deleteContaFixa: endContaFixa,
+    deleteContaFixa,
     quitarParcelas,
     setDespesas,
     setReceitas,

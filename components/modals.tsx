@@ -3150,7 +3150,6 @@ export function ExpenseSettingsModal({
   onUpdateCategoryByDescription,
   onUpdateDespesa,
   onDeleteEmprestimo,
-  onEndContaFixa,
   onDeleteContaFixa,
   themeColor,
   themeMode,
@@ -3170,8 +3169,6 @@ export function ExpenseSettingsModal({
   onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
   onUpdateDespesa?: (id: number, updates: Partial<Despesa>) => Promise<any> | void;
   onDeleteEmprestimo: (id: number) => void;
-  onEndContaFixa?: (id: number) => void;
-  /** Compatibilidade temporária com a cópia legada em _backup. */
   onDeleteContaFixa?: (id: number) => void;
   themeColor: string;
   themeMode: 'light' | 'dark' | 'black';
@@ -3332,7 +3329,7 @@ export function ExpenseSettingsModal({
     {
       title: 'CARTÕES DE CRÉDITO',
       tabs: [
-        { id: 'cartoes_rec', label: 'Assinaturas Recorr.', icon: 'fa-solid fa-credit-card', count: countCartoesRec },
+        { id: 'cartoes_rec', label: 'Assinaturas Recorrentes', icon: 'fa-solid fa-credit-card', count: countCartoesRec },
         { id: 'cartoes_parc', label: 'Compras Parceladas', icon: 'fa-solid fa-calendar-days', count: countCartoesParc },
       ]
     },
@@ -3562,12 +3559,6 @@ export function ExpenseSettingsModal({
                   </span>
                 </div>
               </div>
-              <span 
-                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
-              >
-                {emprestimos.length} {emprestimos.length === 1 ? 'contrato' : 'contratos'}
-              </span>
             </header>
 
             {/* Lista de Empréstimos */}
@@ -3697,12 +3688,6 @@ export function ExpenseSettingsModal({
                   <span className="text-xs text-muted block mt-0.5 font-normal opacity-75">{tabSubtitle}</span>
                 </div>
               </div>
-              <span 
-                className="badge-tag rounded-full text-xs font-normal px-3 py-1 flex-shrink-0 border-0 text-muted"
-                style={{ backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
-              >
-                {filtered.length} {filtered.length === 1 ? 'item ativo' : 'itens ativos'}
-              </span>
             </header>
 
             {/* Lista de Itens */}
@@ -3781,13 +3766,13 @@ export function ExpenseSettingsModal({
                       </button>
                       <button 
                         type="button"
-                        onClick={() => (onEndContaFixa ?? onDeleteContaFixa)?.(config.id)}
-                        disabled={(config.status ?? 'ativo') !== 'ativo'}
+                        onClick={() => onDeleteContaFixa?.(config.id)}
+                        disabled={!onDeleteContaFixa}
                         className={cn("btn btn-sm btn-icon border-0 hover:bg-danger/20 hover:text-danger text-muted transition-all p-2 shadow-xs cursor-pointer", isDarkMode ? "bg-white/5" : "bg-slate-100")}
-                        title={(config.status ?? 'ativo') === 'ativo' ? 'Encerrar série' : 'Série encerrada'}
+                        title="Excluir recorrência definitivamente"
                         style={{ width: '32px', height: '32px', borderRadius: '9999px' }}
                       >
-                        <i className="fa-solid fa-circle-stop text-xs"></i>
+                        <i className="fa-solid fa-trash text-xs"></i>
                       </button>
                     </div>
                   </div>
@@ -3802,105 +3787,6 @@ export function ExpenseSettingsModal({
 
   return (
     <>
-      {/* ── MOBILE: bottom-sheet / full modal ── */}
-      <div
-        className="d-md-none modal fade show d-flex flex-column justify-content-end"
-        style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(20px)',
-          position: 'fixed',
-          inset: 0,
-          zIndex: 2000
-        }}
-        onClick={onClose}
-      >
-        <div
-          className="w-100 h-100"
-          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-        >
-          <div className="modal-content border-0 shadow-2xl overflow-hidden bg-card h-full d-flex flex-column rounded-0">
-            {/* Header Mobile com título e botão de fechar */}
-            <div className={cn("px-4 py-3.5 border-b d-flex align-items-center justify-content-between flex-shrink-0", panelHeaderClass)}>
-              <div className="d-flex align-items-center gap-2.5">
-                <div 
-                  className="w-8 h-8 d-flex align-items-center justify-content-center shadow-xs"
-                  style={{ background: `${activeThemeColor}15`, color: activeThemeColor, borderRadius: '10px' }}
-                >
-                  <i className="fa-solid fa-sliders text-sm"></i>
-                </div>
-                <span className="font-medium text-sm text-foreground">Ajustes & Contas Fixas</span>
-              </div>
-              <button 
-                type="button"
-                onClick={onClose}
-                className={cn("btn btn-sm btn-icon border-0 text-muted hover:text-foreground p-1.5 cursor-pointer", actionSurfaceClass)}
-                style={{ width: '30px', height: '30px', borderRadius: '9999px' }}
-              >
-                <i className="fa-solid fa-xmark text-sm"></i>
-              </button>
-            </div>
-
-            {/* Horizontal Scrollable Tabs em formato Pill sem bordas nos não-selecionados */}
-            <aside className={cn("border-b d-flex flex-row overflow-x-auto p-3 gap-2 custom-scrollbar bg-card flex-shrink-0", panelBorderClass)}>
-              {sections.map((section) =>
-                section.tabs.map((tab) => {
-                  const isActive = activeTab === tab.id && !inlineEdit;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setInlineEdit(null);
-                      }}
-                      className={cn(
-                        "px-4 py-2 transition-all d-flex align-items-center gap-2 flex-shrink-0 text-xs whitespace-nowrap cursor-pointer font-normal border-0",
-                        isActive 
-                          ? "text-white font-medium shadow-sm" 
-                          : cn("bg-transparent hover:text-foreground", isDarkMode ? "text-slate-300 hover:bg-white/5" : "text-slate-700 hover:bg-slate-100")
-                      )}
-                      style={{
-                        borderRadius: '14px',
-                        ...(isActive ? { 
-                          backgroundColor: activeThemeColor, 
-                          boxShadow: `0 4px 14px ${activeThemeColor}40` 
-                        } : {})
-                      }}
-                    >
-                      <i className={cn(tab.icon, "text-xs", isActive ? "text-white" : "opacity-75")}></i>
-                      <span>{tab.label}</span>
-                      <span 
-                        className={cn("badge-tag px-2 py-0.5 rounded-full text-[9px] font-normal border-0", isActive ? "text-white" : "text-muted")}
-                        style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
-                      >
-                        {tab.count}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </aside>
-
-            {/* Content */}
-            <main className="flex-fill bg-card d-flex flex-column overflow-hidden">
-              <div className="flex-fill overflow-hidden position-relative">
-                {renderContent()}
-              </div>
-              <div className={cn("p-4 border-t flex-shrink-0", panelHeaderClass)}>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="btn w-100 py-3 text-white font-medium text-xs shadow-md uppercase tracking-wider border-0"
-                  style={{ backgroundColor: activeThemeColor, borderRadius: '14px' }}
-                >
-                  Concluir Ajustes
-                </button>
-              </div>
-            </main>
-          </div>
-        </div>
-      </div>
-
       {/* ── DESKTOP: centered luxury dialog (Estilo 1prototype.html) ── */}
       <div
         className="d-none d-md-block modal fade show"
@@ -3913,7 +3799,7 @@ export function ExpenseSettingsModal({
         }}
         onClick={onClose}
       >
-        <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1020px' }}>
+        <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '1060px' }}>
           <div 
             className={cn("modal-content overflow-hidden bg-card border", panelBorderClass)}
             style={{ 
@@ -3925,31 +3811,31 @@ export function ExpenseSettingsModal({
             <div className="d-flex h-100">
               {/* Sidebar de Categorias */}
               <aside 
-                className={cn("border-r d-flex flex-column overflow-y-auto py-5 px-3.5 gap-2.5 custom-scrollbar flex-shrink-0", panelBorderClass)}
-                style={{ width: '255px', background: isDarkMode ? 'var(--card-elevated, #131620)' : 'var(--bg-surface, #f1f5f9)' }}
+                className={cn("border-r d-flex flex-column overflow-hidden py-5 px-4 gap-3 flex-shrink-0", panelBorderClass)}
+                style={{ width: '304px', background: isDarkMode ? 'var(--card-elevated, #131620)' : 'var(--bg-surface, #f1f5f9)' }}
               >
                 {/* Brand / Title Header */}
-                <div className={cn("px-2 pb-4 mb-2 border-b", panelBorderClass)}>
+                <div className={cn("px-2 pb-5 mb-2 border-b", panelBorderClass)}>
                   <div className="d-flex align-items-center gap-3">
                     <div 
-                      className="w-10 h-10 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0 border-0"
-                      style={{ background: `linear-gradient(135deg, ${activeThemeColor}, #3b82f6)`, borderRadius: '14px' }}
+                      className="w-11 h-11 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0 border-0"
+                      style={{ background: `linear-gradient(135deg, ${activeThemeColor}, #3b82f6)`, borderRadius: '15px' }}
                     >
-                      <i className="fa-solid fa-sliders text-base"></i>
+                      <i className="fa-solid fa-sliders text-lg"></i>
                     </div>
-                    <div>
-                      <span className="text-sm font-medium tracking-tight text-foreground block leading-tight">Configurações</span>
-                      <span className="text-[10px] text-muted font-normal block uppercase tracking-wider mt-0.5 opacity-75">Contas & Fixos</span>
+                    <div className="min-w-0">
+                      <span className="text-[15px] font-semibold tracking-tight text-foreground block leading-tight whitespace-nowrap">Configurações Financeiras</span>
+                      <span className="text-[10.5px] text-muted font-medium block mt-1 opacity-80 whitespace-nowrap">Contas, parcelas e recorrências</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Sections List */}
-                <div className="flex-grow-1 d-flex flex-column gap-3.5">
+                <div className="flex-grow-1 d-flex flex-column gap-4">
                   {sections.map((section) => (
-                    <div key={section.title} className="d-flex flex-column gap-1.5">
+                    <div key={section.title} className="d-flex flex-column gap-2">
                       <div className="px-2 mb-0.5">
-                        <span className="text-[9.5px] font-medium tracking-widest uppercase text-muted opacity-50">{section.title}</span>
+                        <span className="text-[10px] font-semibold tracking-wider uppercase text-muted opacity-70 whitespace-nowrap">{section.title}</span>
                       </div>
                       <div className="d-flex flex-column gap-1">
                         {section.tabs.map((tab) => {
@@ -3963,13 +3849,12 @@ export function ExpenseSettingsModal({
                                 setInlineEdit(null);
                               }}
                               className={cn(
-                                "px-3.5 py-2.5 transition-all d-flex align-items-center justify-content-between text-start cursor-pointer font-normal border-0",
+                                "px-3.5 py-2.5 transition-all d-flex align-items-center justify-content-between text-start cursor-pointer text-[13px] font-medium border-0 whitespace-nowrap",
                                 isActive 
                                   ? "text-white font-medium shadow-sm" 
                                   : cn("bg-transparent hover:text-foreground", isDarkMode ? "text-slate-300 hover:bg-white/5" : "text-slate-700 hover:bg-slate-200/70")
                               )}
                               style={{ 
-                                fontSize: '11.5px',
                                 borderRadius: '14px',
                                 ...(isActive ? { 
                                   backgroundColor: activeThemeColor,
@@ -3978,11 +3863,11 @@ export function ExpenseSettingsModal({
                               }}
                             >
                               <div className="d-flex align-items-center gap-2.5">
-                                <i className={cn(tab.icon, "text-xs", isActive ? "text-white" : "opacity-75")}></i>
+                                <i className={cn(tab.icon, "text-[13px]", isActive ? "text-white" : "opacity-75")}></i>
                                 <span>{tab.label}</span>
                               </div>
                               <span 
-                                className={cn("badge-tag px-2 py-0.5 text-[9.5px] font-normal border-0", isActive ? "text-white" : "text-muted")}
+                                className={cn("badge-tag min-w-6 px-2 py-0.5 text-[10.5px] font-semibold text-center border-0", isActive ? "text-white" : "text-muted")}
                                 style={isActive ? { backgroundColor: 'rgba(255, 255, 255, 0.25)', borderRadius: '9999px' } : { backgroundColor: neutralBadgeBackground, borderRadius: '9999px' }}
                               >
                                 {tab.count}
@@ -3995,10 +3880,6 @@ export function ExpenseSettingsModal({
                   ))}
                 </div>
 
-                {/* Bottom Footer Info */}
-                <div className={cn("mt-auto pt-3 border-t text-center", panelBorderClass)}>
-                  <span className="text-[10px] text-muted font-normal block opacity-50">Ajustes Automáticos & Radar</span>
-                </div>
               </aside>
 
               {/* Área Principal de Conteúdo */}
@@ -4008,8 +3889,8 @@ export function ExpenseSettingsModal({
                 {/* Botão de Fechar no Topo Direito */}
                 <button 
                   type="button" 
-                  className={cn("position-absolute top-0 end-0 m-3.5 z-50 d-flex align-items-center justify-content-center border-0 text-muted hover:text-foreground transition-all shadow-xs cursor-pointer", actionSurfaceClass)}
-                  style={{ width: '34px', height: '34px', borderRadius: '9999px' }}
+                  className={cn("position-absolute z-50 d-flex align-items-center justify-content-center border-0 text-muted hover:text-foreground transition-all shadow-xs cursor-pointer", actionSurfaceClass)}
+                  style={{ top: '14px', right: '16px', width: '36px', height: '36px', borderRadius: '9999px' }}
                   onClick={onClose}
                   title="Fechar Ajustes"
                 >

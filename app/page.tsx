@@ -287,6 +287,7 @@ export default function Home() {
     updateContaFixa,
     endContaFixa,
     endContaFixaFromOccurrence,
+    deleteContaFixa,
     quitarParcelas,
     alertas,
     lembretes,
@@ -712,6 +713,15 @@ export default function Home() {
             onUpdateCardCategoryByEstablishment={async (estabelecimento, newCategory) => {
               await updateCardCategoryByEstablishment(estabelecimento, newCategory);
             }}
+            onSaveContaFixa={async (id, data) => {
+              await updateContaFixa(id, data);
+            }}
+            onDeleteContaFixa={(id) => {
+              setItemToDelete({ id, type: 'conta_fixa' });
+              setIsConfirmDeleteOpen(true);
+            }}
+            isHidden={isGlobalHidden}
+            onToggleVisibility={() => setIsGlobalHidden((prev) => !prev)}
             isMobile={true}
             themeColor={themeColor}
             setThemeColor={setThemeColor}
@@ -997,7 +1007,7 @@ export default function Home() {
                 else if (type === 'titular') await deleteTitular(id);
                 else if (type === 'cartao') await deleteCartao(id);
                 else if (type === 'emprestimo') await deleteEmprestimo(id);
-                else if (type === 'conta_fixa') await endContaFixa(id);
+                else if (type === 'conta_fixa') await deleteContaFixa(id);
 
                 setIsConfirmDeleteOpen(false);
                 setItemToDelete(null);
@@ -1016,7 +1026,7 @@ export default function Home() {
                 : itemToDelete?.type === 'titular' || itemToDelete?.type === 'cartao'
                 ? 'O cadastro só será excluído se não possuir histórico financeiro vinculado. Deseja continuar?'
                 : itemToDelete?.type === 'conta_fixa'
-                  ? 'Deseja encerrar esta série? Novas ocorrências deixarão de ser projetadas, mas todo o histórico será preservado.'
+                  ? 'Deseja excluir definitivamente esta recorrência? Os lançamentos já registrados serão preservados, mas deixarão de estar vinculados à série.'
                   : 'Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.'}
               failureMessage={itemToDelete?.type === 'titular'
                 ? 'Este titular está em uso e foi mantido para preservar o histórico financeiro.'
@@ -1025,11 +1035,11 @@ export default function Home() {
                   : itemToDelete?.contaFixaId
                     ? 'Nenhum lançamento foi apagado e a série permaneceu inalterada.'
                     : itemToDelete?.type === 'conta_fixa'
-                      ? 'A série foi mantida ativa porque não foi possível concluir o encerramento seguro.'
+                      ? 'Não foi possível excluir a recorrência. Nenhum lançamento foi alterado.'
                   : undefined}
               confirmLabel={itemToDelete?.contaFixaId
                 ? 'Ignorar ocorrência'
-                : itemToDelete?.type === 'conta_fixa' ? 'Encerrar série' : 'Excluir'}
+                : itemToDelete?.type === 'conta_fixa' ? 'Excluir recorrência' : 'Excluir'}
             />
           </div>
 
@@ -1068,7 +1078,7 @@ export default function Home() {
             setItemToDelete({ id, type: 'emprestimo' });
             setIsConfirmDeleteOpen(true);
           }}
-          onEndContaFixa={(id) => {
+          onDeleteContaFixa={(id) => {
             setItemToDelete({ id, type: 'conta_fixa' });
             setIsConfirmDeleteOpen(true);
           }}

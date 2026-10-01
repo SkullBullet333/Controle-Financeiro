@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { Profile, Titular, CartaoConfig, CartaoTransacao, Despesa, ContaFixaConfig } from '@/lib/types';
 import { Modal, TitularForm, CartaoForm, StyledDatePicker } from './modals';
 import { CardLogo } from './card-ui';
@@ -39,6 +39,10 @@ interface SettingsViewProps {
   onRenameCategory?: (oldCat: string, newCat: string) => Promise<any> | void;
   onUpdateCategoryByDescription?: (descricao: string, newCat: string) => Promise<any> | void;
   onUpdateCardCategoryByEstablishment?: (estabelecimento: string, newCat: string) => Promise<any> | void;
+  onSaveContaFixa?: (id: number, config: Partial<ContaFixaConfig>) => Promise<any> | void;
+  onDeleteContaFixa?: (id: number) => void;
+  isHidden?: boolean;
+  onToggleVisibility?: () => void;
   isMobile?: boolean;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -74,6 +78,10 @@ export function SettingsView({
   onRenameCategory,
   onUpdateCategoryByDescription,
   onUpdateCardCategoryByEstablishment,
+  onSaveContaFixa,
+  onDeleteContaFixa,
+  isHidden = false,
+  onToggleVisibility,
   lembretes = [],
   onAddLembrete,
   onToggleLembrete,
@@ -265,45 +273,106 @@ export function SettingsView({
     { name: 'Navy Blue', color: '#4361ee' }
   ];
 
-  type SectionId = 'tema' | 'membros' | 'titulares' | 'cartoes' | 'categorias' | 'avisos';
+  type SectionId = 'contas_fixas' | 'tema' | 'membros' | 'titulares' | 'cartoes' | 'categorias' | 'avisos';
   const [activeSection, setActiveSection] = useState<SectionId>('tema');
+  const [mobileFixedGroup, setMobileFixedGroup] = useState<'despesas' | 'cartoes' | 'receitas'>('despesas');
+  const [mobileEditingFixed, setMobileEditingFixed] = useState<ContaFixaConfig | null>(null);
+  const [mobileFixedForm, setMobileFixedForm] = useState({
+    descricao: '',
+    valor: '',
+    dataInicio: '',
+    categoria: '',
+    totalParcelas: '',
+    parcelaAtual: ''
+  });
+  const [isSavingFixed, setIsSavingFixed] = useState(false);
+
+  const mobileFixedItems = useMemo(() => contasFixas.filter((item) => {
+    if (mobileFixedGroup === 'receitas') return item.tipo === 'receita';
+    if (mobileFixedGroup === 'cartoes') return item.tipo !== 'receita' && !!item.cartao_id;
+    return item.tipo !== 'receita' && !item.cartao_id;
+  }), [contasFixas, mobileFixedGroup]);
+
+  const startMobileFixedEdit = (item: ContaFixaConfig) => {
+    setMobileEditingFixed(item);
+    setMobileFixedForm({
+      descricao: item.descricao || '',
+      valor: String(item.valor_mensal ?? '').replace('.', ','),
+      dataInicio: item.data_inicio || '',
+      categoria: item.categoria || '',
+      totalParcelas: item.total_parcelas ? String(item.total_parcelas) : '',
+      parcelaAtual: item.parcela_atual ? String(item.parcela_atual) : ''
+    });
+  };
+
+  const saveMobileFixedEdit = async () => {
+    if (!mobileEditingFixed || !onSaveContaFixa || !mobileFixedForm.descricao.trim()) return;
+    setIsSavingFixed(true);
+    try {
+      const valor = Number(mobileFixedForm.valor.replace(/\./g, '').replace(',', '.'));
+      await onSaveContaFixa(mobileEditingFixed.id, {
+        descricao: mobileFixedForm.descricao.trim(),
+        valor_mensal: Number.isFinite(valor) ? valor : mobileEditingFixed.valor_mensal,
+        data_inicio: mobileFixedForm.dataInicio,
+        categoria: mobileFixedForm.categoria.trim(),
+        total_parcelas: mobileEditingFixed.total_parcelas ? Number(mobileFixedForm.totalParcelas) || mobileEditingFixed.total_parcelas : null,
+        parcela_atual: mobileEditingFixed.total_parcelas ? Number(mobileFixedForm.parcelaAtual) || mobileEditingFixed.parcela_atual : mobileEditingFixed.parcela_atual
+      });
+      setMobileEditingFixed(null);
+    } finally {
+      setIsSavingFixed(false);
+    }
+  };
 
   const SECTIONS = useMemo(() => [
+    {
+      id: 'contas_fixas' as SectionId,
+      label: 'Contas Fixas e Recorrências',
+      icon: 'fa-repeat',
+      color: 'text-emerald-500 bg-emerald-500/10',
+      mobileOnly: true
+    },
     {
       id: 'tema' as SectionId,
       label: 'Tema e Identidade Visual',
       icon: 'fa-palette',
-      color: 'text-amber-500 bg-amber-500/10'
+      color: 'text-amber-500 bg-amber-500/10',
+      mobileOnly: false
     },
     {
       id: 'membros' as SectionId,
       label: 'Membros & Compartilhamento',
       icon: 'fa-users',
-      color: 'text-pink-500 bg-pink-500/10'
+      color: 'text-pink-500 bg-pink-500/10',
+      mobileOnly: false
     },
     {
       id: 'titulares' as SectionId,
       label: 'Titulares Cadastrados',
       icon: 'fa-id-badge',
-      color: 'text-cyan-500 bg-cyan-500/10'
+      color: 'text-cyan-500 bg-cyan-500/10',
+      mobileOnly: false
     },
     {
       id: 'cartoes' as SectionId,
       label: 'Meus Cartões & Faturas',
       icon: 'fa-credit-card',
-      color: 'text-purple-500 bg-purple-500/10'
+      color: 'text-purple-500 bg-purple-500/10',
+      mobileOnly: false
     },
     {
       id: 'categorias' as SectionId,
       label: 'Gerenciamento de Categorias',
       icon: 'fa-tags',
-      color: 'text-emerald-500 bg-emerald-500/10'
+      color: 'text-emerald-500 bg-emerald-500/10',
+      mobileOnly: false
     },
     {
       id: 'avisos' as SectionId,
       label: 'Avisos & Lembretes',
       icon: 'fa-bell',
-      color: 'text-orange-500 bg-orange-500/10'
+      color: 'text-orange-500 bg-orange-500/10',
+      mobileOnly: false
     },
   ], []);
 
@@ -332,6 +401,7 @@ export function SettingsView({
                 onClick={() => setActiveSection(sec.id)}
                 className={cn(
                   "w-full text-left p-3 rounded-2xl transition-all d-flex align-items-center justify-content-between gap-3 cursor-pointer group border-0",
+                  sec.mobileOnly && "d-md-none",
                   isActive
                     ? "text-white shadow-md font-bold scale-[1.01]"
                     : "bg-transparent hover:bg-[var(--card-hover)] text-foreground/80 hover:text-foreground"
@@ -368,6 +438,216 @@ export function SettingsView({
 
         {/* Painel Central: Exibição Individual da Seção Selecionada com Bordas Nítidas e Multicolunas */}
         <div className="w-full flex-1 min-w-0">
+
+          {/* =========================================================
+              MOBILE: CONTAS FIXAS E RECORRÊNCIAS
+              ========================================================= */}
+          {activeSection === 'contas_fixas' && (
+            <div
+              className="d-md-none bg-card border border-border rounded-3xl p-4 shadow-xs space-y-4 animate-in fade-in duration-200"
+              style={{ borderRadius: '24px' }}
+            >
+              {mobileEditingFixed ? (
+                <>
+                  <div className="d-flex align-items-center gap-3 border-b border-border pb-4">
+                    <button
+                      type="button"
+                      onClick={() => setMobileEditingFixed(null)}
+                      className="w-9 h-9 rounded-full border-0 bg-muted/30 text-muted d-flex align-items-center justify-content-center flex-shrink-0"
+                      aria-label="Voltar para contas fixas"
+                    >
+                      <i className="fa-solid fa-arrow-left text-xs"></i>
+                    </button>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-black text-foreground m-0">Editar conta fixa</h3>
+                      <span className="text-[11px] text-muted">Atualize os dados da recorrência</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Descrição</label>
+                      <input
+                        type="text"
+                        value={mobileFixedForm.descricao}
+                        onChange={(e) => setMobileFixedForm((current) => ({ ...current, descricao: e.target.value }))}
+                        className="w-full bg-muted/20 border border-border rounded-2xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Valor mensal</label>
+                        <div className="d-flex align-items-center bg-muted/20 border border-border rounded-2xl px-3">
+                          <span className="text-xs font-bold text-muted me-2">R$</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={mobileFixedForm.valor}
+                            onChange={(e) => setMobileFixedForm((current) => ({ ...current, valor: e.target.value.replace(/[^\d.,]/g, '') }))}
+                            className="w-full bg-transparent border-0 py-3 text-sm text-foreground focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Data inicial</label>
+                        <StyledDatePicker
+                          value={mobileFixedForm.dataInicio}
+                          onChange={(value) => setMobileFixedForm((current) => ({ ...current, dataInicio: value }))}
+                          placement="bottom"
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Categoria</label>
+                      <input
+                        type="text"
+                        value={mobileFixedForm.categoria}
+                        onChange={(e) => setMobileFixedForm((current) => ({ ...current, categoria: e.target.value }))}
+                        className="w-full bg-muted/20 border border-border rounded-2xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                      />
+                    </div>
+
+                    {!!mobileEditingFixed.total_parcelas && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Total de parcelas</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={mobileFixedForm.totalParcelas}
+                            onChange={(e) => setMobileFixedForm((current) => ({ ...current, totalParcelas: e.target.value }))}
+                            className="w-full bg-muted/20 border border-border rounded-2xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1.5">Parcela atual</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={mobileFixedForm.parcelaAtual}
+                            onChange={(e) => setMobileFixedForm((current) => ({ ...current, parcelaAtual: e.target.value }))}
+                            className="w-full bg-muted/20 border border-border rounded-2xl px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="d-flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setMobileEditingFixed(null)}
+                      className="flex-1 py-3 rounded-2xl border border-border bg-transparent text-sm font-bold text-muted"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveMobileFixedEdit}
+                      disabled={isSavingFixed || !mobileFixedForm.descricao.trim()}
+                      className="flex-1 py-3 rounded-2xl border-0 text-white text-sm font-bold shadow-sm disabled:opacity-50"
+                      style={{ backgroundColor: themeColor || '#00AE9A' }}
+                    >
+                      {isSavingFixed ? 'Salvando...' : 'Salvar alterações'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="border-b border-border pb-4">
+                    <h3 className="panel-title text-lg font-black d-flex align-items-center gap-2.5 m-0">
+                      <i className="fa-solid fa-repeat" style={{ color: themeColor || '#00AE9A' }}></i>
+                      <span>Contas Fixas e Recorrências</span>
+                    </h3>
+                    <span className="text-xs text-muted block mt-1">
+                      Edite ou exclua despesas, compras e receitas recorrentes.
+                    </span>
+                  </div>
+
+                  <div className="bg-muted/20 p-1 rounded-full d-flex w-full border border-border/50">
+                    {([
+                      { id: 'despesas', label: 'Despesas' },
+                      { id: 'cartoes', label: 'Cartões' },
+                      { id: 'receitas', label: 'Receitas' }
+                    ] as const).map((group) => {
+                      const selected = mobileFixedGroup === group.id;
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => setMobileFixedGroup(group.id)}
+                          className={cn(
+                            "flex-1 py-2.5 px-2 rounded-full border-0 text-[11px] font-black transition-all",
+                            selected ? "text-white shadow-sm" : "bg-transparent text-muted"
+                          )}
+                          style={selected ? { backgroundColor: themeColor || '#00AE9A' } : undefined}
+                        >
+                          {group.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2">
+                    {mobileFixedItems.length === 0 ? (
+                      <div className="text-center py-10 px-4 bg-muted/10 border border-border rounded-3xl">
+                        <i className="fa-regular fa-folder-open text-2xl text-muted opacity-50 mb-2 d-block"></i>
+                        <span className="text-sm font-bold text-foreground d-block">Nenhuma conta encontrada</span>
+                        <span className="text-[11px] text-muted d-block mt-1">Os novos registros recorrentes aparecerão aqui.</span>
+                      </div>
+                    ) : mobileFixedItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-card border border-border rounded-2xl p-3 d-flex align-items-center justify-content-between gap-3 shadow-xs"
+                      >
+                        <div className="d-flex align-items-center gap-3 min-w-0 flex-grow-1">
+                          <div
+                            className="w-10 h-10 rounded-xl d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{ backgroundColor: `${themeColor || '#00AE9A'}15`, color: themeColor || '#00AE9A' }}
+                          >
+                            <i className={cn("fa-solid text-sm", item.cartao_id ? "fa-credit-card" : item.tipo === 'receita' ? "fa-arrow-trend-up" : "fa-repeat")}></i>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-sm font-bold text-foreground d-block truncate">{item.descricao}</span>
+                            <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                              <span className={cn("text-[11px] font-bold", item.tipo === 'receita' ? "text-success" : "text-foreground")}>
+                                {item.tipo === 'receita' ? '+' : ''}{formatCurrency(item.valor_mensal)}/mês
+                              </span>
+                              <span className="text-[9px] font-bold text-muted bg-muted/30 rounded-full px-2 py-0.5">
+                                {item.total_parcelas ? `${item.parcela_atual}/${item.total_parcelas}` : 'Recorrente'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="d-flex align-items-center gap-1.5 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => startMobileFixedEdit(item)}
+                            className="w-8 h-8 rounded-full border-0 bg-muted/30 text-muted d-flex align-items-center justify-content-center"
+                            aria-label={`Editar ${item.descricao}`}
+                          >
+                            <i className="fa-solid fa-pen-to-square text-xs"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteContaFixa?.(item.id)}
+                            disabled={!onDeleteContaFixa}
+                            className="w-8 h-8 rounded-full border-0 bg-danger/10 text-danger d-flex align-items-center justify-content-center disabled:opacity-40"
+                            aria-label={`Excluir ${item.descricao}`}
+                          >
+                            <i className="fa-solid fa-trash text-xs"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           
           {/* =========================================================
               CARD 1: TEMA E IDENTIDADE VISUAL
@@ -603,6 +883,44 @@ export function SettingsView({
                   </div>
                 </div>
               </div>
+
+              {onToggleVisibility && (
+                <div className="p-4 bg-[var(--card-hover)] border border-border rounded-2xl d-flex align-items-center justify-content-between gap-4">
+                  <div className="d-flex align-items-center gap-3 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ backgroundColor: `${themeColor || '#00AE9A'}15`, color: themeColor || '#00AE9A' }}
+                    >
+                      <i className={cn("fa-regular text-sm", isHidden ? "fa-eye-slash" : "fa-eye")}></i>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-foreground d-block">Privacidade dos valores</span>
+                      <span className="text-[10px] text-muted d-block mt-0.5">
+                        {isHidden ? 'Os valores financeiros estão ocultos.' : 'Os valores financeiros estão visíveis.'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onToggleVisibility}
+                    className={cn(
+                      "relative w-12 h-7 rounded-full border-0 transition-colors flex-shrink-0 cursor-pointer",
+                      isHidden ? "bg-muted" : "bg-primary"
+                    )}
+                    style={!isHidden ? { backgroundColor: themeColor || '#00AE9A' } : undefined}
+                    role="switch"
+                    aria-checked={!isHidden}
+                    aria-label={isHidden ? 'Exibir valores' : 'Ocultar valores'}
+                  >
+                    <span
+                      className={cn(
+                        "position-absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all",
+                        isHidden ? "left-1" : "left-[23px]"
+                      )}
+                    ></span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

@@ -197,41 +197,20 @@ export function Topbar({
           </div>
           
           <div className="d-flex align-items-center gap-1">
-            {/* Mobile Eye Toggle */}
-            {onToggleVisibility && (
-              <button 
-                type="button"
-                className="btn btn-link text-white p-2"
-                title={isHidden ? "Exibir valores" : "Ocultar valores"}
-                onClick={onToggleVisibility}
-              >
-                <i className={cn("fa-regular fs-5", isHidden ? "fa-eye-slash" : "fa-eye")}></i>
-              </button>
-            )}
-
-            {/* Mobile theme toggle */}
-            <button 
-              type="button"
-              className="btn btn-link text-white p-2"
-              title="Alternar Tema"
-              onClick={toggleDarkMode}
-            >
-              <i className={cn("fa-solid fs-5", themeMode === 'light' ? "fa-sun" : themeMode === 'dark' ? "fa-cloud-moon" : "fa-moon")}></i>
-            </button>
-
-            <div className="position-relative">
-              <button 
-                className="btn btn-link text-white p-2"
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <i className="fa-regular fa-bell fs-5"></i>
-                {totalAlertas > 0 && (
+            {totalAlertas > 0 && (
+              <div className="position-relative">
+                <button
+                  className="btn btn-link text-white p-2"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  title="Notificações"
+                >
+                  <i className="fa-regular fa-bell fs-5"></i>
                   <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-white" style={{ fontSize: '10px', padding: '2px 5px', transform: 'translate(-12px, 8px) !important' }}>
                     {totalAlertas}
                   </span>
-                )}
-              </button>
-            </div>
+                </button>
+              </div>
+            )}
             
             <div 
               className="position-relative"

@@ -773,6 +773,19 @@ export async function encerrarContaFixaConfig(
   return data;
 }
 
+export async function excluirContaFixaConfig(id: number) {
+  if (!Number.isInteger(id) || id < 1) {
+    throw new Error('A recorrência informada é inválida.');
+  }
+
+  const { data, error } = await supabase.rpc('excluir_conta_fixa', {
+    p_conta_fixa_id: id
+  });
+  if (error) throw error;
+
+  return data;
+}
+
 export async function ignorarOcorrenciaContaFixa(id: number, ocorrencia: number) {
   if (!Number.isInteger(id) || id < 1 || !Number.isInteger(ocorrencia) || ocorrencia < 1) {
     throw new Error('A ocorrência recorrente informada é inválida.');
