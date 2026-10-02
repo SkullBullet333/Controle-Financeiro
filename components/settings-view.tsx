@@ -275,6 +275,7 @@ export function SettingsView({
 
   type SectionId = 'contas_fixas' | 'tema' | 'membros' | 'titulares' | 'cartoes' | 'categorias' | 'avisos';
   const [activeSection, setActiveSection] = useState<SectionId>('tema');
+  const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
   const [mobileFixedGroup, setMobileFixedGroup] = useState<'despesas' | 'cartoes' | 'receitas'>('despesas');
   const [mobileEditingFixed, setMobileEditingFixed] = useState<ContaFixaConfig | null>(null);
   const [mobileFixedForm, setMobileFixedForm] = useState({
@@ -376,6 +377,21 @@ export function SettingsView({
     },
   ], []);
 
+  const openSettingsSection = (sectionId: SectionId) => {
+    setActiveSection(sectionId);
+    setMobileEditingFixed(null);
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      setMobileSectionOpen(true);
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    }
+  };
+
+  const closeMobileSettingsSection = () => {
+    setMobileEditingFixed(null);
+    setMobileSectionOpen(false);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-12">
       {/* Layout Master-Detail: Lista de Categorias à Esquerda e Formulário Dedicado à Direita */}
@@ -383,7 +399,10 @@ export function SettingsView({
         
         {/* Menu Lateral Unificado e Arredondado */}
         <div 
-          className="w-full lg:w-80 flex-shrink-0 bg-card border border-border rounded-3xl p-3 space-y-1.5 shadow-xs"
+          className={cn(
+            "w-full lg:w-80 flex-shrink-0 bg-card border border-border rounded-3xl p-3 space-y-1.5 shadow-xs",
+            mobileSectionOpen && "d-none d-md-block"
+          )}
           style={{ borderRadius: '24px' }}
         >
           <div className="px-3 pt-2 pb-1.5">
@@ -398,7 +417,7 @@ export function SettingsView({
               <button
                 key={sec.id}
                 type="button"
-                onClick={() => setActiveSection(sec.id)}
+                onClick={() => openSettingsSection(sec.id)}
                 className={cn(
                   "w-full text-left p-3 rounded-2xl transition-all d-flex align-items-center justify-content-between gap-3 cursor-pointer group border-0",
                   sec.mobileOnly && "d-md-none",
@@ -437,7 +456,22 @@ export function SettingsView({
         </div>
 
         {/* Painel Central: Exibição Individual da Seção Selecionada com Bordas Nítidas e Multicolunas */}
-        <div className="w-full flex-1 min-w-0">
+        <div className={cn(
+          "w-full flex-1 min-w-0",
+          !mobileSectionOpen && "d-none d-md-block"
+        )}>
+          {!mobileEditingFixed && (
+            <div className="d-md-none d-flex align-items-center mb-2 px-1 py-1">
+              <button
+                type="button"
+                onClick={closeMobileSettingsSection}
+                className="p-1 border-0 bg-transparent text-foreground d-flex align-items-center justify-content-center"
+                aria-label="Voltar para definições e configurações"
+              >
+                <i className="fa-solid fa-arrow-left text-sm"></i>
+              </button>
+            </div>
+          )}
 
           {/* =========================================================
               MOBILE: CONTAS FIXAS E RECORRÊNCIAS
@@ -453,7 +487,7 @@ export function SettingsView({
                     <button
                       type="button"
                       onClick={() => setMobileEditingFixed(null)}
-                      className="w-9 h-9 rounded-full border-0 bg-muted/30 text-muted d-flex align-items-center justify-content-center flex-shrink-0"
+                      className="p-1 border-0 bg-transparent text-foreground d-flex align-items-center justify-content-center flex-shrink-0"
                       aria-label="Voltar para contas fixas"
                     >
                       <i className="fa-solid fa-arrow-left text-xs"></i>
@@ -562,7 +596,7 @@ export function SettingsView({
                       <i className="fa-solid fa-repeat" style={{ color: themeColor || '#00AE9A' }}></i>
                       <span>Contas Fixas e Recorrências</span>
                     </h3>
-                    <span className="text-xs text-muted block mt-1">
+                    <span className="text-xs text-muted d-none d-md-block mt-1">
                       Edite ou exclua despesas, compras e receitas recorrentes.
                     </span>
                   </div>
@@ -662,7 +696,7 @@ export function SettingsView({
                   <i className="fa-solid fa-palette text-amber-500"></i>
                   <span>Tema e Identidade Visual</span>
                 </h3>
-                <span className="text-xs text-muted block mt-1">
+                <span className="text-xs text-muted d-none d-md-block mt-1">
                   Personalize o esquema de cores e o modo de exibição preferido da sua aplicação
                 </span>
               </div>
@@ -937,7 +971,7 @@ export function SettingsView({
                   <i className="fa-solid fa-users text-pink-500"></i>
                   <span>Membros & Compartilhamento Familiar</span>
                 </h3>
-                <span className="text-xs text-muted block mt-1">
+                <span className="text-xs text-muted d-none d-md-block mt-1">
                   Gerencie as pessoas que possuem acesso conjunto a este ambiente financeiro
                 </span>
               </div>
@@ -1027,7 +1061,7 @@ export function SettingsView({
                     <i className="fa-solid fa-id-badge text-cyan-500"></i>
                     <span>Titulares Cadastrados</span>
                   </h3>
-                  <span className="text-xs text-muted block mt-1">
+                  <span className="text-xs text-muted d-none d-md-block mt-1">
                     Pessoas responsáveis por despesas, faturas e contas
                   </span>
                 </div>
@@ -1118,7 +1152,7 @@ export function SettingsView({
                     <i className="fa-solid fa-credit-card text-purple-500"></i>
                     <span>Meus Cartões de Crédito & Faturas</span>
                   </h3>
-                  <span className="text-xs text-muted block mt-1">
+                  <span className="text-xs text-muted d-none d-md-block mt-1">
                     Configure os dias de fechamento e vencimento de cada cartão cadastrado
                   </span>
                 </div>
@@ -1215,7 +1249,7 @@ export function SettingsView({
                     <i className="fa-solid fa-tags text-emerald-500"></i>
                     <span>Gerenciamento de Categorias</span>
                   </h3>
-                  <span className="text-xs text-muted block mt-1">
+                  <span className="text-xs text-muted d-none d-md-block mt-1">
                     Organize, renomeie categorias em lote ou reclassifique lançamentos por descrição
                   </span>
                 </div>
@@ -1482,7 +1516,7 @@ export function SettingsView({
                   <i className="fa-solid fa-bell text-orange-500"></i>
                   <span>Central de Avisos & Lembretes Rápidos</span>
                 </h3>
-                <span className="text-xs text-muted block mt-1">
+                <span className="text-xs text-muted d-none d-md-block mt-1">
                   Configure as notificações automáticas do sistema e anote tarefas rápidas
                 </span>
               </div>

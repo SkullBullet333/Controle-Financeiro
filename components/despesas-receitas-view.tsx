@@ -60,6 +60,7 @@ export function DespesasReceitasView({
   const [memberFilter, setMemberFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pago' | 'aberto' | 'vencido'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const activeFiltersCount = (memberFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
@@ -171,6 +172,124 @@ export function DespesasReceitasView({
       return true;
     });
   }, [allTransactions, typeFilter, memberFilter, statusFilter, searchTerm]);
+
+  const handleExportExcel = async () => {
+    if (filteredTransactions.length === 0 || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const { Workbook } = await import('exceljs');
+      const workbook = new Workbook();
+      workbook.creator = 'Controle Financeiro';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet(typeFilter === 'receita' ? 'Receitas' : 'Despesas', {
+        views: [{ state: 'frozen', ySplit: 1 }]
+      });
+
+      worksheet.columns = [
+        { header: 'Tipo', key: 'tipo', width: 14 },
+        { header: 'Descrição', key: 'descricao', width: 34 },
+        { header: 'Categoria', key: 'categoria', width: 24 },
+        { header: 'Titular', key: 'titular', width: 22 },
+        { header: 'Vencimento / Recebimento', key: 'data', width: 24 },
+        { header: 'Parcela', key: 'parcela', width: 12 },
+        { header: 'Status', key: 'status', width: 18 },
+        { header: 'Valor', key: 'valor', width: 18 }
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF107C41' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF0B5F31' } },
+          left: { style: 'thin', color: { argb: 'FF0B5F31' } },
+          bottom: { style: 'thin', color: { argb: 'FF0B5F31' } },
+          right: { style: 'thin', color: { argb: 'FF0B5F31' } }
+        };
+      });
+
+      filteredTransactions.forEach((tx, index) => {
+        let excelDate: Date | string = 'Mensal';
+        if (tx.rawVencimento && /^\d{4}-\d{2}-\d{2}$/.test(tx.rawVencimento)) {
+          const [year, month, day] = tx.rawVencimento.split('-').map(Number);
+          excelDate = new Date(year, month - 1, day);
+        }
+
+        const row = worksheet.addRow({
+          tipo: tx.isIncome ? 'Receita' : 'Despesa',
+          descricao: tx.desc,
+          categoria: tx.cat,
+          titular: tx.titular,
+          data: excelDate,
+          parcela: tx.parcela || '-',
+          status: tx.isOverdue ? 'Vencido' : tx.status,
+          valor: tx.isIncome ? tx.amount : -tx.amount
+        });
+
+        row.height = 22;
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle' };
+          cell.border = {
+            bottom: { style: 'hair', color: { argb: 'FFD9E2E7' } }
+          };
+          if (index % 2 === 1) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4F8F6' } };
+          }
+        });
+
+        if (excelDate instanceof Date) row.getCell('data').numFmt = 'dd/mm/yyyy';
+        row.getCell('valor').numFmt = '"R$" #,##0.00;[Red]-"R$" #,##0.00';
+        row.getCell('valor').font = {
+          bold: true,
+          color: { argb: tx.isIncome ? 'FF00875A' : 'FFE53935' }
+        };
+        row.getCell('status').font = {
+          bold: tx.isOverdue,
+          color: { argb: tx.isOverdue ? 'FFE53935' : 'FF334155' }
+        };
+      });
+
+      const lastDataRow = worksheet.rowCount;
+      const totalRow = worksheet.addRow({
+        status: 'Total filtrado',
+        valor: { formula: `SUM(H2:H${lastDataRow})` }
+      });
+      totalRow.height = 24;
+      totalRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FF14532D' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDFF2E5' } };
+        cell.border = { top: { style: 'thin', color: { argb: 'FF107C41' } } };
+      });
+      totalRow.getCell('status').alignment = { horizontal: 'right', vertical: 'middle' };
+      totalRow.getCell('valor').numFmt = '"R$" #,##0.00;[Red]-"R$" #,##0.00';
+
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: 8 }
+      };
+
+      const now = new Date();
+      const dateToken = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${typeFilter === 'receita' ? 'receitas' : 'despesas'}-filtradas-${dateToken}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Totals calculations
   const { totalReceitas, totalDespesas, saldo: saldoLiquido } = useMemo(
@@ -414,6 +533,17 @@ export function DespesasReceitasView({
               Exibindo {filteredTransactions.length} de {allTransactions.length} registros no período
             </span>
           </div>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={filteredTransactions.length === 0 || isExporting}
+            className="d-none d-md-flex align-items-center gap-1.5 px-1 py-1 bg-transparent border-0 font-medium text-xs transition-opacity hover:opacity-75 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ color: 'var(--text-muted)' }}
+            title="Exportar os dados filtrados para Excel"
+          >
+            <i className="fa-solid fa-file-excel text-sm" style={{ color: '#10b981' }}></i>
+            <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
+          </button>
         </div>
 
         {/* Mobile View: Lista de Cards Nativos (Sem rolagem horizontal e sem quebra de texto) */}

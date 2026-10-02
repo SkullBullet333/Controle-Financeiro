@@ -99,6 +99,7 @@ export function CartoesView({
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [discountRate, setDiscountRate] = useState<number>(1.15); // 1.15% a.m.
 
   // Build enhanced cards list from registered cartoes
@@ -162,6 +163,122 @@ export function CartoesView({
       return true;
     });
   }, [transacoes, selectedCardId, activeCard, searchTerm]);
+
+  const handleExportExcel = async () => {
+    if (cardTransactions.length === 0 || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const { Workbook } = await import('exceljs');
+      const workbook = new Workbook();
+      workbook.creator = 'Controle Financeiro';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet('Detalhamento da Fatura', {
+        views: [{ state: 'frozen', ySplit: 1 }]
+      });
+
+      worksheet.columns = [
+        { header: 'Compra', key: 'compra', width: 32 },
+        { header: 'Categoria', key: 'categoria', width: 22 },
+        { header: 'Cartão', key: 'cartao', width: 24 },
+        { header: 'Titular', key: 'titular', width: 22 },
+        { header: 'Parcela', key: 'parcela', width: 12 },
+        { header: 'Data', key: 'data', width: 14 },
+        { header: 'Competência', key: 'competencia', width: 15 },
+        { header: 'Valor da Parcela', key: 'valorParcela', width: 20 },
+        { header: 'Valor Total', key: 'valorTotal', width: 18 }
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF059669' } },
+          left: { style: 'thin', color: { argb: 'FF059669' } },
+          bottom: { style: 'thin', color: { argb: 'FF059669' } },
+          right: { style: 'thin', color: { argb: 'FF059669' } }
+        };
+      });
+
+      cardTransactions.forEach((transaction, index) => {
+        const card = cartoes.find((item) => Number(item.id) === Number(transaction.cartao_id));
+        const holder = titulares.find((item) => Number(item.id) === Number(transaction.titular_id));
+        let purchaseDate: Date | string = '-';
+
+        if (transaction.data_compra && /^\d{4}-\d{2}-\d{2}$/.test(transaction.data_compra)) {
+          const [year, month, day] = transaction.data_compra.split('-').map(Number);
+          purchaseDate = new Date(year, month - 1, day);
+        }
+
+        const row = worksheet.addRow({
+          compra: transaction.estabelecimento,
+          categoria: transaction.categoria || 'Geral',
+          cartao: card?.nome_cartao || 'Cartão',
+          titular: holder?.nome || 'Titular',
+          parcela: `${transaction.parcela_atual || 1}/${transaction.parcela_total || 1}`,
+          data: purchaseDate,
+          competencia: transaction.competencia,
+          valorParcela: transaction.valor,
+          valorTotal: multiplicarDinheiro(transaction.valor, transaction.parcela_total || 1)
+        });
+
+        row.height = 22;
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle' };
+          cell.border = { bottom: { style: 'hair', color: { argb: 'FFD9E2E7' } } };
+          if (index % 2 === 1) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4F8F6' } };
+          }
+        });
+
+        if (purchaseDate instanceof Date) row.getCell('data').numFmt = 'dd/mm/yyyy';
+        row.getCell('valorParcela').numFmt = '"R$" #,##0.00';
+        row.getCell('valorTotal').numFmt = '"R$" #,##0.00';
+        row.getCell('valorParcela').font = { bold: true, color: { argb: 'FF334155' } };
+        row.getCell('valorTotal').font = { bold: true, color: { argb: 'FF334155' } };
+      });
+
+      const lastDataRow = worksheet.rowCount;
+      const totalRow = worksheet.addRow({
+        competencia: 'Total filtrado',
+        valorParcela: { formula: `SUM(H2:H${lastDataRow})` }
+      });
+      totalRow.height = 24;
+      totalRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FF14532D' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDFF2E5' } };
+        cell.border = { top: { style: 'thin', color: { argb: 'FF10B981' } } };
+      });
+      totalRow.getCell('competencia').alignment = { horizontal: 'right', vertical: 'middle' };
+      totalRow.getCell('valorParcela').numFmt = '"R$" #,##0.00';
+
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: 1, column: 9 }
+      };
+
+      const now = new Date();
+      const dateToken = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `detalhamento-fatura-${dateToken}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Future installments for intelligent payoff simulation
   const futureInstallments = useMemo(() => {
@@ -283,7 +400,7 @@ export function CartoesView({
           </div>
         </div>
 
-        <div className="card-slider cards-slider-scrollbar" style={{ marginTop: '8px' }}>
+        <div className="card-slider cards-wallet-slider cards-slider-scrollbar" style={{ marginTop: '8px' }}>
           {cardsList.filter((card) => card.fatura > 0).length === 0 ? (
             <div className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center">
               <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
@@ -299,10 +416,10 @@ export function CartoesView({
                 className={cn(
                   'credit-card-ui cursor-pointer transition-all duration-300',
                   c.gradientClass,
-                  isSelected ? 'card-selected' : 'opacity-90 hover:opacity-100'
+                  isSelected && 'card-selected'
                 )}
                 style={{
-                  background: c.color ? (c.color.startsWith('linear') ? c.color : `linear-gradient(135deg, ${c.color} 0%, ${c.color}cc 100%)`) : undefined
+                  background: c.color || undefined
                 }}
                 onClick={() => setSelectedCardId(isSelected ? null : c.id)}
                 title={`Clique para selecionar ${c.brand}`}
@@ -408,7 +525,7 @@ export function CartoesView({
             </div>
 
             {/* Mobile View: Lista de Compras do Cartão em Cards (Sem rolagem horizontal) */}
-            <div className="d-md-none space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar p-1">
+            <div className="d-md-none space-y-2 max-h-[460px] overflow-y-auto custom-scrollbar p-1">
               {cardTransactions.length === 0 ? (
                 <div className="text-center py-4 text-muted small italic">
                   Nenhuma compra encontrada para este cartão no período.
@@ -579,6 +696,17 @@ export function CartoesView({
               </table>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={cardTransactions.length === 0 || isExporting}
+            className="d-none d-md-flex align-items-center align-self-start gap-1.5 px-1 pt-2 pb-0 bg-transparent border-0 font-medium text-xs transition-opacity hover:opacity-75 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ color: 'var(--text-muted)' }}
+            title="Exportar o detalhamento filtrado para Excel"
+          >
+            <i className="fa-solid fa-file-excel text-sm" style={{ color: '#10b981' }}></i>
+            <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
+          </button>
         </div>
 
         {/* Coluna 2: Card Consolidado com Total de Faturas + Gráfico de Linha dos Próximos 6 Meses */}

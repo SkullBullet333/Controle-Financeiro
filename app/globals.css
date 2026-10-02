@@ -998,7 +998,6 @@ body {
 .period-display i,
 .brand-icon i,
 .nav-item.active i,
-.mobile-nav-item.active i,
 i.text-primary,
 span.text-primary {
   color: var(--primary) !important;
@@ -1674,7 +1673,7 @@ body.black-mode .table-primary-subtle {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--gray);
+  color: rgba(255, 255, 255, 0.76);
   font-size: 0.65rem;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -1685,15 +1684,22 @@ body.black-mode .table-primary-subtle {
 
 .mobile-nav-item i {
   font-size: 1.25rem;
-  transition: transform 0.2s ease;
+  color: rgba(255, 255, 255, 0.56);
+  transition: transform 0.2s ease, color 0.2s ease, opacity 0.2s ease;
 }
 
 .mobile-nav-item.active {
-  color: var(--primary);
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
 }
 
 .mobile-nav-item.active i {
-  transform: translateY(-2px);
+  color: #ffffff !important;
+  background: transparent;
+  transform: translateY(-2px) scale(1.12);
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
 }
 
 .mobile-nav-container {
@@ -2778,7 +2784,57 @@ body.black-mode .cards-slider-scrollbar::-webkit-scrollbar-thumb:hover {
 
 .credit-card-ui.card-selected {
   transform: translateY(-4px);
-  box-shadow: 0 0 0 3px var(--primary, #00AE9A), 0 18px 36px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+@media (min-width: 769px) {
+  .cards-wallet-slider .credit-card-ui.card-selected {
+    transform: translateY(-8px) scale(1.035);
+    filter: brightness(1.08);
+    box-shadow: 0 24px 46px rgba(0, 0, 0, 0.62) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cards-wallet-slider {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    max-height: none;
+    padding: 14px 8px 20px 8px !important;
+    margin: 0 !important;
+    scroll-snap-type: none;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .cards-wallet-slider .credit-card-ui {
+    width: min(100%, 360px);
+    min-width: 0;
+    height: 180px;
+    margin: 0;
+    flex-shrink: 0;
+    scroll-snap-align: none;
+    transform-origin: top center;
+    opacity: 1 !important;
+    touch-action: pan-y;
+  }
+
+  .cards-wallet-slider .credit-card-ui:not(:first-child) {
+    margin-top: -116px;
+  }
+
+  .cards-wallet-slider .credit-card-ui.card-selected {
+    z-index: 20;
+    margin-bottom: 116px;
+    opacity: 1 !important;
+  }
+
+  .cards-wallet-slider .credit-card-ui.card-selected:last-child {
+    margin-bottom: 0;
+  }
 }
 
 /* User Specific Card Colors & Gradients */

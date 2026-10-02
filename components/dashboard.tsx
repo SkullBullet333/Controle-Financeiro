@@ -713,7 +713,6 @@ interface CreditCardsWidgetProps {
   cartoes?: CartaoConfig[];
   titulares?: Titular[];
   despesas?: Despesa[];
-  onViewAllCards?: () => void;
   isHidden?: boolean;
 }
 
@@ -749,9 +748,9 @@ export function CreditCardsWidget({
   cartoes = [],
   titulares = [],
   despesas = [],
-  onViewAllCards,
   isHidden = false
 }: CreditCardsWidgetProps) {
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const cardsList = useMemo(() => {
     if (!cartoes || cartoes.length === 0) {
       return [];
@@ -802,49 +801,50 @@ export function CreditCardsWidget({
           </h3>
           <span className="panel-subtitle">Acompanhamento de fechamento e limites</span>
         </div>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={onViewAllCards}
-        >
-          Ver Todos
-        </button>
       </div>
 
-      <div className="card-slider cards-slider-scrollbar">
+      <div className="card-slider cards-wallet-slider cards-slider-scrollbar">
         {cardsWithInvoice.length === 0 ? (
-          <button type="button" className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center bg-transparent" onClick={onViewAllCards}>
+          <div className="w-100 border border-dashed border-border rounded-2xl py-8 px-4 text-center bg-transparent">
             <CardIcon className="w-7 h-7 text-muted mx-auto mb-2" />
             <span className="d-block text-sm font-semibold text-foreground">Nenhum cartão com fatura neste período</span>
             <span className="d-block text-xs text-muted mt-1">Os cartões aparecerão aqui quando tiverem lançamentos acima de zero.</span>
-          </button>
-        ) : cardsWithInvoice.map((c) => (
-          <div
-            key={c.id}
-            className={cn('credit-card-ui cursor-pointer transition-all duration-300', c.gradientClass)}
-            style={{
-              background: c.color ? (c.color.startsWith('linear') ? c.color : `linear-gradient(135deg, ${c.color} 0%, ${c.color}cc 100%)`) : undefined
-            }}
-            onClick={onViewAllCards}
-          >
-            <div className="cc-top">
-              <div className="cc-chip"></div>
-              <span className="cc-brand truncate">{c.brand}</span>
-            </div>
-            <div className="cc-middle">
-              <div className="cc-number">{c.number}</div>
-            </div>
-            <div className="cc-bottom">
-              <div className="cc-holder truncate">{c.holder}</div>
-              <div className="cc-balance-preview">
-                <div className="cc-balance-label">Fatura Atual</div>
-                <div className={cn('cc-balance-val sensitive-val', isHidden && 'hidden-amount')}>
-                  {isHidden ? 'R$ •••••' : formatCurrency(c.fatura)}
+          </div>
+        ) : cardsWithInvoice.map((c) => {
+          const isSelected = selectedCardId === c.id;
+          return (
+            <div
+              key={c.id}
+              className={cn(
+                'credit-card-ui cursor-pointer transition-all duration-300',
+                c.gradientClass,
+                isSelected && 'card-selected'
+              )}
+              style={{
+                background: c.color || undefined
+              }}
+              onClick={() => setSelectedCardId(isSelected ? null : c.id)}
+              title={`Clique para ${isSelected ? 'recolher' : 'expandir'} ${c.brand}`}
+            >
+              <div className="cc-top">
+                <div className="cc-chip"></div>
+                <span className="cc-brand truncate">{c.brand}</span>
+              </div>
+              <div className="cc-middle">
+                <div className="cc-number">{c.number}</div>
+              </div>
+              <div className="cc-bottom">
+                <div className="cc-holder truncate">{c.holder}</div>
+                <div className="cc-balance-preview">
+                  <div className="cc-balance-label">Fatura Atual</div>
+                  <div className={cn('cc-balance-val sensitive-val', isHidden && 'hidden-amount')}>
+                    {isHidden ? 'R$ •••••' : formatCurrency(c.fatura)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1245,7 +1245,6 @@ export function DashboardView({
         cartoes={cartoes}
         titulares={titulares}
         despesas={despesas}
-        onViewAllCards={() => onViewChange?.('cartoes')}
         isHidden={isHidden}
       />
 

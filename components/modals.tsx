@@ -2848,6 +2848,7 @@ export function PayoffModal({
   const [inputMode, setInputMode] = useState<'value' | 'count'>('value');
   const [selectionInput, setSelectionInput] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Projeção das parcelas futuras para a simulação de quitação
   const futureInstallments = useMemo(() => {
@@ -2961,6 +2962,141 @@ export function PayoffModal({
   const totalNominal = somarDinheiro(selectedParcelas.map(i => i.valor));
   const totalVP = somarDinheiro(selectedParcelas.map(i => i.vp));
   const totalDiscount = Math.max(0, subtrairDinheiro(totalNominal, totalVP));
+
+  const handleExportExcel = async () => {
+    if (simulation.length === 0 || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const { Workbook } = await import('exceljs');
+      const workbook = new Workbook();
+      workbook.creator = 'Controle Financeiro';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet('Parcelas Futuras', {
+        views: [{ state: 'frozen', ySplit: 4 }]
+      });
+
+      worksheet.columns = [
+        { key: 'parcela', width: 13 },
+        { key: 'vencimento', width: 16 },
+        { key: 'competencia', width: 16 },
+        { key: 'valorNominal', width: 20 },
+        { key: 'valorPresente', width: 20 },
+        { key: 'economia', width: 18 }
+      ];
+
+      worksheet.mergeCells('A1:F1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = loan?.descricao || item?.descricao || 'Simulação VP';
+      titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      worksheet.getRow(1).height = 30;
+
+      worksheet.getCell('A2').value = 'Taxa mensal';
+      worksheet.getCell('B2').value = (loan?.taxa_mensal_percentual || 1.15) / 100;
+      worksheet.getCell('B2').numFmt = '0.00%';
+      worksheet.getCell('D2').value = 'Data de referência';
+      const [refYear, refMonth, refDay] = refDate.split('-').map(Number);
+      worksheet.getCell('E2').value = new Date(refYear, refMonth - 1, refDay);
+      worksheet.getCell('E2').numFmt = 'dd/mm/yyyy';
+      ['A2', 'D2'].forEach((address) => {
+        worksheet.getCell(address).font = { bold: true, color: { argb: 'FF475569' } };
+      });
+
+      const headers = ['Parcela', 'Vencimento', 'Competência', 'V. Nominal', 'V. Presente', 'Economia'];
+      const headerRow = worksheet.getRow(4);
+      headers.forEach((header, index) => {
+        headerRow.getCell(index + 1).value = header;
+      });
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF059669' } },
+          left: { style: 'thin', color: { argb: 'FF059669' } },
+          bottom: { style: 'thin', color: { argb: 'FF059669' } },
+          right: { style: 'thin', color: { argb: 'FF059669' } }
+        };
+      });
+
+      simulation.forEach((installment, index) => {
+        let dueDate: Date | string = '-';
+        if (installment.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(installment.vencimento)) {
+          const [year, month, day] = installment.vencimento.split('-').map(Number);
+          dueDate = new Date(year, month - 1, day);
+        }
+
+        const row = worksheet.addRow({
+          parcela: `${installment.parcela_atual}/${installment.parcela_total}`,
+          vencimento: dueDate,
+          competencia: installment.competencia,
+          valorNominal: installment.valor,
+          valorPresente: installment.vp,
+          economia: installment.discount
+        });
+
+        row.height = 22;
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle' };
+          cell.border = { bottom: { style: 'hair', color: { argb: 'FFD9E2E7' } } };
+          if (index % 2 === 1) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4F8F6' } };
+          }
+        });
+        row.getCell('parcela').alignment = { vertical: 'middle', horizontal: 'center' };
+        if (dueDate instanceof Date) row.getCell('vencimento').numFmt = 'dd/mm/yyyy';
+        ['valorNominal', 'valorPresente', 'economia'].forEach((key) => {
+          row.getCell(key).numFmt = '"R$" #,##0.00';
+        });
+        row.getCell('valorPresente').font = { bold: true, color: { argb: 'FF0F172A' } };
+        row.getCell('economia').font = { bold: true, color: { argb: 'FF10B981' } };
+      });
+
+      const lastDataRow = worksheet.rowCount;
+      const totalRow = worksheet.addRow({
+        competencia: 'Totais',
+        valorNominal: { formula: `SUM(D5:D${lastDataRow})` },
+        valorPresente: { formula: `SUM(E5:E${lastDataRow})` },
+        economia: { formula: `SUM(F5:F${lastDataRow})` }
+      });
+      totalRow.height = 25;
+      totalRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FF14532D' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDFF2E5' } };
+        cell.border = { top: { style: 'thin', color: { argb: 'FF10B981' } } };
+      });
+      totalRow.getCell('competencia').alignment = { horizontal: 'right', vertical: 'middle' };
+      ['valorNominal', 'valorPresente', 'economia'].forEach((key) => {
+        totalRow.getCell(key).numFmt = '"R$" #,##0.00';
+      });
+
+      worksheet.autoFilter = {
+        from: { row: 4, column: 1 },
+        to: { row: 4, column: 6 }
+      };
+
+      const now = new Date();
+      const dateToken = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `parcelas-futuras-vp-${dateToken}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (selectedParcelas.length === 0) return;
@@ -3099,37 +3235,50 @@ export function PayoffModal({
       </div>
 
       {/* Action Footer Buttons */}
-      <div className="d-flex align-items-center justify-content-end gap-2 pt-2 border-t border-border mt-2">
+      <div className="d-flex align-items-center justify-content-between gap-2 pt-2 border-t border-border mt-2">
         <button
           type="button"
-          onClick={onClose}
-          className="btn btn-outline-secondary rounded-pill px-4 py-1.5 text-xs font-bold uppercase tracking-wider"
+          onClick={handleExportExcel}
+          disabled={simulation.length === 0 || isExporting}
+          className="d-none d-md-flex align-items-center gap-1.5 px-1 py-1 bg-transparent border-0 font-medium text-xs transition-opacity hover:opacity-75 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ color: 'var(--text-muted)' }}
+          title="Exportar todas as parcelas futuras para Excel"
         >
-          Cancelar
+          <i className="fa-solid fa-file-excel text-sm" style={{ color: '#10b981' }}></i>
+          <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
         </button>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={selectedIds.length === 0 || isSubmitting}
-          className={cn(
-            "btn rounded-pill px-5 py-2 text-xs font-black uppercase tracking-wider d-flex align-items-center gap-2 shadow-md transition-all",
-            selectedIds.length === 0
-              ? "btn-secondary opacity-50 cursor-not-allowed"
-              : "btn-primary shadow-primary/20"
-          )}
-        >
-          {isSubmitting ? (
-            <>
-              <span className="spinner-border spinner-border-sm" role="status"></span>
-              <span>Processando...</span>
-            </>
-          ) : (
-            <>
-              <i className="fa-solid fa-check"></i>
-              <span>Confirmar</span>
-            </>
-          )}
-        </button>
+        <div className="d-flex align-items-center justify-content-end gap-2 ms-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-outline-secondary rounded-pill px-4 py-1.5 text-xs font-bold uppercase tracking-wider"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={selectedIds.length === 0 || isSubmitting}
+            className={cn(
+              "btn rounded-pill px-5 py-2 text-xs font-black uppercase tracking-wider d-flex align-items-center gap-2 shadow-md transition-all",
+              selectedIds.length === 0
+                ? "btn-secondary opacity-50 cursor-not-allowed"
+                : "btn-primary shadow-primary/20"
+            )}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="spinner-border spinner-border-sm" role="status"></span>
+                <span>Processando...</span>
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-check"></i>
+                <span>Confirmar</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
